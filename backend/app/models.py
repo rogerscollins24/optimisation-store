@@ -51,6 +51,16 @@ class Combo(Base):
     assigned_at: Mapped[DateTime] = mapped_column(DateTime, server_default=func.now())
 
 
+class ComboItem(Base):
+    __tablename__ = "combo_items"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    combo_id: Mapped[int] = mapped_column(Integer, ForeignKey("combos.id"))
+    product_id: Mapped[int] = mapped_column(Integer, ForeignKey("products.id"))
+    custom_price: Mapped[float] = mapped_column(Float)
+    custom_commission: Mapped[float] = mapped_column(Float)
+
+
 class Withdrawal(Base):
     __tablename__ = "withdrawals"
 
@@ -80,3 +90,15 @@ class Setting(Base):
 
     key: Mapped[str] = mapped_column(String, primary_key=True)
     value: Mapped[str] = mapped_column(String)
+
+
+class Notification(Base):
+    __tablename__ = "notifications"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    title: Mapped[str] = mapped_column(String)
+    message: Mapped[str] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(String, default="Active")
+    recipients: Mapped[str] = mapped_column(Text, default="all")
+    created_at: Mapped[DateTime] = mapped_column(DateTime, server_default=func.now())
+    updated_at: Mapped[DateTime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())

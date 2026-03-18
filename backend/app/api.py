@@ -1,15 +1,17 @@
 import random
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from sqlalchemy import func, or_, select
+from sqlalchemy import delete, func, or_, select
 from sqlalchemy.orm import Session
 
 from .database import get_db
-from .models import ActivityLog, Combo, Product, Setting, Task, User, Withdrawal
+from .models import ActivityLog, Combo, ComboItem, Notification, Product, Setting, Task, User, Withdrawal
 from .schemas import (
     BalanceUpdateRequest,
     ComboCreateRequest,
     ComboUpdateRequest,
+    NotificationCreateRequest,
+    NotificationUpdateRequest,
     ProductCreateRequest,
     ProductUpdateRequest,
     SettingsBulkUpdateRequest,
@@ -41,6 +43,31 @@ def _log_action(db: Session, request: Request | None, action: str, target: str, 
             ip=request.client.host if request and request.client else "unknown",
         )
     )
+
+
+def _load_combo_items(db: Session, combo_ids: list[int]) -> dict[int, list[dict]]:
+    if not combo_ids:
+        return {}
+
+    rows = db.execute(
+        select(ComboItem, Product.name)
+        .join(Product, ComboItem.product_id == Product.id)
+        .where(ComboItem.combo_id.in_(combo_ids))
+        .order_by(ComboItem.combo_id, ComboItem.id)
+    ).all()
+
+    grouped: dict[int, list[dict]] = {}
+    for combo_item, product_name in rows:
+        grouped.setdefault(combo_item.combo_id, []).append(
+            {
+                "id": combo_item.id,
+                "product_id": combo_item.product_id,
+                "product_name": product_name,
+                "price": combo_item.custom_price,
+                "commission": combo_item.custom_commission,
+            }
+        )
+    return grouped
 
 
 @router.get("/users")
@@ -270,27 +297,70 @@ def get_combos(db: Session = Depends(get_db)):
         .order_by(Combo.id)
     ).all()
 
-    return [
-        {
-            **_to_dict(combo),
-            "username": username,
-            "product_name": product_name,
-            "price": price,
-        }
-        for combo, username, product_name, price in rows
-    ]
+    combo_ids = [combo.id for combo, _, _, _ in rows]
+    combo_items_map = _load_combo_items(db, combo_ids)
+
+    result = []
+    for combo, username, product_name, price in rows:
+        products = combo_items_map.get(combo.id)
+        if not products:
+            base_product = db.get(Product, combo.product_id)
+            products = [
+                {
+                    "id": None,
+                    "product_id": combo.product_id,
+                    "product_name": product_name,
+                    "price": price,
+                    "commission": float(base_product.commission_rate) if base_product else 0.0,
+                }
+            ]
+
+        result.append(
+            {
+                **_to_dict(combo),
+                "username": username,
+                "product_name": ", ".join([item["product_name"] for item in products]),
+                "price": round(sum(float(item["price"]) for item in products), 2),
+                "products": products,
+            }
+        )
+
+    return result
 
 
 @router.post("/combos")
 def create_combo(payload: ComboCreateRequest, request: Request, db: Session = Depends(get_db)):
-    combo = Combo(user_id=payload.userId, task_number=payload.taskNumber, product_id=payload.productId)
+    if len(payload.products) != 2:
+        raise HTTPException(status_code=400, detail="Combo must contain exactly 2 products")
+
+    product_ids = [item.productId for item in payload.products]
+    if len(set(product_ids)) != 2:
+        raise HTTPException(status_code=400, detail="Combo products must be different")
+
+    for product_id in product_ids:
+        if not db.get(Product, product_id):
+            raise HTTPException(status_code=404, detail=f"Product {product_id} not found")
+
+    combo = Combo(user_id=payload.userId, task_number=payload.taskNumber, product_id=payload.products[0].productId)
     db.add(combo)
+    db.flush()
+
+    for item in payload.products:
+        db.add(
+            ComboItem(
+                combo_id=combo.id,
+                product_id=item.productId,
+                custom_price=item.price,
+                custom_commission=item.commission,
+            )
+        )
+
     _log_action(
         db,
         request,
         "Assigned Combo",
         f"User ID: {payload.userId}",
-        f"Assigned Product ID: {payload.productId} on Task {payload.taskNumber}",
+        f"Assigned 2 products on Task {payload.taskNumber}",
     )
     db.commit()
     return {"success": True}
@@ -307,10 +377,33 @@ def update_combo(combo_id: int, payload: ComboUpdateRequest, request: Request, d
         combo.user_id = updates.pop("userId")
     if "taskNumber" in updates:
         combo.task_number = updates.pop("taskNumber")
-    if "productId" in updates:
-        combo.product_id = updates.pop("productId")
+    combo_products = updates.pop("products", None)
     for key, value in updates.items():
         setattr(combo, key, value)
+
+    if combo_products is not None:
+        if len(combo_products) != 2:
+            raise HTTPException(status_code=400, detail="Combo must contain exactly 2 products")
+
+        product_ids = [item.productId for item in combo_products]
+        if len(set(product_ids)) != 2:
+            raise HTTPException(status_code=400, detail="Combo products must be different")
+
+        for product_id in product_ids:
+            if not db.get(Product, product_id):
+                raise HTTPException(status_code=404, detail=f"Product {product_id} not found")
+
+        combo.product_id = combo_products[0].productId
+        db.execute(delete(ComboItem).where(ComboItem.combo_id == combo_id))
+        for item in combo_products:
+            db.add(
+                ComboItem(
+                    combo_id=combo.id,
+                    product_id=item.productId,
+                    custom_price=item.price,
+                    custom_commission=item.commission,
+                )
+            )
 
     _log_action(db, request, "Updated Combo", f"Combo ID: {combo_id}", str(payload.model_dump(exclude_none=True)))
     db.commit()
@@ -323,8 +416,62 @@ def delete_combo(combo_id: int, request: Request, db: Session = Depends(get_db))
     if not combo:
         raise HTTPException(status_code=404, detail="Combo not found")
 
+    db.execute(delete(ComboItem).where(ComboItem.combo_id == combo_id))
     db.delete(combo)
     _log_action(db, request, "Deleted Combo", f"Combo ID: {combo_id}", "Combo removed")
+    db.commit()
+    return {"success": True}
+
+
+@router.get("/notifications")
+def get_notifications(db: Session = Depends(get_db)):
+    notifications = db.scalars(select(Notification).order_by(Notification.created_at.desc())).all()
+    return [_to_dict(item) for item in notifications]
+
+
+@router.post("/notifications")
+def create_notification(payload: NotificationCreateRequest, request: Request, db: Session = Depends(get_db)):
+    notification = Notification(
+        title=payload.title,
+        message=payload.message,
+        status=payload.status,
+        recipients=payload.recipients,
+    )
+    db.add(notification)
+    db.flush()
+    _log_action(db, request, "Created Notification", f"Notification ID: {notification.id}", payload.title)
+    db.commit()
+    return {"success": True, "notification": _to_dict(notification)}
+
+
+@router.put("/notifications/{notification_id}")
+def update_notification(
+    notification_id: int,
+    payload: NotificationUpdateRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    notification = db.get(Notification, notification_id)
+    if not notification:
+        raise HTTPException(status_code=404, detail="Notification not found")
+
+    updates = payload.model_dump(exclude_none=True)
+    for key, value in updates.items():
+        setattr(notification, key, value)
+
+    _log_action(db, request, "Updated Notification", f"Notification ID: {notification_id}", str(updates))
+    db.commit()
+    return {"success": True}
+
+
+@router.delete("/notifications/{notification_id}")
+def delete_notification(notification_id: int, request: Request, db: Session = Depends(get_db)):
+    notification = db.get(Notification, notification_id)
+    if not notification:
+        raise HTTPException(status_code=404, detail="Notification not found")
+
+    db.delete(notification)
+    _log_action(db, request, "Deleted Notification", f"Notification ID: {notification_id}", notification.title)
     db.commit()
     return {"success": True}
 

@@ -7,10 +7,16 @@ class BalanceUpdateRequest(BaseModel):
     reason: str = ""
 
 
+class ComboProductConfig(BaseModel):
+    productId: int
+    price: float
+    commission: float
+
+
 class ComboCreateRequest(BaseModel):
     userId: int
     taskNumber: int
-    productId: int
+    products: list[ComboProductConfig]
 
 
 class TaskStartRequest(BaseModel):
@@ -76,9 +82,23 @@ class TaskUpdateRequest(BaseModel):
 class ComboUpdateRequest(BaseModel):
     userId: int | None = None
     taskNumber: int | None = None
-    productId: int | None = None
+    products: list[ComboProductConfig] | None = None
     status: str | None = None
 
 
 class SettingsBulkUpdateRequest(BaseModel):
     settings: list[SettingUpdateRequest]
+
+
+class NotificationCreateRequest(BaseModel):
+    title: str
+    message: str
+    status: str = "Active"
+    recipients: str = "all"
+
+
+class NotificationUpdateRequest(BaseModel):
+    title: str | None = None
+    message: str | None = None
+    status: str | None = None
+    recipients: str | None = None

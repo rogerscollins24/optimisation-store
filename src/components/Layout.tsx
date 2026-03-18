@@ -37,7 +37,7 @@ const navigation = [
   { name: 'Tasks', href: '/tasks', icon: ListTodo },
   { name: 'Transactions', href: '/transactions', icon: ArrowRightLeft },
   { name: 'Withdrawals', href: '/withdrawals', icon: CreditCard },
-  { name: 'Notification', href: '/notifications', icon: Bell },
+  { name: 'Notifications', href: '/notifications', icon: Bell },
   { name: 'VIP Levels', href: '/vip-levels', icon: Star },
   { name: 'Activity Logs', href: '/activity-logs', icon: ClipboardList },
   { name: 'Balance Adder', href: '/balance-adder', icon: PlusCircle },

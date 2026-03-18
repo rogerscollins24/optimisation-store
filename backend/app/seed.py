@@ -1,7 +1,7 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from .models import ActivityLog, Product, Setting, Task, User, Withdrawal
+from .models import ActivityLog, Notification, Product, Setting, Task, User, Withdrawal
 
 
 def seed_if_empty(db: Session) -> None:
@@ -35,6 +35,22 @@ def seed_if_empty(db: Session) -> None:
         Setting(key="require_withdrawal_pin", value="true"),
     ]
     db.add_all(settings)
+
+    notifications = [
+        Notification(
+            title="Working time",
+            message="Customer service hours are from 10:00 AM to 10:00 PM daily.",
+            status="Active",
+            recipients="all",
+        ),
+        Notification(
+            title="Withdrawal window",
+            message="Pending withdrawal requests are reviewed during operating hours.",
+            status="Active",
+            recipients="all",
+        ),
+    ]
+    db.add_all(notifications)
 
     withdrawals = [
         Withdrawal(user_id=users[0].id, amount=75.0, method="USDT", address="TRX9ExampleWallet", status="Pending"),

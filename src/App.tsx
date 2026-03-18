@@ -12,6 +12,7 @@ import VIPLevels from './pages/VIPLevels';
 import BalanceAdder from './pages/BalanceAdder';
 import TrackedClicks from './pages/TrackedClicks';
 import Settings from './pages/Settings';
+import Notifications from './pages/Notifications';
 
 function App() {
   return (
@@ -26,6 +27,7 @@ function App() {
           <Route path="tasks" element={<Tasks />} />
           <Route path="transactions" element={<Transactions />} />
           <Route path="withdrawals" element={<Withdrawals />} />
+          <Route path="notifications" element={<Notifications />} />
           <Route path="activity-logs" element={<ActivityLogs />} />
           <Route path="vip-levels" element={<VIPLevels />} />
           <Route path="balance-adder" element={<BalanceAdder />} />
