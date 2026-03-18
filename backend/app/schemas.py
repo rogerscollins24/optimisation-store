@@ -49,6 +49,9 @@ class UserCreateRequest(BaseModel):
     set_starting_balance: float = 0
     exchange: str | None = None
     wallet_address: str | None = None
+    is_training_account: bool = False
+    trainer_owner_id: int | None = None
+    training_commission_rate: float = 25.0
     status: str = "Active"
 
 
@@ -72,7 +75,19 @@ class UserUpdateRequest(BaseModel):
     set_starting_balance: float | None = None
     exchange: str | None = None
     wallet_address: str | None = None
+    is_training_account: bool | None = None
+    trainer_owner_id: int | None = None
+    training_commission_rate: float | None = None
     status: str | None = None
+
+
+class TrainingAccountCreateRequest(BaseModel):
+    username: str
+    phone: str | None = None
+    login_password: str
+    withdraw_password: str
+    invite_code: str | None = None
+    referred_by: str
 
 
 class ProductCreateRequest(BaseModel):

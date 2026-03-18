@@ -19,11 +19,22 @@ from .schemas import (
     TaskCreateRequest,
     TaskStartRequest,
     TaskUpdateRequest,
+    TrainingAccountCreateRequest,
     UserCreateRequest,
     UserUpdateRequest,
 )
 
 router = APIRouter()
+
+
+def _generate_invite_code(db: Session, prefix: str = "INV") -> str:
+    alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+    for _ in range(20):
+        candidate = f"{prefix}{''.join(random.choice(alphabet) for _ in range(6))}"
+        exists = db.scalar(select(User.id).where(User.invite_code == candidate))
+        if not exists:
+            return candidate
+    raise HTTPException(status_code=500, detail="Failed to generate unique invite code")
 
 
 def _to_dict(model_obj, extra: dict | None = None) -> dict:
@@ -103,6 +114,9 @@ def create_user(payload: UserCreateRequest, request: Request, db: Session = Depe
         set_starting_balance=payload.set_starting_balance,
         exchange=payload.exchange,
         wallet_address=payload.wallet_address,
+        is_training_account=payload.is_training_account,
+        trainer_owner_id=payload.trainer_owner_id,
+        training_commission_rate=payload.training_commission_rate,
         status=payload.status,
     )
     db.add(user)
@@ -110,6 +124,51 @@ def create_user(payload: UserCreateRequest, request: Request, db: Session = Depe
     _log_action(db, request, "Created User", f"User ID: {user.id}", f"Created {user.username}")
     db.commit()
     return {"success": True, "user": _to_dict(user)}
+
+
+@router.post("/users/training-account")
+def create_training_account(payload: TrainingAccountCreateRequest, request: Request, db: Session = Depends(get_db)):
+    duplicate_username = db.scalar(select(User.id).where(User.username == payload.username))
+    if duplicate_username:
+        raise HTTPException(status_code=400, detail="Username already exists")
+
+    inviter = db.scalar(select(User).where(User.invite_code == payload.referred_by))
+    if not inviter:
+        raise HTTPException(status_code=404, detail="Referral code not found")
+
+    invite_code = payload.invite_code.strip() if payload.invite_code else None
+    if invite_code:
+        duplicate_invite = db.scalar(select(User.id).where(User.invite_code == invite_code))
+        if duplicate_invite:
+            raise HTTPException(status_code=400, detail="Invite code already exists")
+    else:
+        invite_code = _generate_invite_code(db, prefix="TRN")
+
+    training_user = User(
+        username=payload.username,
+        email=f"{payload.username}.{random.randint(1000, 9999)}@training.local",
+        phone=payload.phone,
+        login_password=payload.login_password,
+        withdraw_password=payload.withdraw_password,
+        invite_code=invite_code,
+        referred_by=payload.referred_by,
+        is_training_account=True,
+        trainer_owner_id=inviter.id,
+        training_commission_rate=25.0,
+        status="Active",
+    )
+    db.add(training_user)
+    db.flush()
+
+    _log_action(
+        db,
+        request,
+        "Created Training Account",
+        f"User ID: {training_user.id}",
+        f"Training account linked to inviter {inviter.username} ({payload.referred_by})",
+    )
+    db.commit()
+    return {"success": True, "user": _to_dict(training_user)}
 
 
 @router.put("/users/{user_id}")
@@ -163,6 +222,23 @@ def update_user_balance(user_id: int, payload: BalanceUpdateRequest, request: Re
     action = "Added Balance" if payload.type == "add" else "Deducted Balance"
     details = f"{'+' if payload.type == 'add' else '-'}${payload.amount} ({payload.reason})"
     _log_action(db, request, action, f"User ID: {user_id}", details)
+
+    if payload.type == "add" and db_user.is_training_account and db_user.trainer_owner_id:
+        inviter = db.get(User, db_user.trainer_owner_id)
+        if inviter:
+            commission_rate = float(db_user.training_commission_rate or 25.0)
+            commission_amount = round(float(payload.amount) * (commission_rate / 100.0), 2)
+            inviter.balance = float(inviter.balance) + commission_amount
+            inviter.commission = float(inviter.commission) + commission_amount
+            inviter.commission_today = float(inviter.commission_today) + commission_amount
+            _log_action(
+                db,
+                request,
+                "Training Commission Credit",
+                f"User ID: {inviter.id}",
+                f"+${commission_amount} from training account {db_user.username} (#{db_user.id})",
+            )
+
     db.commit()
     return {"success": True}
 
@@ -594,6 +670,7 @@ def get_transactions(db: Session = Depends(get_db)):
                     "Deducted Balance",
                     "Approved Withdrawal",
                     "Rejected Withdrawal",
+                    "Training Commission Credit",
                 ]
             )
         )
@@ -611,8 +688,8 @@ def get_transactions(db: Session = Depends(get_db)):
                 except ValueError:
                     continue
 
-        tx_type = "Credit" if log.action in ["Added Balance", "Rejected Withdrawal"] else "Debit"
-        status = "Completed" if "Approved" in log.action or "Added" in log.action else "Processed"
+        tx_type = "Credit" if log.action in ["Added Balance", "Rejected Withdrawal", "Training Commission Credit"] else "Debit"
+        status = "Completed" if log.action in ["Added Balance", "Approved Withdrawal", "Training Commission Credit"] else "Processed"
 
         transactions.append(
             {

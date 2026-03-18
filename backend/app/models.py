@@ -1,4 +1,4 @@
-from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, Text, func
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .database import Base
@@ -27,6 +27,9 @@ class User(Base):
     set_starting_balance: Mapped[float] = mapped_column(Float, default=0)
     exchange: Mapped[str | None] = mapped_column(String, nullable=True)
     wallet_address: Mapped[str | None] = mapped_column(String, nullable=True)
+    is_training_account: Mapped[bool] = mapped_column(Boolean, default=False)
+    trainer_owner_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("users.id"), nullable=True)
+    training_commission_rate: Mapped[float] = mapped_column(Float, default=25.0)
     status: Mapped[str] = mapped_column(String, default="Active")
     created_at: Mapped[DateTime] = mapped_column(DateTime, server_default=func.now())
 
