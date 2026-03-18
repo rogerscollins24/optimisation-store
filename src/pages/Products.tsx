@@ -3,6 +3,7 @@ import { Search, Plus, Edit2, Trash2, Eye } from 'lucide-react';
 
 const initialForm = {
   name: '',
+  description: '',
   price: '0',
   commission_rate: '0',
   stock: '0',
@@ -37,6 +38,7 @@ export default function Products() {
     setEditingProduct(product);
     setFormData({
       name: product.name || '',
+      description: product.description || '',
       price: String(product.price ?? 0),
       commission_rate: String(product.commission_rate ?? 0),
       stock: String(product.stock ?? 0),
@@ -50,6 +52,7 @@ export default function Products() {
 
     const payload = {
       name: formData.name,
+      description: formData.description || null,
       price: Number(formData.price || '0'),
       commission_rate: Number(formData.commission_rate || '0'),
       stock: Number(formData.stock || '0'),
@@ -120,23 +123,28 @@ export default function Products() {
       </div>
 
       {showModal && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-          <div className="w-full max-w-lg bg-slate-800 border border-slate-700 rounded-xl p-6 space-y-4">
-            <h2 className="text-lg font-semibold text-slate-100">{editingProduct ? 'Edit Product' : 'Create Product'}</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <input type="text" placeholder="Name" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="bg-slate-900 border border-slate-700 text-slate-200 rounded-lg p-2.5" />
-              <input type="number" placeholder="Price" value={formData.price} onChange={(e) => setFormData({ ...formData, price: e.target.value })} className="bg-slate-900 border border-slate-700 text-slate-200 rounded-lg p-2.5" />
-              <input type="number" placeholder="Commission Rate" value={formData.commission_rate} onChange={(e) => setFormData({ ...formData, commission_rate: e.target.value })} className="bg-slate-900 border border-slate-700 text-slate-200 rounded-lg p-2.5" />
-              <input type="number" placeholder="Stock" value={formData.stock} onChange={(e) => setFormData({ ...formData, stock: e.target.value })} className="bg-slate-900 border border-slate-700 text-slate-200 rounded-lg p-2.5" />
-              <select value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })} className="bg-slate-900 border border-slate-700 text-slate-200 rounded-lg p-2.5 md:col-span-2">
-                <option value="Active">Active</option>
-                <option value="Inactive">Inactive</option>
-                <option value="Out of Stock">Out of Stock</option>
-              </select>
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-[1px] flex items-start justify-center p-4 overflow-y-auto">
+          <div className="w-full max-w-lg mt-8 mb-8 bg-slate-900 border border-slate-700/80 rounded-xl p-6 shadow-2xl space-y-4">
+            <h2 className="text-xl font-bold text-slate-100">{editingProduct ? 'Edit Product' : 'Create Product'}</h2>
+            <div className="space-y-3">
+              <input type="text" placeholder="Name" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="w-full bg-slate-950 border border-slate-700/70 text-slate-200 text-sm rounded-lg p-2.5 outline-none" />
+              <textarea placeholder="Description (optional)" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} rows={3} className="w-full bg-slate-950 border border-slate-700/70 text-slate-200 text-sm rounded-lg p-2.5 outline-none resize-none" />
+              <div className="grid grid-cols-2 gap-3">
+                <input type="number" placeholder="Price" value={formData.price} onChange={(e) => setFormData({ ...formData, price: e.target.value })} className="w-full bg-slate-950 border border-slate-700/70 text-slate-200 text-sm rounded-lg p-2.5 outline-none" />
+                <input type="number" placeholder="Commission Rate" value={formData.commission_rate} onChange={(e) => setFormData({ ...formData, commission_rate: e.target.value })} className="w-full bg-slate-950 border border-slate-700/70 text-slate-200 text-sm rounded-lg p-2.5 outline-none" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <input type="number" placeholder="Stock" value={formData.stock} onChange={(e) => setFormData({ ...formData, stock: e.target.value })} className="w-full bg-slate-950 border border-slate-700/70 text-slate-200 text-sm rounded-lg p-2.5 outline-none" />
+                <select value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })} className="w-full bg-slate-950 border border-slate-700/70 text-slate-200 text-sm rounded-lg p-2.5 outline-none">
+                  <option value="Active">Active</option>
+                  <option value="Inactive">Inactive</option>
+                  <option value="Out of Stock">Out of Stock</option>
+                </select>
+              </div>
             </div>
-            <div className="flex justify-end gap-2">
-              <button onClick={() => setShowModal(false)} className="px-4 py-2 rounded-lg bg-slate-700 text-slate-200">Cancel</button>
-              <button onClick={handleSave} className="px-4 py-2 rounded-lg bg-blue-600 text-white">Save</button>
+            <div className="flex justify-end gap-2 pt-1">
+              <button onClick={() => setShowModal(false)} className="px-4 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm">Cancel</button>
+              <button onClick={handleSave} className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm">Save</button>
             </div>
           </div>
         </div>
