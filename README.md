@@ -1,168 +1,157 @@
 # Optimize Admin Panel
 
-Frontend: React + Vite (port 4173)
+Admin frontend, consumer frontend, and API/backend for task optimization and referral-based commission workflows.
 
-Backend: FastAPI (port 9000)
+## Stack and Ports
 
-Database: PostgreSQL in Docker (host port 5433)
+- Admin frontend: React + Vite on `http://localhost:4173`
+- Consumer frontend: React + Vite on `http://localhost:3000`
+- Backend API: FastAPI on `http://localhost:9000`
+- Database: PostgreSQL in Docker on `localhost:5433`
 
-## Major Changes Implemented
+## Major Changes and Updates
 
-### 1) Full Backend Migration
+### 1) Backend Migration and Architecture
 
-- Replaced previous backend stack with FastAPI + SQLAlchemy + PostgreSQL.
-- Removed legacy Gemini-related backend integration.
-- Moved data persistence to Dockerized Postgres.
+- Replaced legacy backend flow with FastAPI + SQLAlchemy + PostgreSQL.
+- Removed prior Gemini backend dependencies.
+- Added Docker Compose lifecycle for API and database services.
 
-### 2) Infrastructure and Ports
+### 2) Full Admin Coverage
 
-- Frontend runs on port `4173`.
-- Backend API runs on port `9000`.
-- Postgres is exposed on host port `5433`.
-- Added Docker Compose workflow for backend and database.
+- Replaced placeholder admin pages with API-backed sections.
+- Implemented CRUD, filtering, status actions, and CSV export across key modules.
+- Added complete Settings bulk-save support.
 
-### 3) Functional Admin Coverage
+### 3) Data Model Expansion
 
-- Implemented live API-backed functionality across all core admin sections.
-- Replaced placeholder pages with working CRUD/actions and CSV export where relevant.
-- Added notifications management section and wiring in navigation/routes.
+- Expanded user model with operational fields (auth credentials, referral fields, set/task counters, wallet/exchange, training-account flags).
+- Added product `description` and `image_url` support.
+- Added dedicated `user_tasks` table for consumer task records.
 
-### 4) Combo System Upgrade
+### 4) Combo and Task Logic Improvements
 
-- Combo creation/update now enforces exactly 2 distinct products.
-- Supports per-product custom price and commission in combo items.
+- Combo creation/editing now enforces exactly 2 distinct products.
+- Combo items support per-item custom price and commission.
+- Added commission logic by VIP level for consumer task completion:
+	- VIP1: 40 tasks/set, 0.5%
+	- VIP2: 45 tasks/set, 1.0%
+	- VIP3: 50 tasks/set, 1.5%
+	- VIP4: 55 tasks/set, 2.0%
+	- VIP5+: 60 tasks/set, 2.5%
 
-### 5) User and Product Data Expansion
+### 5) Training Account + Referral Commission Flow
 
-- Expanded user schema and forms with additional operational fields:
-	login/withdraw passwords, gender, commission values, invite/referral fields, set/task counters, exchange, wallet, and more.
-- Added product `description` support in backend + UI forms.
+- Added toolbar flow to create training accounts from admin.
+- Training accounts are linked through referral/invite code.
+- Balance-add events on training accounts automatically credit inviter commission (default `25%`).
+- Referral commission credits are visible in transactions/activity logs.
 
-### 6) Training Account + Referral Commission Flow
+### 6) Consumer App Integration (`optimization-front`)
 
-- Added top toolbar **Add User** flow for creating a training account.
-- Training account is linked by `referred_by` invite code.
-- On training-account earnings (balance add), inviter is automatically credited commission.
-- Default training commission rate is `25%`.
-- Added API endpoint: `/api/users/training-account`.
+- Added protected login flow (`username` + `login_password`) with local persistence.
+- Added authenticated routing and user refresh endpoints.
+- Wired Starting screen to live products and live task completion.
+- Wired Records to backend task history.
+- Wired Profile, Deposit, Withdraw to live user state and backend balance updates.
+- Added local proxy (`/api -> http://localhost:9000`) in consumer app Vite config.
 
-### 7) Activity/Transaction Improvements
+### 7) New Client-Facing API Endpoints
 
-- Important admin actions are logged to activity logs.
-- Training referral payouts appear in transactions as `Training Commission Credit`.
+- `POST /api/auth/login`
+- `GET /api/users/{id}/overview`
+- `POST /api/users/{id}/complete-task`
+- `GET /api/users/{id}/task-records`
 
 ## Prerequisites
 
 - Node.js 18+
 - npm
-- Docker Desktop (or Docker Engine + Compose)
+- Docker Desktop (or Docker Engine with Compose)
 
-## Port Defaults
+## Quick Start (Admin + Backend)
 
-- Frontend: `http://localhost:4173`
-- Backend API: `http://localhost:9000`
-- Postgres: `localhost:5433`
-
-## Quick Start
-
-1. Install frontend dependencies:
+1. Install dependencies:
 
 ```bash
 npm install
 ```
 
-2. Start backend + database with Docker:
+2. Start backend + Postgres:
 
 ```bash
 npm run docker:up
 ```
 
-3. Start frontend dev server:
+3. Start admin frontend:
 
 ```bash
 npm run dev
 ```
 
-4. Open the app:
+4. Open:
 
-```text
-http://localhost:4173
-```
+- Admin: `http://localhost:4173`
+- API health: `http://localhost:9000/health`
 
-## Backend Environment
+## Quick Start (Consumer App)
 
-Backend settings live in `.env.backend` (optional for local overrides).
-
-You can copy defaults from `.env.backend.example`.
-
-Important values:
-
-- `APP_PORT=9000`
-- `DATABASE_URL=postgresql+psycopg://admin:admin@localhost:5433/adminpanel`
-- `CORS_ORIGINS=http://localhost:4173,http://127.0.0.1:4173`
-
-## Docker Commands
+1. Install consumer frontend dependencies:
 
 ```bash
-npm run docker:up
-npm run docker:logs
-npm run docker:down
+cd optimization-front
+npm install
 ```
 
-## Database Schema Note
+2. Start consumer frontend:
 
-When model fields change, recreate local Docker volume to apply a fresh schema:
+```bash
+npm run dev
+```
+
+3. Open:
+
+- Consumer app: `http://localhost:3000`
+
+## Development Notes
+
+- Backend env values can be overridden via `.env.backend`.
+- If model/schema fields change, reset Docker volume for clean schema recreation:
 
 ```bash
 docker compose down -v
 npm run docker:up
 ```
 
-## Functional Coverage
+## Admin Functional Coverage
 
-The admin UI is wired to live API data and actions across core sections:
+- Users: list, search/filter, create, update, lock/unlock, delete, CSV export
+- Users (toolbar): training-account creation via referral code
+- Products: list, search/filter, create, update, delete, CSV export, description
+- Tasks: list, search/filter, create, update, delete, CSV export
+- Combos: list, search/filter, create, update, delete, CSV export, 2-product enforcement
+- Withdrawals: moderation and status updates
+- Transactions: API-backed list, filtering, CSV export
+- Tracked Clicks: API-backed list, CSV export
+- VIP Levels: update flow + CSV export
+- Activity Logs: API-backed, filterable, CSV export
+- Notifications: CRUD, status toggles, filtering, CSV export
+- Settings: persisted bulk-save form
 
-- Users: list, search/filter, create, edit, lock/unlock, delete, CSV export
-- Users (top toolbar): create linked training account via referral code
-- Products: list, search/filter, create, edit, delete, CSV export, description field
-- Tasks: list, search/filter, create, edit, delete, CSV export
-- Combos: list, search/filter, create, edit, delete, CSV export, 2-product enforcement
-- Withdrawals: moderation controls and status updates
-- Transactions: API-backed list with filtering and CSV export
-- Tracked Clicks: API-backed list and CSV export
-- VIP Levels: user VIP editing and CSV export
-- Activity Logs: filtered log table and CSV export
-- Notifications: create/edit/delete, activate/deactivate, filtering, CSV export
-- Settings: full settings form persisted through bulk save endpoint
+## API Route Coverage
 
-## API Routes
+FastAPI serves all routes under `/api`.
 
-FastAPI serves the `/api/*` contract used by the frontend:
+- Users: `/users`, `/users/{id}`, `/users/{id}/lock`, `/users/{id}/balance`, `/users/training-account`, `/users/{id}/overview`, `/users/{id}/complete-task`, `/users/{id}/task-records`
+- Auth: `/auth/login`
+- Products: `/products`, `/products/{id}`
+- Tasks: `/tasks`, `/tasks/{id}`, `/tasks/start`
+- Combos: `/combos`, `/combos/{id}`
+- Notifications: `/notifications`, `/notifications/{id}`
+- Withdrawals: `/withdrawals`, `/withdrawals/{id}/approve`, `/withdrawals/{id}/reject`
+- Settings: `/settings`, `/settings/bulk`
+- Reporting: `/logs`, `/transactions`, `/tracked-clicks`, `/stats`
 
-- `/api/users` (GET, POST)
-- `/api/users/{id}` (PUT, DELETE)
-- `/api/users/{id}/lock` (POST)
-- `/api/users/{id}/balance` (POST)
-- `/api/users/training-account` (POST)
-- `/api/products` (GET, POST)
-- `/api/products/{id}` (PUT, DELETE)
-- `/api/tasks` (GET, POST)
-- `/api/tasks/{id}` (PUT, DELETE)
-- `/api/tasks/start` (POST)
-- `/api/combos` (GET, POST)
-- `/api/combos/{id}` (PUT, DELETE)
-- `/api/notifications` (GET, POST)
-- `/api/notifications/{id}` (PUT, DELETE)
-- `/api/withdrawals` (GET)
-- `/api/withdrawals/{id}/approve` (POST)
-- `/api/withdrawals/{id}/reject` (POST)
-- `/api/settings` (GET, POST)
-- `/api/settings/bulk` (POST)
-- `/api/logs` (GET)
-- `/api/transactions` (GET)
-- `/api/tracked-clicks` (GET)
-- `/api/stats` (GET)
-
-Health endpoint:
+Health route:
 
 - `/health`

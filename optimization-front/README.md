@@ -1,20 +1,58 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# Optimization Front (Consumer Client)
 
-# Run and deploy your AI Studio app
+Consumer-facing React app for task optimization flow, connected to the FastAPI backend in the root project.
 
-This contains everything you need to run your app locally.
+## What This Client Includes
 
-View your app in AI Studio: https://ai.studio/apps/21a77637-821b-464b-8989-ea762bbf3110
+- Login flow with username/password against `/api/auth/login`
+- Protected routes with local user session persistence
+- Starting page connected to live products and task completion endpoint
+- Records page connected to user task history endpoint
+- Profile page with live user balances and referral info
+- Deposit and Withdraw pages tied to live backend user state
+
+## Runtime Ports
+
+- Consumer app: `http://localhost:3000`
+- Backend API target: `http://localhost:9000`
+
+The dev proxy is configured so calls to `/api/*` are forwarded to the backend.
+
+## Prerequisites
+
+- Node.js 18+
+- Backend API running from the root workspace
 
 ## Run Locally
 
-**Prerequisites:**  Node.js
-
-
 1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+
+```bash
+npm install
+```
+
+2. Start dev server:
+
+```bash
+npm run dev
+```
+
+3. Open in browser:
+
+```text
+http://localhost:3000
+```
+
+## Build and Typecheck
+
+```bash
+npm run lint
+npm run build
+```
+
+## Login Test Users
+
+Seeded backend users (if using fresh Docker seed data):
+
+- `john_doe` / `pass123`
+- `jane_smith` / `pass456`
