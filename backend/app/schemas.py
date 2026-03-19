@@ -33,6 +33,10 @@ class TaskStartRequest(BaseModel):
     currentTaskNumber: int
 
 
+class SubmitTaskRequest(BaseModel):
+    taskCode: str
+
+
 class SettingUpdateRequest(BaseModel):
     key: str
     value: str

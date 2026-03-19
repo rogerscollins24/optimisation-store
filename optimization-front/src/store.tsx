@@ -6,9 +6,17 @@ export interface Task {
   image: string;
   price: number;
   commission: number;
-  status: 'pending' | 'completed';
+  status: 'pending' | 'pending_debited' | 'completed';
   createdAt: string;
   taskCode: string;
+  isCombo?: boolean;
+  comboId?: number | null;
+  products?: Array<{
+    product_id: number;
+    product_name: string;
+    price: number;
+    commission: number;
+  }>;
 }
 
 interface UserState {

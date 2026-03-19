@@ -81,6 +81,7 @@ def seed_if_empty(db: Session) -> None:
         Setting(key="maintenance_mode", value="false"),
         Setting(key="global_withdrawal_lock", value="false"),
         Setting(key="require_withdrawal_pin", value="true"),
+        Setting(key="support_chat_url", value="https://t.me/"),
     ]
     db.add_all(settings)
 

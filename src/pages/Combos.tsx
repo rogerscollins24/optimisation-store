@@ -138,6 +138,19 @@ export default function Combos() {
     fetchCombos();
   };
 
+  const handleReset = async (id: number) => {
+    if (!confirm('Reset this combo and remove its pending task for the user?')) return;
+
+    const response = await fetch(`/api/combos/${id}/reset`, { method: 'POST' });
+    if (!response.ok) {
+      const body = await response.json().catch(() => ({}));
+      alert(body.detail || 'Unable to reset combo right now.');
+      return;
+    }
+
+    fetchCombos();
+  };
+
   const exportCSV = () => {
     const headers = ['ID', 'Username', 'Trigger Task', 'Products', 'Total Price', 'Status', 'Assigned At'];
     const rows = filteredCombos.map((c) => [c.id, c.username, c.task_number, c.product_name, c.price, c.status, c.assigned_at]);
@@ -302,6 +315,9 @@ export default function Combos() {
                   <td className="px-6 py-4">{combo.assigned_at}</td>
                   <td className="px-6 py-4">
                     <div className="flex items-center justify-end gap-2">
+                      <button onClick={() => handleReset(combo.id)} className="p-1.5 text-slate-400 hover:text-blue-400 hover:bg-blue-400/10 rounded-lg" title="Reset">
+                        Reset
+                      </button>
                       <button onClick={() => openEdit(combo)} className="p-1.5 text-slate-400 hover:text-emerald-400 hover:bg-emerald-400/10 rounded-lg" title="Edit"><Edit2 size={18} /></button>
                       <button onClick={() => handleDelete(combo.id)} className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-400/10 rounded-lg" title="Delete"><Trash2 size={18} /></button>
                     </div>

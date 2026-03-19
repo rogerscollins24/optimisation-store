@@ -9,7 +9,6 @@ from .database import get_db
 from .models import ActivityLog, Combo, ComboItem, Notification, Product, Setting, Task, User, UserTask, Withdrawal
 from .schemas import (
     BalanceUpdateRequest,
-    CompleteTaskRequest,
     LoginRequest,
     ComboCreateRequest,
     ComboUpdateRequest,
@@ -21,6 +20,7 @@ from .schemas import (
     SettingUpdateRequest,
     TaskCreateRequest,
     TaskStartRequest,
+    SubmitTaskRequest,
     TaskUpdateRequest,
     TrainingAccountCreateRequest,
     UserCreateRequest,
@@ -41,7 +41,12 @@ def _generate_invite_code(db: Session, prefix: str = "INV") -> str:
 
 
 def _to_dict(model_obj, extra: dict | None = None) -> dict:
-    result = {column.name: getattr(model_obj, column.name) for column in model_obj.__table__.columns}
+    result = {}
+    for column in model_obj.__table__.columns:
+        value = getattr(model_obj, column.name)
+        if hasattr(value, "isoformat"):
+            value = value.isoformat()
+        result[column.name] = value
     if extra:
         result.update(extra)
     return result
@@ -82,6 +87,34 @@ def _load_combo_items(db: Session, combo_ids: list[int]) -> dict[int, list[dict]
             }
         )
     return grouped
+
+
+def _extract_combo_id(task_code: str) -> int | None:
+    if not task_code.startswith("CMB-"):
+        return None
+    parts = task_code.split("-", 2)
+    if len(parts) < 3:
+        return None
+    try:
+        return int(parts[1])
+    except ValueError:
+        return None
+
+
+def _get_support_chat_url(db: Session) -> str:
+    setting = db.get(Setting, "support_chat_url")
+    if not setting or not setting.value:
+        return "https://t.me/"
+    return setting.value
+
+
+def _format_task_record(task: UserTask, combo_products: list[dict] | None = None) -> dict:
+    record = _to_dict(task)
+    combo_id = _extract_combo_id(task.task_code)
+    record["is_combo"] = combo_id is not None
+    record["combo_id"] = combo_id
+    record["products"] = combo_products or []
+    return record
 
 
 @router.get("/users")
@@ -347,6 +380,34 @@ def delete_task(task_id: int, request: Request, db: Session = Depends(get_db)):
 
 @router.post("/tasks/start")
 def start_task(payload: TaskStartRequest, db: Session = Depends(get_db)):
+    user = db.get(User, payload.userId)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    pending_task = db.scalar(
+        select(UserTask)
+        .where(
+            UserTask.user_id == payload.userId,
+            UserTask.status.in_(["pending", "pending_debited"]),
+        )
+        .order_by(UserTask.created_at.desc())
+    )
+    if pending_task:
+        combo_id = _extract_combo_id(pending_task.task_code)
+        combo_products = _load_combo_items(db, [combo_id]).get(combo_id, []) if combo_id else []
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "PENDING_TASK_EXISTS",
+                "message": "You have a pending task. Submit it before starting another one.",
+                "task": _format_task_record(pending_task, combo_products),
+                "supportUrl": _get_support_chat_url(db),
+            },
+        )
+
+    cfg = _VIP_CONFIG.get(user.vip_level, {"tasks_per_set": 60, "rate": 0.025})
+    rate = cfg["rate"]
+
     combo = db.scalar(
         select(Combo).where(
             Combo.user_id == payload.userId,
@@ -357,27 +418,86 @@ def start_task(payload: TaskStartRequest, db: Session = Depends(get_db)):
 
     if combo:
         combo.status = "Triggered"
-        product = db.get(Product, combo.product_id)
+        combo_items = _load_combo_items(db, [combo.id]).get(combo.id, [])
+        if not combo_items:
+            base_product = db.get(Product, combo.product_id)
+            if not base_product:
+                raise HTTPException(status_code=404, detail="Combo product not found")
+            combo_items = [
+                {
+                    "id": None,
+                    "product_id": base_product.id,
+                    "product_name": base_product.name,
+                    "price": float(base_product.price),
+                    "commission": round(float(base_product.price) * rate, 2),
+                }
+            ]
+
+        first_product = db.get(Product, combo_items[0]["product_id"])
+        total_price = round(sum(float(item["price"]) for item in combo_items), 2)
+        total_commission = round(sum(float(item["commission"]) for item in combo_items), 2)
+        task_code = f"CMB-{combo.id}-{secrets.token_hex(3).upper()}"
+
+        user_task = UserTask(
+            user_id=payload.userId,
+            product_id=combo.product_id,
+            product_name=" + ".join([item["product_name"] for item in combo_items]),
+            image_url=first_product.image_url if first_product else None,
+            amount=total_price,
+            commission=total_commission,
+            commission_rate=0,
+            task_code=task_code,
+            status="pending",
+        )
+        db.add(user_task)
         db.commit()
+        db.refresh(user_task)
         return {
             "success": True,
             "isCombo": True,
-            "product": _to_dict(product) if product else None,
-            "message": "Combo triggered! High-value product assigned.",
+            "task": _format_task_record(user_task, combo_items),
+            "combo": {
+                "id": combo.id,
+                "task_number": combo.task_number,
+                "status": combo.status,
+                "products": combo_items,
+                "total_price": total_price,
+                "total_commission": total_commission,
+            },
+            "supportUrl": _get_support_chat_url(db),
+            "message": "Combo triggered. Submit this task to continue.",
         }
 
-    user = db.get(User, payload.userId)
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-
     price_cap = float(user.balance) * 1.5 if user.balance else 100
-    candidate_products = db.scalars(select(Product).where(Product.price <= price_cap)).all()
+    candidate_products = db.scalars(
+        select(Product).where(Product.price <= price_cap, Product.status == "Active")
+    ).all()
     product = random.choice(candidate_products) if candidate_products else None
+    if not product:
+        raise HTTPException(status_code=404, detail="No active products available")
+
+    commission = round(float(product.price) * rate, 2)
+    task_code = f"TSK-{secrets.token_hex(4).upper()}"
+    user_task = UserTask(
+        user_id=payload.userId,
+        product_id=product.id,
+        product_name=product.name,
+        image_url=product.image_url,
+        amount=float(product.price),
+        commission=commission,
+        commission_rate=rate * 100,
+        task_code=task_code,
+        status="pending",
+    )
+    db.add(user_task)
+    db.commit()
+    db.refresh(user_task)
 
     return {
         "success": True,
         "isCombo": False,
-        "product": _to_dict(product) if product else None,
+        "task": _format_task_record(user_task),
+        "supportUrl": _get_support_chat_url(db),
     }
 
 
@@ -514,6 +634,43 @@ def delete_combo(combo_id: int, request: Request, db: Session = Depends(get_db))
     _log_action(db, request, "Deleted Combo", f"Combo ID: {combo_id}", "Combo removed")
     db.commit()
     return {"success": True}
+
+
+@router.post("/combos/{combo_id}/reset")
+def reset_combo(combo_id: int, request: Request, db: Session = Depends(get_db)):
+    combo = db.get(Combo, combo_id)
+    if not combo:
+        raise HTTPException(status_code=404, detail="Combo not found")
+
+    combo.status = "Pending"
+    combo_prefix = f"CMB-{combo_id}-%"
+    pending_tasks = db.scalars(
+        select(UserTask).where(
+            UserTask.user_id == combo.user_id,
+            UserTask.task_code.like(combo_prefix),
+            UserTask.status.in_(["pending", "pending_debited"]),
+        )
+    ).all()
+
+    refunded = 0.0
+    user = db.get(User, combo.user_id)
+    for task in pending_tasks:
+        if task.status == "pending_debited" and user:
+            refunded += float(task.amount)
+        db.delete(task)
+
+    if user and refunded > 0:
+        user.balance = round(float(user.balance) + refunded, 2)
+
+    _log_action(
+        db,
+        request,
+        "Reset Combo",
+        f"Combo ID: {combo_id}",
+        f"Removed {len(pending_tasks)} pending records and refunded {refunded:.2f}",
+    )
+    db.commit()
+    return {"success": True, "removedPending": len(pending_tasks), "refunded": round(refunded, 2)}
 
 
 @router.get("/notifications")
@@ -787,54 +944,113 @@ _VIP_CONFIG = {
 }
 
 
-@router.post("/users/{user_id}/complete-task")
-def client_complete_task(user_id: int, body: CompleteTaskRequest, request: Request, db: Session = Depends(get_db)):
+@router.get("/users/{user_id}/pending-tasks")
+def client_pending_tasks(user_id: int, db: Session = Depends(get_db)):
     user = db.scalar(select(User).where(User.id == user_id))
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    cfg = _VIP_CONFIG.get(user.vip_level, {"tasks_per_set": 60, "rate": 0.025})
-    rate = cfg["rate"]
-    tasks_per_set = cfg["tasks_per_set"]
+    tasks = db.scalars(
+        select(UserTask)
+        .where(
+            UserTask.user_id == user_id,
+            UserTask.status.in_(["pending", "pending_debited"]),
+        )
+        .order_by(UserTask.created_at.desc())
+    ).all()
 
-    # Pick a random product (or the requested one)
-    if body.product_id:
-        product = db.scalar(select(Product).where(Product.id == body.product_id, Product.status == "Active"))
-    else:
-        products = db.scalars(select(Product).where(Product.status == "Active")).all()
-        product = random.choice(products) if products else None
+    result = []
+    for task in tasks:
+        combo_id = _extract_combo_id(task.task_code)
+        combo_products = _load_combo_items(db, [combo_id]).get(combo_id, []) if combo_id else []
+        result.append(_format_task_record(task, combo_products))
+    return {
+        "tasks": result,
+        "supportUrl": _get_support_chat_url(db),
+    }
 
-    if not product:
-        raise HTTPException(status_code=404, detail="No active products available")
 
-    commission = round(product.price * rate, 2)
-    task_code = f"T{secrets.token_hex(4).upper()}"
+@router.post("/users/{user_id}/submit-task")
+def client_submit_task(user_id: int, body: SubmitTaskRequest, request: Request, db: Session = Depends(get_db)):
+    user = db.scalar(select(User).where(User.id == user_id))
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
 
-    user_task = UserTask(
-        user_id=user_id,
-        product_id=product.id,
-        product_name=product.name,
-        image_url=product.image_url,
-        amount=product.price,
-        commission=commission,
-        commission_rate=rate * 100,
-        task_code=task_code,
-        status="completed",
+    user_task = db.scalar(
+        select(UserTask).where(UserTask.user_id == user_id, UserTask.task_code == body.taskCode)
     )
-    db.add(user_task)
+    if not user_task:
+        raise HTTPException(status_code=404, detail="Task not found")
 
-    # Update user stats
-    user.balance = round(user.balance + product.price + commission, 2)
-    user.commission = round(user.commission + commission, 2)
-    user.commission_today = round(user.commission_today + commission, 2)
+    if user_task.status == "completed":
+        return {
+            "success": True,
+            "task_record": _to_dict(user_task),
+            "user": _to_dict(user),
+        }
+
+    if user_task.status not in ["pending", "pending_debited"]:
+        raise HTTPException(status_code=400, detail="Task is not pending")
+
+    cfg = _VIP_CONFIG.get(user.vip_level, {"tasks_per_set": 60, "rate": 0.025})
+    tasks_per_set = cfg["tasks_per_set"]
+    support_url = _get_support_chat_url(db)
+
+    if user_task.status == "pending" and float(user.balance) < float(user_task.amount):
+        user.balance = round(float(user.balance) - float(user_task.amount), 2)
+        user_task.status = "pending_debited"
+        db.commit()
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "code": "INSUFFICIENT_BALANCE",
+                "message": "Task amount is higher than your balance. Please deposit and contact support.",
+                "requiredDeposit": round(abs(float(user.balance)), 2),
+                "supportUrl": support_url,
+                "task": _to_dict(user_task),
+            },
+        )
+
+    if user_task.status == "pending_debited":
+        if float(user.balance) < 0:
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "code": "INSUFFICIENT_BALANCE",
+                    "message": "Your balance is negative. Please deposit and contact support.",
+                    "requiredDeposit": round(abs(float(user.balance)), 2),
+                    "supportUrl": support_url,
+                    "task": _to_dict(user_task),
+                },
+            )
+        user.balance = round(float(user.balance) + float(user_task.amount) + float(user_task.commission), 2)
+    else:
+        user.balance = round(float(user.balance) + float(user_task.commission), 2)
+
+    user_task.status = "completed"
+    commission = float(user_task.commission)
+    combo_id = _extract_combo_id(user_task.task_code)
+    if combo_id:
+        combo = db.get(Combo, combo_id)
+        if combo and combo.status != "Completed":
+            combo.status = "Completed"
+
     user.tasks_completed_in_set = (user.tasks_completed_in_set or 0) + 1
     user.task_count_today = (user.task_count_today or 0) + 1
+    user.commission = round(float(user.commission) + commission, 2)
+    user.commission_today = round(float(user.commission_today) + commission, 2)
 
     if user.tasks_completed_in_set >= tasks_per_set:
         user.tasks_completed_in_set = 0
         user.current_set = (user.current_set or 0) + 1
 
-    _log_action(db, request, "Complete Task", f"User #{user_id}", f"Product: {product.name}, Commission: {commission}")
+    _log_action(
+        db,
+        request,
+        "Complete Task",
+        f"User #{user_id}",
+        f"Task: {user_task.task_code}, Amount: {user_task.amount}, Commission: {commission}",
+    )
     db.commit()
     db.refresh(user_task)
 
@@ -854,4 +1070,9 @@ def client_task_records(user_id: int, db: Session = Depends(get_db)):
     records = db.scalars(
         select(UserTask).where(UserTask.user_id == user_id).order_by(UserTask.created_at.desc())
     ).all()
-    return [_to_dict(r) for r in records]
+    result = []
+    for record in records:
+        combo_id = _extract_combo_id(record.task_code)
+        combo_products = _load_combo_items(db, [combo_id]).get(combo_id, []) if combo_id else []
+        result.append(_format_task_record(record, combo_products))
+    return result

@@ -24,6 +24,9 @@ export default function Records() {
               status: record.status,
               createdAt: record.created_at,
               taskCode: record.task_code,
+              isCombo: !!record.is_combo,
+              comboId: record.combo_id ?? null,
+              products: Array.isArray(record.products) ? record.products : [],
             }))
           : [];
         setRecords(nextRecords);
@@ -82,8 +85,22 @@ export default function Records() {
                 <div className="flex-1">
                   <h3 className="text-sm font-medium text-gray-800 line-clamp-2 mb-1">{record.title}</h3>
                   <p className="text-xs text-gray-500">{new Date(record.createdAt).toLocaleString()}</p>
+                  {record.status === 'pending_debited' && (
+                    <p className="text-xs text-rose-600 mt-1">Balance is negative. Deposit and submit this task to continue.</p>
+                  )}
                 </div>
               </div>
+
+              {record.isCombo && record.products && record.products.length > 0 && (
+                <div className="mb-3 space-y-1">
+                  {record.products.map((item) => (
+                    <div key={`${record.id}-${item.product_id}`} className="flex justify-between text-xs text-gray-600 bg-blue-50 px-2 py-1 rounded">
+                      <span>{item.product_name}</span>
+                      <span>USDT {Number(item.price).toFixed(2)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
 
               <div className="flex justify-between items-center pt-3 border-t border-gray-50">
                 <div>
@@ -95,6 +112,12 @@ export default function Records() {
                   <p className="text-sm font-bold text-green-600">+USDT {record.commission.toFixed(2)}</p>
                 </div>
               </div>
+
+              {record.status !== 'completed' && (
+                <Link to="/starting" className="mt-3 inline-block text-sm text-blue-600 underline font-medium">
+                  Resume Task
+                </Link>
+              )}
             </div>
           ))
         )}
