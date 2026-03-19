@@ -1,6 +1,15 @@
 from pydantic import BaseModel
 
 
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+
+class CompleteTaskRequest(BaseModel):
+    product_id: int | None = None
+
+
 class BalanceUpdateRequest(BaseModel):
     amount: float
     type: str

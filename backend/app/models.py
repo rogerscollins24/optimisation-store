@@ -44,6 +44,7 @@ class Product(Base):
     commission_rate: Mapped[float] = mapped_column(Float)
     stock: Mapped[int] = mapped_column(Integer)
     status: Mapped[str] = mapped_column(String, default="Active")
+    image_url: Mapped[str | None] = mapped_column(String, nullable=True)
 
 
 class Task(Base):
@@ -118,5 +119,19 @@ class Notification(Base):
     message: Mapped[str] = mapped_column(Text)
     status: Mapped[str] = mapped_column(String, default="Active")
     recipients: Mapped[str] = mapped_column(Text, default="all")
+
+
+class UserTask(Base):
+    __tablename__ = "user_tasks"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"))
+    product_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("products.id"), nullable=True)
+    product_name: Mapped[str] = mapped_column(String)
+    image_url: Mapped[str | None] = mapped_column(String, nullable=True)
+    amount: Mapped[float] = mapped_column(Float)
+    commission: Mapped[float] = mapped_column(Float)
+    commission_rate: Mapped[float] = mapped_column(Float)
+    task_code: Mapped[str] = mapped_column(String)
+    status: Mapped[str] = mapped_column(String, default="completed")
     created_at: Mapped[DateTime] = mapped_column(DateTime, server_default=func.now())
-    updated_at: Mapped[DateTime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())

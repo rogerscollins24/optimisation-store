@@ -1,13 +1,16 @@
 import random
+import secrets
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import delete, func, or_, select
 from sqlalchemy.orm import Session
 
 from .database import get_db
-from .models import ActivityLog, Combo, ComboItem, Notification, Product, Setting, Task, User, Withdrawal
+from .models import ActivityLog, Combo, ComboItem, Notification, Product, Setting, Task, User, UserTask, Withdrawal
 from .schemas import (
     BalanceUpdateRequest,
+    CompleteTaskRequest,
+    LoginRequest,
     ComboCreateRequest,
     ComboUpdateRequest,
     NotificationCreateRequest,
@@ -756,3 +759,99 @@ def get_stats(db: Session = Depends(get_db)):
         "vipDistribution": vip_distribution,
         "recentActivity": [_to_dict(log) for log in recent_activity],
     }
+
+
+# ── Client-facing auth & task endpoints ──────────────────────────────────────
+
+@router.post("/auth/login")
+def client_login(body: LoginRequest, db: Session = Depends(get_db)):
+    user = db.scalar(select(User).where(User.username == body.username))
+    if not user or user.login_password != body.password:
+        raise HTTPException(status_code=401, detail="Invalid username or password")
+    return _to_dict(user)
+
+
+@router.get("/users/{user_id}/overview")
+def client_user_overview(user_id: int, db: Session = Depends(get_db)):
+    user = db.scalar(select(User).where(User.id == user_id))
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return _to_dict(user)
+
+
+_VIP_CONFIG = {
+    1: {"tasks_per_set": 40, "rate": 0.005},
+    2: {"tasks_per_set": 45, "rate": 0.010},
+    3: {"tasks_per_set": 50, "rate": 0.015},
+    4: {"tasks_per_set": 55, "rate": 0.020},
+}
+
+
+@router.post("/users/{user_id}/complete-task")
+def client_complete_task(user_id: int, body: CompleteTaskRequest, request: Request, db: Session = Depends(get_db)):
+    user = db.scalar(select(User).where(User.id == user_id))
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    cfg = _VIP_CONFIG.get(user.vip_level, {"tasks_per_set": 60, "rate": 0.025})
+    rate = cfg["rate"]
+    tasks_per_set = cfg["tasks_per_set"]
+
+    # Pick a random product (or the requested one)
+    if body.product_id:
+        product = db.scalar(select(Product).where(Product.id == body.product_id, Product.status == "Active"))
+    else:
+        products = db.scalars(select(Product).where(Product.status == "Active")).all()
+        product = random.choice(products) if products else None
+
+    if not product:
+        raise HTTPException(status_code=404, detail="No active products available")
+
+    commission = round(product.price * rate, 2)
+    task_code = f"T{secrets.token_hex(4).upper()}"
+
+    user_task = UserTask(
+        user_id=user_id,
+        product_id=product.id,
+        product_name=product.name,
+        image_url=product.image_url,
+        amount=product.price,
+        commission=commission,
+        commission_rate=rate * 100,
+        task_code=task_code,
+        status="completed",
+    )
+    db.add(user_task)
+
+    # Update user stats
+    user.balance = round(user.balance + product.price + commission, 2)
+    user.commission = round(user.commission + commission, 2)
+    user.commission_today = round(user.commission_today + commission, 2)
+    user.tasks_completed_in_set = (user.tasks_completed_in_set or 0) + 1
+    user.task_count_today = (user.task_count_today or 0) + 1
+
+    if user.tasks_completed_in_set >= tasks_per_set:
+        user.tasks_completed_in_set = 0
+        user.current_set = (user.current_set or 0) + 1
+
+    _log_action(db, request, "Complete Task", f"User #{user_id}", f"Product: {product.name}, Commission: {commission}")
+    db.commit()
+    db.refresh(user_task)
+
+    return {
+        "success": True,
+        "commission": commission,
+        "task_record": _to_dict(user_task),
+        "user": _to_dict(user),
+    }
+
+
+@router.get("/users/{user_id}/task-records")
+def client_task_records(user_id: int, db: Session = Depends(get_db)):
+    user = db.scalar(select(User).where(User.id == user_id))
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    records = db.scalars(
+        select(UserTask).where(UserTask.user_id == user_id).order_by(UserTask.created_at.desc())
+    ).all()
+    return [_to_dict(r) for r in records]
