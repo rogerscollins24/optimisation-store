@@ -33,6 +33,11 @@ Admin frontend, consumer frontend, and API/backend for task optimization and ref
 
 - Combo creation/editing now enforces exactly 2 distinct products.
 - Combo items support per-item custom price and commission.
+- Added unified task modal flow for all client tasks (combo and non-combo).
+- Tasks are created as `pending` on start and only become `completed` after explicit submit.
+- Pending tasks block starting new tasks until submission.
+- Added negative-balance guard flow: if task amount exceeds balance, the task moves to `pending_debited`, user is blocked, and deposit + support/chat guidance is returned.
+- Pending tasks remain indefinitely until submitted by user or reset by admin.
 - Added commission logic by VIP level for consumer task completion:
 	- VIP1: 40 tasks/set, 0.5%
 	- VIP2: 45 tasks/set, 1.0%
@@ -51,8 +56,9 @@ Admin frontend, consumer frontend, and API/backend for task optimization and ref
 
 - Added protected login flow (`username` + `login_password`) with local persistence.
 - Added authenticated routing and user refresh endpoints.
-- Wired Starting screen to live products and live task completion.
-- Wired Records to backend task history.
+- Wired Starting screen to task start + submit lifecycle with pending-task resume behavior.
+- Added deposit prompt and clickable support/chat link when balance is insufficient.
+- Wired Records to backend task history including combo item details and pending states.
 - Wired Profile, Deposit, Withdraw to live user state and backend balance updates.
 - Added local proxy (`/api -> http://localhost:9000`) in consumer app Vite config.
 
@@ -60,8 +66,10 @@ Admin frontend, consumer frontend, and API/backend for task optimization and ref
 
 - `POST /api/auth/login`
 - `GET /api/users/{id}/overview`
-- `POST /api/users/{id}/complete-task`
+- `GET /api/users/{id}/pending-tasks`
+- `POST /api/users/{id}/submit-task`
 - `GET /api/users/{id}/task-records`
+- `POST /api/tasks/start`
 
 ## Prerequisites
 
@@ -130,6 +138,7 @@ npm run docker:up
 - Products: list, search/filter, create, update, delete, CSV export, description
 - Tasks: list, search/filter, create, update, delete, CSV export
 - Combos: list, search/filter, create, update, delete, CSV export, 2-product enforcement
+- Combos: admin reset action to clear blocked pending combo tasks
 - Withdrawals: moderation and status updates
 - Transactions: API-backed list, filtering, CSV export
 - Tracked Clicks: API-backed list, CSV export
@@ -142,11 +151,11 @@ npm run docker:up
 
 FastAPI serves all routes under `/api`.
 
-- Users: `/users`, `/users/{id}`, `/users/{id}/lock`, `/users/{id}/balance`, `/users/training-account`, `/users/{id}/overview`, `/users/{id}/complete-task`, `/users/{id}/task-records`
+- Users: `/users`, `/users/{id}`, `/users/{id}/lock`, `/users/{id}/balance`, `/users/training-account`, `/users/{id}/overview`, `/users/{id}/pending-tasks`, `/users/{id}/submit-task`, `/users/{id}/task-records`
 - Auth: `/auth/login`
 - Products: `/products`, `/products/{id}`
 - Tasks: `/tasks`, `/tasks/{id}`, `/tasks/start`
-- Combos: `/combos`, `/combos/{id}`
+- Combos: `/combos`, `/combos/{id}`, `/combos/{id}/reset`
 - Notifications: `/notifications`, `/notifications/{id}`
 - Withdrawals: `/withdrawals`, `/withdrawals/{id}/approve`, `/withdrawals/{id}/reject`
 - Settings: `/settings`, `/settings/bulk`
