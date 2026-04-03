@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import SupportSocket from '../lib/socket';
 import {
+  createSupportTicket,
   getSupportTicket,
   listSupportTickets,
   postSupportMessage,
@@ -17,6 +18,9 @@ export default function Support() {
   const [activeId, setActiveId] = useState<number | null>(null);
   const [messages, setMessages] = useState<SupportMessage[]>([]);
   const [draft, setDraft] = useState('');
+  const [newSubject, setNewSubject] = useState('');
+  const [newMessage, setNewMessage] = useState('');
+  const [showNewChat, setShowNewChat] = useState(false);
   const [status, setStatus] = useState('all');
 
   const socketRef = useRef<SupportSocket | null>(null);
@@ -85,6 +89,17 @@ export default function Support() {
     setMessages(ticket.messages ?? []);
   };
 
+  const handleCreateChat = async () => {
+    if (!token || !newSubject.trim()) return;
+    const ticket = await createSupportTicket(token, newSubject.trim(), newMessage.trim() || 'Hello, I need help.');
+    setTickets((prev) => [ticket, ...prev]);
+    setActiveId(ticket.id);
+    setMessages(ticket.messages ?? []);
+    setNewSubject('');
+    setNewMessage('');
+    setShowNewChat(false);
+  };
+
   if (!token) {
     return <div className="rounded-xl bg-white p-6 text-slate-600 shadow-sm">Please login to access support.</div>;
   }
@@ -94,18 +109,50 @@ export default function Support() {
       <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-bold text-slate-800">Support Tickets</h2>
-          <select
-            value={status}
-            onChange={(event) => setStatus(event.target.value)}
-            className="rounded-lg border border-slate-300 px-2 py-1 text-sm"
-          >
-            <option value="all">All</option>
-            <option value="open">Open</option>
-            <option value="in_progress">In Progress</option>
-            <option value="resolved">Resolved</option>
-            <option value="closed">Closed</option>
-          </select>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowNewChat((prev) => !prev)}
+              className="rounded-lg bg-cyan-600 px-3 py-1 text-sm font-semibold text-white"
+            >
+              New Chat
+            </button>
+            <select
+              value={status}
+              onChange={(event) => setStatus(event.target.value)}
+              className="rounded-lg border border-slate-300 px-2 py-1 text-sm"
+            >
+              <option value="all">All</option>
+              <option value="open">Open</option>
+              <option value="in_progress">In Progress</option>
+              <option value="resolved">Resolved</option>
+              <option value="closed">Closed</option>
+            </select>
+          </div>
         </div>
+
+        {showNewChat ? (
+          <div className="mb-3 rounded-lg border border-slate-200 p-3 bg-slate-50 space-y-2">
+            <input
+              value={newSubject}
+              onChange={(event) => setNewSubject(event.target.value)}
+              placeholder="Subject"
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            />
+            <textarea
+              value={newMessage}
+              onChange={(event) => setNewMessage(event.target.value)}
+              placeholder="Describe your issue"
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm min-h-[90px]"
+            />
+            <button
+              onClick={() => void handleCreateChat()}
+              disabled={!newSubject.trim()}
+              className="rounded-lg bg-cyan-600 px-3 py-1 text-sm font-semibold text-white disabled:opacity-60"
+            >
+              Create Ticket
+            </button>
+          </div>
+        ) : null}
 
         <div className="space-y-2 max-h-[65vh] overflow-y-auto">
           {tickets.map((ticket) => (

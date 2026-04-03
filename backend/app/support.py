@@ -2,7 +2,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket, WebSocketDisconnect, status
 from jose import JWTError, jwt
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session, joinedload
 
 from .config import settings
@@ -10,7 +10,13 @@ from .database import get_db
 from .deps import get_current_user, require_roles
 from .enums import SupportTicketStatus, UserRole
 from .models import SupportMessage, SupportTicket, User
-from .schemas import SupportMessageCreate, SupportTicketCreate, SupportTicketSchema, SupportTicketUpdate
+from .schemas import (
+    SupportMessageCreate,
+    SupportTicketAssignmentUpdate,
+    SupportTicketCreate,
+    SupportTicketSchema,
+    SupportTicketUpdate,
+)
 
 
 class ConnectionManager:
@@ -48,8 +54,56 @@ router = APIRouter()
 manager = ConnectionManager()
 
 
-def _is_staff(user: User) -> bool:
-    return user.role in [UserRole.SUPER_ADMIN, UserRole.SUPPORT, UserRole.OPS]
+def _role_value(user: User) -> str:
+    return user.role if isinstance(user.role, str) else str(user.role)
+
+
+def _is_admin(user: User) -> bool:
+    return _role_value(user) in [UserRole.SUPER_ADMIN.value, UserRole.SUB_ADMIN.value]
+
+
+def _is_super_admin(user: User) -> bool:
+    return _role_value(user) == UserRole.SUPER_ADMIN.value
+
+
+def _sub_admin_ticket_filter(user: User):
+    return or_(
+        SupportTicket.assigned_to_admin_id == user.id,
+        SupportTicket.user.has(User.created_by_admin_id == user.id),
+    )
+
+
+def _decorate_ticket(ticket: SupportTicket) -> SupportTicket:
+    if ticket.user:
+        setattr(ticket, "user_username", ticket.user.username)
+        setattr(ticket, "user_email", ticket.user.email)
+    if ticket.assigned_admin:
+        setattr(ticket, "assigned_admin_username", ticket.assigned_admin.username)
+    return ticket
+
+
+def _can_access_ticket(ticket: SupportTicket, current_user: User) -> bool:
+    if _is_super_admin(current_user):
+        return True
+    if _role_value(current_user) == UserRole.SUB_ADMIN.value:
+        created_for_sub_admin = bool(ticket.user and ticket.user.created_by_admin_id == current_user.id)
+        return ticket.assigned_to_admin_id == current_user.id or created_for_sub_admin
+    return ticket.user_id == current_user.id
+
+
+def _ticket_query():
+    return select(SupportTicket).options(
+        joinedload(SupportTicket.messages),
+        joinedload(SupportTicket.user),
+        joinedload(SupportTicket.assigned_admin),
+    )
+
+
+def _load_ticket(db: Session, ticket_id: int) -> SupportTicket | None:
+    ticket = db.scalar(_ticket_query().where(SupportTicket.id == ticket_id))
+    if ticket:
+        _decorate_ticket(ticket)
+    return ticket
 
 
 def _verify_ws_token(token: str) -> int:
@@ -88,11 +142,10 @@ def create_ticket(
     db.add(message)
     db.commit()
 
-    return db.scalar(
-        select(SupportTicket)
-        .options(joinedload(SupportTicket.messages))
-        .where(SupportTicket.id == ticket.id)
-    )
+    ticket_with_messages = db.scalar(_ticket_query().where(SupportTicket.id == ticket.id))
+    if not ticket_with_messages:
+        raise HTTPException(status_code=404, detail="Ticket not found")
+    return _decorate_ticket(ticket_with_messages)
 
 
 @router.get("/tickets", response_model=list[SupportTicketSchema])
@@ -103,30 +156,20 @@ def list_tickets(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    query = (
-        select(SupportTicket)
-        .options(joinedload(SupportTicket.messages))
-        .order_by(SupportTicket.updated_at.desc())
-    )
+    query = _ticket_query().order_by(SupportTicket.updated_at.desc())
 
-    is_staff = _is_staff(current_user)
-    if not is_staff:
+    if _is_super_admin(current_user):
+        pass
+    elif _role_value(current_user) == UserRole.SUB_ADMIN.value:
+        query = query.where(_sub_admin_ticket_filter(current_user))
+    else:
         query = query.where(SupportTicket.user_id == current_user.id)
 
     if status_filter:
         query = query.where(SupportTicket.status == status_filter)
 
     tickets = db.scalars(query.offset(skip).limit(limit)).unique().all()
-
-    if is_staff:
-        for ticket in tickets:
-            if ticket.user_id:
-                user = db.get(User, ticket.user_id)
-                if user:
-                    setattr(ticket, "user_username", user.username)
-                    setattr(ticket, "user_email", user.email)
-
-    return tickets
+    return [_decorate_ticket(ticket) for ticket in tickets]
 
 
 @router.get("/tickets/{ticket_id}", response_model=SupportTicketSchema)
@@ -135,23 +178,12 @@ def get_ticket(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    ticket = db.scalar(
-        select(SupportTicket)
-        .options(joinedload(SupportTicket.messages))
-        .where(SupportTicket.id == ticket_id)
-    )
+    ticket = _load_ticket(db, ticket_id)
     if not ticket:
         raise HTTPException(status_code=404, detail="Ticket not found")
 
-    is_staff = _is_staff(current_user)
-    if ticket.user_id != current_user.id and not is_staff:
+    if not _can_access_ticket(ticket, current_user):
         raise HTTPException(status_code=403, detail="Not authorized to view this ticket")
-
-    if is_staff and ticket.user_id:
-        user = db.get(User, ticket.user_id)
-        if user:
-            setattr(ticket, "user_username", user.username)
-            setattr(ticket, "user_email", user.email)
 
     return ticket
 
@@ -163,23 +195,23 @@ async def add_message(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    ticket = db.get(SupportTicket, ticket_id)
+    ticket = _load_ticket(db, ticket_id)
     if not ticket:
         raise HTTPException(status_code=404, detail="Ticket not found")
 
-    is_staff = _is_staff(current_user)
-    if ticket.user_id != current_user.id and not is_staff:
+    is_admin = _is_admin(current_user)
+    if not _can_access_ticket(ticket, current_user):
         raise HTTPException(status_code=403, detail="Not authorized to reply to this ticket")
 
-    if ticket.status in [SupportTicketStatus.RESOLVED, SupportTicketStatus.CLOSED] and not is_staff:
+    if ticket.status in [SupportTicketStatus.RESOLVED, SupportTicketStatus.CLOSED] and not is_admin:
         ticket.status = SupportTicketStatus.OPEN
 
     message = SupportMessage(
         ticket_id=ticket.id,
         sender_id=current_user.id,
         content=message_in.content,
-        is_admin_reply=is_staff,
-        read_by_admin=is_staff,
+        is_admin_reply=is_admin,
+        read_by_admin=is_admin,
     )
     db.add(message)
     db.commit()
@@ -197,42 +229,46 @@ async def add_message(
         },
     )
 
-    return db.scalar(
-        select(SupportTicket)
-        .options(joinedload(SupportTicket.messages))
-        .where(SupportTicket.id == ticket.id)
-    )
+    updated_ticket = _load_ticket(db, ticket.id)
+    if not updated_ticket:
+        raise HTTPException(status_code=404, detail="Ticket not found")
+    return updated_ticket
 
 
 @router.get("/unread-count", response_model=dict)
 def unread_count(
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_roles(UserRole.SUPER_ADMIN, UserRole.SUPPORT, UserRole.OPS)),
+    current_user: User = Depends(require_roles(UserRole.SUPER_ADMIN, UserRole.SUB_ADMIN)),
 ):
-    _ = current_user
-    count = (
-        db.query(SupportMessage)
-        .filter(
-            SupportMessage.is_admin_reply.is_(False),
-            SupportMessage.read_by_admin.is_(False),
-        )
-        .count()
+    query = db.query(SupportMessage).join(SupportTicket, SupportMessage.ticket_id == SupportTicket.id).filter(
+        SupportMessage.is_admin_reply.is_(False),
+        SupportMessage.read_by_admin.is_(False),
     )
+    if not _is_super_admin(current_user):
+        query = query.filter(_sub_admin_ticket_filter(current_user))
+    count = query.count()
     return {"unread": int(count)}
 
 
 @router.post("/mark-all-read", response_model=dict)
 def mark_all_read(
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_roles(UserRole.SUPER_ADMIN, UserRole.SUPPORT, UserRole.OPS)),
+    current_user: User = Depends(require_roles(UserRole.SUPER_ADMIN, UserRole.SUB_ADMIN)),
 ):
-    _ = current_user
+    message_ids_query = select(SupportMessage.id).join(SupportTicket, SupportMessage.ticket_id == SupportTicket.id).where(
+        SupportMessage.is_admin_reply.is_(False),
+        SupportMessage.read_by_admin.is_(False),
+    )
+    if not _is_super_admin(current_user):
+        message_ids_query = message_ids_query.where(_sub_admin_ticket_filter(current_user))
+
+    message_ids = db.scalars(message_ids_query).all()
+    if not message_ids:
+        return {"updated": 0}
+
     updated = (
         db.query(SupportMessage)
-        .filter(
-            SupportMessage.is_admin_reply.is_(False),
-            SupportMessage.read_by_admin.is_(False),
-        )
+        .filter(SupportMessage.id.in_(message_ids))
         .update({SupportMessage.read_by_admin: True}, synchronize_session=False)
     )
     db.commit()
@@ -244,22 +280,49 @@ def update_ticket_status(
     ticket_id: int,
     status_update: SupportTicketUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_roles(UserRole.SUPER_ADMIN, UserRole.SUPPORT, UserRole.OPS)),
+    current_user: User = Depends(require_roles(UserRole.SUPER_ADMIN, UserRole.SUB_ADMIN)),
 ):
-    _ = current_user
-    ticket = db.get(SupportTicket, ticket_id)
+    ticket = _load_ticket(db, ticket_id)
     if not ticket:
         raise HTTPException(status_code=404, detail="Ticket not found")
+
+    if not _can_access_ticket(ticket, current_user):
+        raise HTTPException(status_code=403, detail="Not authorized to update this ticket")
 
     if status_update.status:
         ticket.status = status_update.status
     db.commit()
 
-    return db.scalar(
-        select(SupportTicket)
-        .options(joinedload(SupportTicket.messages))
-        .where(SupportTicket.id == ticket.id)
-    )
+    updated_ticket = _load_ticket(db, ticket.id)
+    if not updated_ticket:
+        raise HTTPException(status_code=404, detail="Ticket not found")
+    return updated_ticket
+
+
+@router.put("/tickets/{ticket_id}/assignment", response_model=SupportTicketSchema)
+def assign_ticket(
+    ticket_id: int,
+    assignment: SupportTicketAssignmentUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.SUPER_ADMIN)),
+):
+    ticket = _load_ticket(db, ticket_id)
+    if not ticket:
+        raise HTTPException(status_code=404, detail="Ticket not found")
+
+    if assignment.assigned_to_admin_id is None:
+        ticket.assigned_to_admin_id = None
+    else:
+        assignee = db.get(User, assignment.assigned_to_admin_id)
+        if not assignee or _role_value(assignee) != UserRole.SUB_ADMIN.value:
+            raise HTTPException(status_code=400, detail="Ticket can only be assigned to an existing sub admin")
+        ticket.assigned_to_admin_id = assignee.id
+
+    db.commit()
+    updated_ticket = _load_ticket(db, ticket.id)
+    if not updated_ticket:
+        raise HTTPException(status_code=404, detail="Ticket not found")
+    return updated_ticket
 
 
 @router.websocket("/ws")
@@ -275,18 +338,18 @@ async def websocket_endpoint(
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION, reason="Invalid token")
         return
 
-    ticket = db.get(SupportTicket, ticket_id)
-    if not ticket:
-        await websocket.close(code=status.WS_1008_POLICY_VIOLATION, reason="Ticket not found")
-        return
-
     user = db.get(User, user_id)
     if not user:
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION, reason="Invalid user")
         return
 
-    is_staff = _is_staff(user)
-    if ticket.user_id != user_id and not is_staff:
+    ticket = _load_ticket(db, ticket_id)
+    if not ticket:
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION, reason="Ticket not found")
+        return
+
+    is_admin = _is_admin(user)
+    if not _can_access_ticket(ticket, user):
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION, reason="Unauthorized")
         return
 
@@ -302,8 +365,8 @@ async def websocket_endpoint(
                 ticket_id=ticket_id,
                 sender_id=user_id,
                 content=content,
-                is_admin_reply=is_staff,
-                read_by_admin=is_staff,
+                is_admin_reply=is_admin,
+                read_by_admin=is_admin,
             )
             db.add(message)
             db.commit()

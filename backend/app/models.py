@@ -33,10 +33,32 @@ class User(Base):
     training_commission_rate: Mapped[float] = mapped_column(Float, default=25.0)
     status: Mapped[str] = mapped_column(String, default="Active")
     role: Mapped[str] = mapped_column(String, default=UserRole.MERCHANT.value, index=True)
+    created_by_admin_id: Mapped[int | None] = mapped_column(
+        Integer,
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
     created_at: Mapped[DateTime] = mapped_column(DateTime, server_default=func.now())
 
-    support_tickets = relationship("SupportTicket", back_populates="user")
+    support_tickets = relationship("SupportTicket", back_populates="user", foreign_keys="SupportTicket.user_id")
+    assigned_support_tickets = relationship(
+        "SupportTicket",
+        back_populates="assigned_admin",
+        foreign_keys="SupportTicket.assigned_to_admin_id",
+    )
     support_messages = relationship("SupportMessage", back_populates="sender")
+    created_users = relationship(
+        "User",
+        back_populates="created_by_admin",
+        foreign_keys="User.created_by_admin_id",
+    )
+    created_by_admin = relationship(
+        "User",
+        back_populates="created_users",
+        remote_side="User.id",
+        foreign_keys=[created_by_admin_id],
+    )
 
 
 class Product(Base):
@@ -147,12 +169,18 @@ class SupportTicket(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    assigned_to_admin_id: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
     subject: Mapped[str] = mapped_column(String(255))
     status: Mapped[str] = mapped_column(String(32), default=SupportTicketStatus.OPEN.value, index=True)
     created_at: Mapped[DateTime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[DateTime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
 
-    user = relationship("User", back_populates="support_tickets")
+    user = relationship("User", back_populates="support_tickets", foreign_keys=[user_id])
+    assigned_admin = relationship("User", back_populates="assigned_support_tickets", foreign_keys=[assigned_to_admin_id])
     messages = relationship("SupportMessage", back_populates="ticket", cascade="all, delete-orphan")
 
 

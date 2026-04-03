@@ -12,13 +12,21 @@ export type SupportMessage = {
 export type SupportTicket = {
   id: number;
   user_id?: number | null;
+  assigned_to_admin_id?: number | null;
   subject: string;
   status: string;
   created_at: string;
   updated_at: string;
   user_username?: string | null;
   user_email?: string | null;
+  assigned_admin_username?: string | null;
   messages: SupportMessage[];
+};
+
+export type AdminUser = {
+  id: number;
+  username: string;
+  role?: string;
 };
 
 export type SupportLoginResult = {
@@ -59,7 +67,7 @@ export async function adminSupportLogin(username: string, password: string): Pro
   }
 
   const role = String(payload?.role || 'merchant');
-  if (!['super_admin', 'support', 'ops'].includes(role)) {
+  if (!['super_admin', 'sub_admin'].includes(role)) {
     throw new Error('This account does not have support desk permissions');
   }
 
@@ -108,6 +116,26 @@ export async function adminUpdateSupportTicketStatus(token: string, ticketId: nu
     body: JSON.stringify({ status }),
   });
   return parseResponse<SupportTicket>(response);
+}
+
+export async function adminAssignSupportTicket(
+  token: string,
+  ticketId: number,
+  assignedToAdminId: number | null,
+): Promise<SupportTicket> {
+  const response = await fetch(`/api/support/tickets/${ticketId}/assignment`, {
+    method: 'PUT',
+    headers: authJsonHeader(token),
+    body: JSON.stringify({ assigned_to_admin_id: assignedToAdminId }),
+  });
+  return parseResponse<SupportTicket>(response);
+}
+
+export async function adminListUsers(token: string): Promise<AdminUser[]> {
+  const response = await fetch('/api/users', {
+    headers: authHeader(token),
+  });
+  return parseResponse<AdminUser[]>(response);
 }
 
 export async function adminGetSupportUnreadCount(token: string): Promise<number> {

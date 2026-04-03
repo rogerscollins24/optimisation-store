@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout';
+import { useAdminAuth } from './context/AdminAuthContext';
 import Dashboard from './pages/Dashboard';
 import Users from './pages/Users';
 import Products from './pages/Products';
@@ -14,12 +15,22 @@ import TrackedClicks from './pages/TrackedClicks';
 import Settings from './pages/Settings';
 import Notifications from './pages/Notifications';
 import SupportDesk from './pages/SupportDesk';
+import Login from './pages/Login';
+
+function ProtectedLayout() {
+  const { isAuthenticated } = useAdminAuth();
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+  return <Layout />;
+}
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Layout />}>
+        <Route path="/login" element={<Login />} />
+        <Route path="/" element={<ProtectedLayout />}>
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="users" element={<Users />} />
@@ -36,6 +47,7 @@ function App() {
           <Route path="settings" element={<Settings />} />
           <Route path="support" element={<SupportDesk />} />
         </Route>
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </BrowserRouter>
   );

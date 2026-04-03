@@ -130,9 +130,21 @@ export default function ChatModal({ token, presetMessage, presetSubject, openSig
               <p className="text-2xl font-bold leading-none">Support Chat</p>
               <p className="text-cyan-100 mt-1 text-sm">{ticket?.status?.replace('_', ' ') || 'New conversation'}</p>
             </div>
-            <button onClick={() => setIsOpen(false)} className="p-1 rounded hover:bg-black/10">
-              <X size={24} />
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  setShowNewTicket(true);
+                  setSubject('');
+                  setDraft('');
+                }}
+                className="text-xs px-2 py-1 rounded border border-white/50 hover:bg-black/10"
+              >
+                New Chat
+              </button>
+              <button onClick={() => setIsOpen(false)} className="p-1 rounded hover:bg-black/10">
+                <X size={24} />
+              </button>
+            </div>
           </div>
 
           {loading ? (

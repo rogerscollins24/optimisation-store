@@ -2,7 +2,7 @@ from datetime import datetime
 
 from pydantic import BaseModel
 
-from .enums import SupportTicketStatus
+from .enums import SupportTicketStatus, UserRole
 
 
 class LoginRequest(BaseModel):
@@ -87,6 +87,7 @@ class UserCreateRequest(BaseModel):
     trainer_owner_id: int | None = None
     training_commission_rate: float = 25.0
     status: str = "Active"
+    role: UserRole = UserRole.MERCHANT
 
 
 class UserUpdateRequest(BaseModel):
@@ -113,6 +114,7 @@ class UserUpdateRequest(BaseModel):
     trainer_owner_id: int | None = None
     training_commission_rate: float | None = None
     status: str | None = None
+    role: UserRole | None = None
 
 
 class TrainingAccountCreateRequest(BaseModel):
@@ -127,6 +129,7 @@ class TrainingAccountCreateRequest(BaseModel):
 class ProductCreateRequest(BaseModel):
     name: str
     description: str | None = None
+    image_url: str | None = None
     price: float
     commission_rate: float
     stock: int
@@ -136,6 +139,7 @@ class ProductCreateRequest(BaseModel):
 class ProductUpdateRequest(BaseModel):
     name: str | None = None
     description: str | None = None
+    image_url: str | None = None
     price: float | None = None
     commission_rate: float | None = None
     stock: int | None = None
@@ -209,15 +213,21 @@ class SupportTicketUpdate(BaseModel):
     status: SupportTicketStatus | None = None
 
 
+class SupportTicketAssignmentUpdate(BaseModel):
+    assigned_to_admin_id: int | None = None
+
+
 class SupportTicketSchema(BaseModel):
     id: int
     user_id: int | None = None
+    assigned_to_admin_id: int | None = None
     subject: str
     status: SupportTicketStatus
     created_at: datetime
     updated_at: datetime
     user_username: str | None = None
     user_email: str | None = None
+    assigned_admin_username: str | None = None
     messages: list[SupportMessageSchema] = []
 
     class Config:

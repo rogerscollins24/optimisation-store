@@ -13,6 +13,8 @@ Consumer-facing React app for task optimization flow, connected to the FastAPI b
 - Records page connected to user task history endpoint
 - Profile page with live user balances and referral info
 - Deposit and Withdraw pages tied to live backend user state
+- Support page with explicit `New Chat` ticket creation (subject + message)
+- Chat modal with always-available `New Chat` action, even if previous tickets exist
 
 ## Runtime Ports
 
@@ -48,6 +50,8 @@ http://localhost:3000
 
 If `3000` is occupied, Vite automatically shifts to the next free port. In the current local run, the client is served on `http://localhost:3001`.
 
+If this port changes again, use the Vite terminal output URL.
+
 ## Build and Typecheck
 
 ```bash
@@ -68,3 +72,5 @@ Seeded backend users (if using fresh Docker seed data):
 
 - `john_doe` / `pass123`
 - `jane_smith` / `pass456`
+
+`jane_smith` is a seeded `super_admin` account and can access all support tickets in the admin app.

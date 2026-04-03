@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Search, Plus, Edit2, Trash2, Eye, Lock, X } from 'lucide-react';
+import { useAdminAuth } from '../context/AdminAuthContext';
 
 const initialForm = {
   username: '',
@@ -21,12 +22,14 @@ const initialForm = {
   exchange: '',
   wallet_address: '',
   status: 'Active',
+  role: 'merchant',
 };
 
 const inp = 'w-full bg-slate-950 border border-slate-700/70 text-slate-200 text-sm rounded-lg p-2.5 outline-none placeholder-slate-500';
 const lbl = 'block text-xs font-medium text-slate-400 mb-1';
 
 export default function Users() {
+  const { token, role: currentRole } = useAdminAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [usersData, setUsersData] = useState<any[]>([]);
   const [vipFilter, setVipFilter] = useState('');
@@ -35,13 +38,23 @@ export default function Users() {
   const [editingUser, setEditingUser] = useState<any | null>(null);
   const [formData, setFormData] = useState(initialForm);
 
-  useEffect(() => { fetchUsers(); }, []);
+  const availableRoles = currentRole === 'super_admin'
+    ? ['merchant', 'sub_admin', 'super_admin']
+    : ['merchant', 'sub_admin'];
 
   const fetchUsers = async () => {
-    const res = await fetch('/api/users');
+    if (!token) return;
+    const res = await fetch('/api/users', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
     const data = await res.json();
     setUsersData(Array.isArray(data) ? data : []);
   };
+
+  useEffect(() => {
+    if (!token) return;
+    void fetchUsers();
+  }, [token]);
 
   const set = (key: string, val: string) => setFormData((prev) => ({ ...prev, [key]: val }));
 
@@ -73,6 +86,7 @@ export default function Users() {
       exchange: user.exchange || '',
       wallet_address: user.wallet_address || '',
       status: user.status || 'Active',
+      role: user.role || 'merchant',
     });
     setShowModal(true);
   };
@@ -99,28 +113,41 @@ export default function Users() {
       exchange: formData.exchange || null,
       wallet_address: formData.wallet_address || null,
       status: formData.status,
+      role: formData.role,
     };
     if (!editingUser) payload.email = `${formData.username}@placeholder.local`;
+    if (!token) return;
 
     await fetch(editingUser ? `/api/users/${editingUser.id}` : '/api/users', {
       method: editingUser ? 'PUT' : 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
       body: JSON.stringify(payload),
     });
     setShowModal(false);
-    fetchUsers();
+    void fetchUsers();
   };
 
   const handleDeleteUser = async (id: number) => {
     if (!confirm('Delete this user?')) return;
-    await fetch(`/api/users/${id}`, { method: 'DELETE' });
-    fetchUsers();
+    if (!token) return;
+    await fetch(`/api/users/${id}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    void fetchUsers();
   };
 
   const handleLockUser = async (id: number) => {
     if (!confirm('Lock this user?')) return;
-    await fetch(`/api/users/${id}/lock`, { method: 'POST' });
-    fetchUsers();
+    if (!token) return;
+    await fetch(`/api/users/${id}/lock`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    void fetchUsers();
   };
 
   const exportCSV = () => {
@@ -279,6 +306,17 @@ export default function Users() {
                   <option value="Active">Active</option>
                   <option value="Suspended">Suspended</option>
                   <option value="Inactive">Inactive</option>
+                </select>
+              </div>
+
+              <div>
+                <label className={lbl}>Role</label>
+                <select className={inp} value={formData.role} onChange={(e) => set('role', e.target.value)}>
+                  {availableRoles.map((allowedRole) => (
+                    <option key={allowedRole} value={allowedRole}>
+                      {allowedRole}
+                    </option>
+                  ))}
                 </select>
               </div>
 

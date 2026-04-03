@@ -1,13 +1,17 @@
 import random
 import secrets
+import shutil
+from pathlib import Path
+from uuid import uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 from sqlalchemy import delete, func, or_, select
 from sqlalchemy.orm import Session
 
-from .deps import create_access_token
+from .deps import create_access_token, get_optional_current_user
 from .database import get_db
 from .models import ActivityLog, Combo, ComboItem, Notification, Product, Setting, Task, User, UserTask, Withdrawal
+from .enums import UserRole
 from .schemas import (
     BalanceUpdateRequest,
     LoginRequest,
@@ -29,6 +33,50 @@ from .schemas import (
 )
 
 router = APIRouter()
+
+ADMIN_ROLES = {UserRole.SUPER_ADMIN.value, UserRole.SUB_ADMIN.value}
+BASE_DIR = Path(__file__).resolve().parent.parent
+PRODUCT_UPLOADS_DIR = BASE_DIR / "uploads" / "products"
+MAX_PRODUCT_IMAGE_SIZE = 5 * 1024 * 1024
+ALLOWED_PRODUCT_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".gif"}
+ALLOWED_PRODUCT_IMAGE_MIME_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
+
+
+def _normalize_role_value(role: str | UserRole | None) -> str:
+    if isinstance(role, UserRole):
+        return role.value
+    return str(role or UserRole.MERCHANT.value)
+
+
+def _allowed_created_roles(actor: User | None) -> set[str]:
+    if actor is None:
+        return {UserRole.MERCHANT.value}
+
+    actor_role = _normalize_role_value(actor.role)
+    if actor_role == UserRole.SUPER_ADMIN.value:
+        return {UserRole.MERCHANT.value, UserRole.SUB_ADMIN.value, UserRole.SUPER_ADMIN.value}
+    if actor_role == UserRole.SUB_ADMIN.value:
+        return {UserRole.MERCHANT.value, UserRole.SUB_ADMIN.value}
+    return {UserRole.MERCHANT.value}
+
+
+def _resolve_created_role(actor: User | None, requested_role: str | UserRole | None) -> str:
+    target_role = _normalize_role_value(requested_role)
+    allowed_roles = _allowed_created_roles(actor)
+    if target_role not in allowed_roles:
+        raise HTTPException(status_code=403, detail="You are not allowed to create this account type")
+    return target_role
+
+
+def _resolve_updated_role(actor: User | None, requested_role: str | UserRole | None) -> str | None:
+    if requested_role is None:
+        return None
+
+    target_role = _normalize_role_value(requested_role)
+    allowed_roles = _allowed_created_roles(actor)
+    if target_role not in allowed_roles:
+        raise HTTPException(status_code=403, detail="You are not allowed to assign this role")
+    return target_role
 
 
 def _generate_invite_code(db: Session, prefix: str = "INV") -> str:
@@ -65,6 +113,34 @@ def _log_action(db: Session, request: Request | None, action: str, target: str, 
             ip=request.client.host if request and request.client else "unknown",
         )
     )
+
+
+def _save_product_image(image: UploadFile) -> str:
+    if not image.filename:
+        raise HTTPException(status_code=400, detail="Image file is required")
+
+    extension = Path(image.filename).suffix.lower()
+    if extension not in ALLOWED_PRODUCT_IMAGE_EXTENSIONS:
+        raise HTTPException(status_code=400, detail="Unsupported image file type")
+
+    if image.content_type not in ALLOWED_PRODUCT_IMAGE_MIME_TYPES:
+        raise HTTPException(status_code=400, detail="Unsupported image MIME type")
+
+    image.file.seek(0, 2)
+    file_size = image.file.tell()
+    image.file.seek(0)
+
+    if file_size > MAX_PRODUCT_IMAGE_SIZE:
+        raise HTTPException(status_code=400, detail="Image must be 5MB or smaller")
+
+    PRODUCT_UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
+    filename = f"{uuid4().hex}{extension}"
+    destination = PRODUCT_UPLOADS_DIR / filename
+
+    with destination.open("wb") as out_file:
+        shutil.copyfileobj(image.file, out_file)
+
+    return f"/api/uploads/products/{filename}"
 
 
 def _load_combo_items(db: Session, combo_ids: list[int]) -> dict[int, list[dict]]:
@@ -127,12 +203,20 @@ def get_users(db: Session = Depends(get_db)):
 
 
 @router.post("/users")
-def create_user(payload: UserCreateRequest, request: Request, db: Session = Depends(get_db)):
+def create_user(
+    payload: UserCreateRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_admin: User | None = Depends(get_optional_current_user),
+):
     duplicate = db.scalar(
         select(User).where(or_(User.username == payload.username, User.email == payload.email))
     )
     if duplicate:
         raise HTTPException(status_code=400, detail="Username or email already exists")
+
+    target_role = _resolve_created_role(current_admin, payload.role)
+    creator_id = current_admin.id if current_admin and _normalize_role_value(current_admin.role) in ADMIN_ROLES else None
 
     user = User(
         username=payload.username,
@@ -157,16 +241,29 @@ def create_user(payload: UserCreateRequest, request: Request, db: Session = Depe
         trainer_owner_id=payload.trainer_owner_id,
         training_commission_rate=payload.training_commission_rate,
         status=payload.status,
+        role=target_role,
+        created_by_admin_id=creator_id,
     )
     db.add(user)
     db.flush()
-    _log_action(db, request, "Created User", f"User ID: {user.id}", f"Created {user.username}")
+    _log_action(
+        db,
+        request,
+        "Created User",
+        f"User ID: {user.id}",
+        f"Created {user.username} as {target_role}",
+    )
     db.commit()
     return {"success": True, "user": _to_dict(user)}
 
 
 @router.post("/users/training-account")
-def create_training_account(payload: TrainingAccountCreateRequest, request: Request, db: Session = Depends(get_db)):
+def create_training_account(
+    payload: TrainingAccountCreateRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_admin: User | None = Depends(get_optional_current_user),
+):
     duplicate_username = db.scalar(select(User.id).where(User.username == payload.username))
     if duplicate_username:
         raise HTTPException(status_code=400, detail="Username already exists")
@@ -195,6 +292,8 @@ def create_training_account(payload: TrainingAccountCreateRequest, request: Requ
         trainer_owner_id=inviter.id,
         training_commission_rate=25.0,
         status="Active",
+        role=UserRole.MERCHANT.value,
+        created_by_admin_id=current_admin.id if current_admin and _normalize_role_value(current_admin.role) in ADMIN_ROLES else None,
     )
     db.add(training_user)
     db.flush()
@@ -211,12 +310,20 @@ def create_training_account(payload: TrainingAccountCreateRequest, request: Requ
 
 
 @router.put("/users/{user_id}")
-def update_user(user_id: int, payload: UserUpdateRequest, request: Request, db: Session = Depends(get_db)):
+def update_user(
+    user_id: int,
+    payload: UserUpdateRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_admin: User | None = Depends(get_optional_current_user),
+):
     db_user = db.get(User, user_id)
     if not db_user:
         raise HTTPException(status_code=404, detail="User not found")
 
     updates = payload.model_dump(exclude_none=True)
+    if "role" in updates:
+        updates["role"] = _resolve_updated_role(current_admin, updates["role"])
     for key, value in updates.items():
         setattr(db_user, key, value)
 
@@ -288,11 +395,20 @@ def get_products(db: Session = Depends(get_db)):
     return [_to_dict(product) for product in products]
 
 
+@router.post("/products/upload-image")
+def upload_product_image(request: Request, image: UploadFile = File(...), db: Session = Depends(get_db)):
+    image_url = _save_product_image(image)
+    _log_action(db, request, "Uploaded Product Image", "Products", image.filename or image_url)
+    db.commit()
+    return {"success": True, "image_url": image_url}
+
+
 @router.post("/products")
 def create_product(payload: ProductCreateRequest, request: Request, db: Session = Depends(get_db)):
     product = Product(
         name=payload.name,
         description=payload.description,
+        image_url=payload.image_url,
         price=payload.price,
         commission_rate=payload.commission_rate,
         stock=payload.stock,

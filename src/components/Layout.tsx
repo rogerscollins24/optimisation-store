@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Outlet, NavLink, useLocation } from 'react-router-dom';
+import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   Users,
@@ -27,10 +27,10 @@ import {
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import {
-  SUPPORT_TOKEN_KEY,
   adminGetSupportUnreadCount,
   adminMarkAllSupportMessagesRead,
 } from '../lib/adminApi';
+import { useAdminAuth } from '../context/AdminAuthContext';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -63,6 +63,8 @@ const initialTrainingForm = {
 };
 
 export default function Layout() {
+  const { token, username, role, logout } = useAdminAuth();
+  const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [showTrainingModal, setShowTrainingModal] = useState(false);
@@ -74,7 +76,6 @@ export default function Layout() {
   const location = useLocation();
 
   useEffect(() => {
-    const token = localStorage.getItem(SUPPORT_TOKEN_KEY);
     if (!token) {
       setSupportUnreadCount(0);
       return;
@@ -105,13 +106,12 @@ export default function Layout() {
       window.clearInterval(interval);
       window.removeEventListener('support-unread-updated', onUnreadUpdated as EventListener);
     };
-  }, []);
+  }, [token]);
 
   useEffect(() => {
     if (!location.pathname.startsWith('/support')) {
       return;
     }
-    const token = localStorage.getItem(SUPPORT_TOKEN_KEY);
     if (!token) {
       setSupportUnreadCount(0);
       return;
@@ -165,7 +165,10 @@ export default function Layout() {
     try {
       const res = await fetch('/api/users/training-account', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({
           username: trainingForm.username.trim(),
           phone: trainingForm.phone.trim() || null,
@@ -189,6 +192,12 @@ export default function Layout() {
     } finally {
       setIsSubmittingTraining(false);
     }
+  };
+
+  const handleLogout = () => {
+    logout();
+    setSupportUnreadCount(0);
+    navigate('/login', { replace: true });
   };
 
   return (
@@ -295,12 +304,19 @@ export default function Layout() {
               ) : null}
             </button>
             <div className="h-8 w-px bg-slate-700 mx-1"></div>
-            <div className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity">
+            <div className="flex items-center gap-3">
               <div className="text-right hidden sm:block">
-                <div className="text-sm font-medium text-slate-200">Admin User</div>
-                <div className="text-xs text-slate-400">Super Admin</div>
+                <div className="text-sm font-medium text-slate-200">{username || 'Admin User'}</div>
+                <div className="text-xs text-slate-400">{(role || 'admin').replace('_', ' ')}</div>
               </div>
               <UserCircle size={32} className="text-slate-400" />
+              <button
+                onClick={handleLogout}
+                className="inline-flex items-center gap-1 text-xs text-slate-300 hover:text-white px-2 py-1 rounded-lg border border-slate-700 hover:border-slate-500"
+              >
+                <LogOut size={14} />
+                Logout
+              </button>
             </div>
           </div>
         </header>

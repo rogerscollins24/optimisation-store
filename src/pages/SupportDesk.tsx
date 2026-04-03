@@ -1,28 +1,28 @@
-import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { CheckCircle2, Loader2, RefreshCcw, Search, Send } from 'lucide-react';
 import SupportSocket from '../lib/socket';
 import {
-  SUPPORT_TOKEN_KEY,
+  adminAssignSupportTicket,
   adminGetSupportTicket,
   adminGetSupportUnreadCount,
   adminListSupportTickets,
+  adminListUsers,
   adminMarkAllSupportMessagesRead,
   adminPostSupportMessage,
-  adminSupportLogin,
   adminUpdateSupportTicketStatus,
+  type AdminUser,
   type SupportMessage,
   type SupportTicket,
 } from '../lib/adminApi';
+import { useAdminAuth } from '../context/AdminAuthContext';
 
 function notifyUnread(count: number) {
   window.dispatchEvent(new CustomEvent('support-unread-updated', { detail: { count } }));
 }
 
 export default function SupportDesk() {
-  const [token, setToken] = useState<string | null>(() => localStorage.getItem(SUPPORT_TOKEN_KEY));
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [authError, setAuthError] = useState<string | null>(null);
+  const { token, role } = useAdminAuth();
+  const [subAdmins, setSubAdmins] = useState<AdminUser[]>([]);
 
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
   const [activeId, setActiveId] = useState<number | null>(null);
@@ -50,6 +50,8 @@ export default function SupportDesk() {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  const isSuperAdmin = role === 'super_admin';
 
   const loadTickets = async (activeToken: string) => {
     setLoading(true);
@@ -79,6 +81,20 @@ export default function SupportDesk() {
 
     return () => window.clearInterval(timer);
   }, [token, statusFilter, activeId]);
+
+  useEffect(() => {
+    if (!token || !isSuperAdmin) {
+      setSubAdmins([]);
+      return;
+    }
+
+    const loadAdmins = async () => {
+      const users = await adminListUsers(token);
+      setSubAdmins(users.filter((user) => user.role === 'sub_admin'));
+    };
+
+    void loadAdmins();
+  }, [token, isSuperAdmin]);
 
   useEffect(() => {
     if (!token || !activeId) {
@@ -124,19 +140,6 @@ export default function SupportDesk() {
     void mark();
   }, [token]);
 
-  const handleLogin = async (event: FormEvent) => {
-    event.preventDefault();
-    setAuthError(null);
-    try {
-      const result = await adminSupportLogin(username, password);
-      localStorage.setItem(SUPPORT_TOKEN_KEY, result.token);
-      setToken(result.token);
-      notifyUnread(0);
-    } catch (error) {
-      setAuthError(error instanceof Error ? error.message : 'Unable to login');
-    }
-  };
-
   const handleSend = async () => {
     if (!token || !activeId || !draft.trim()) return;
 
@@ -158,31 +161,16 @@ export default function SupportDesk() {
     await loadTickets(token);
   };
 
-  if (!token) {
-    return (
-      <div className="max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-xl font-bold text-slate-900 mb-2">Support Desk Sign-in</h2>
-        <p className="text-sm text-slate-500 mb-5">Use an account with super_admin/support/ops role.</p>
+  const handleAssignment = async (assignedToValue: string) => {
+    if (!token || !activeId || !isSuperAdmin) return;
+    const parsed = Number(assignedToValue);
+    const nextAssignee = assignedToValue && !Number.isNaN(parsed) ? parsed : null;
+    await adminAssignSupportTicket(token, activeId, nextAssignee);
+    await loadTickets(token);
+  };
 
-        <form onSubmit={handleLogin} className="space-y-3">
-          <input
-            value={username}
-            onChange={(event) => setUsername(event.target.value)}
-            placeholder="Username"
-            className="w-full rounded-xl border border-slate-300 px-3 py-2"
-          />
-          <input
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            placeholder="Password"
-            type="password"
-            className="w-full rounded-xl border border-slate-300 px-3 py-2"
-          />
-          {authError ? <p className="text-sm text-rose-600">{authError}</p> : null}
-          <button className="w-full rounded-xl bg-[#0F766E] py-2 text-white font-semibold">Sign in</button>
-        </form>
-      </div>
-    );
+  if (!token) {
+    return <div className="rounded-xl bg-white p-6 text-slate-600 shadow-sm">Please login to access support.</div>;
   }
 
   return (
@@ -237,6 +225,9 @@ export default function SupportDesk() {
                 <span className="text-[11px] rounded-full border border-slate-200 px-2 py-0.5 text-slate-600">{ticket.status}</span>
               </div>
               <p className="text-xs text-slate-500 mt-1">{ticket.user_username || ticket.user_email || `User #${ticket.user_id || 'N/A'}`}</p>
+              {ticket.assigned_admin_username ? (
+                <p className="text-[11px] text-slate-500 mt-1">Assigned: {ticket.assigned_admin_username}</p>
+              ) : null}
             </button>
           ))}
         </div>
@@ -250,16 +241,33 @@ export default function SupportDesk() {
           </div>
 
           {activeTicket ? (
-            <select
-              value={activeTicket.status}
-              onChange={(event) => void handleStatus(event.target.value)}
-              className="rounded-lg border border-slate-200 px-2 py-1 text-xs"
-            >
-              <option value="open">Open</option>
-              <option value="in_progress">In Progress</option>
-              <option value="resolved">Resolved</option>
-              <option value="closed">Closed</option>
-            </select>
+            <div className="flex items-center gap-2">
+              {isSuperAdmin ? (
+                <select
+                  value={activeTicket.assigned_to_admin_id ?? ''}
+                  onChange={(event) => void handleAssignment(event.target.value)}
+                  className="rounded-lg border border-slate-200 px-2 py-1 text-xs"
+                >
+                  <option value="">Unassigned</option>
+                  {subAdmins.map((admin) => (
+                    <option key={admin.id} value={admin.id}>
+                      {admin.username}
+                    </option>
+                  ))}
+                </select>
+              ) : null}
+
+              <select
+                value={activeTicket.status}
+                onChange={(event) => void handleStatus(event.target.value)}
+                className="rounded-lg border border-slate-200 px-2 py-1 text-xs"
+              >
+                <option value="open">Open</option>
+                <option value="in_progress">In Progress</option>
+                <option value="resolved">Resolved</option>
+                <option value="closed">Closed</option>
+              </select>
+            </div>
           ) : null}
         </div>
 

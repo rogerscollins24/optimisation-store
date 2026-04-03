@@ -9,6 +9,8 @@ Admin frontend, consumer frontend, and API/backend for task optimization and ref
 - Backend API: FastAPI on `http://localhost:9000`
 - Database: PostgreSQL in Docker on `localhost:5544` (container `5432`)
 
+Admin login route: `/login` on the admin frontend host.
+
 If the default frontend ports are busy, Vite automatically selects the next free port.
 
 ## Major Changes and Updates
@@ -83,20 +85,32 @@ If the default frontend ports are busy, Vite automatically selects the next free
 - Added full support ticketing + messaging backend with JWT-protected access.
 - Added role-aware visibility:
 	- Merchants can access only their own tickets.
-	- `super_admin`, `support`, and `ops` can access all tickets.
+	- `super_admin` can access all tickets.
+	- `sub_admin` can access tickets from users they created plus tickets explicitly assigned to them.
 - Added realtime chat transport via WebSocket endpoint per ticket.
 - Added unread-message workflow for support staff:
 	- unread count endpoint
 	- mark-all-read endpoint
 	- admin unread badge polling in layout
 - Added support status workflow (`open`, `in_progress`, `resolved`, `closed`).
+- Added super-admin ticket assignment endpoint and UI (`PUT /support/tickets/{ticket_id}/assignment`).
+- Added single admin login session for all admin pages, including Support (no second login in Support).
 - Added client support UI:
 	- `optimization-front/src/pages/Support.tsx`
 	- `optimization-front/src/components/ChatModal.tsx`
+- Added explicit `New Chat` action in client Support page and Chat modal.
 - Added admin support desk UI:
 	- `src/pages/SupportDesk.tsx`
 	- support API + socket helpers in both frontends
 - Added WebSocket proxy support in both Vite configs (`ws: true` on `/api` proxy).
+
+### 9) Admin Role and Account Management
+
+- Added `sub_admin` role in backend and frontend role handling.
+- Admin account creation policy:
+	- `super_admin` can create `super_admin`, `sub_admin`, and `merchant` users.
+	- `sub_admin` can create `sub_admin` and `merchant` users.
+- User ownership (`created_by_admin_id`) and ticket assignment (`assigned_to_admin_id`) are persisted and enforced in support visibility rules.
 
 ## Prerequisites
 
@@ -126,10 +140,15 @@ npm run dev
 
 4. Open:
 
-- Admin: `http://localhost:4173`
+- Admin login: `http://localhost:4173/login`
 - API health: `http://localhost:9000/health`
 
 If port `4173` is in use, Vite will pick another port automatically (example: `4174`).
+
+Default seeded admin login:
+
+- Username: `jane_smith`
+- Password: `pass456`
 
 ## Quick Start (Consumer App)
 
@@ -198,6 +217,7 @@ FastAPI serves all routes under `/api`.
 	- `GET /support/tickets/{ticket_id}`
 	- `POST /support/tickets/{ticket_id}/messages`
 	- `PUT /support/tickets/{ticket_id}/status`
+	- `PUT /support/tickets/{ticket_id}/assignment`
 	- `GET /support/unread-count`
 	- `POST /support/mark-all-read`
 	- `WS /support/ws?ticket_id={id}&token={jwt}`
