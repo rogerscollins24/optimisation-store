@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -6,7 +6,6 @@ from ..database import get_db
 from ..models import User
 from ..deps import create_access_token, get_optional_current_user
 from ..schemas import LoginRequest, LoginResponse
-from ..enums import UserRole
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -18,7 +17,7 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
     if not user or user.login_password != payload.password:
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
-    access_token = create_access_token({"sub": user.username})
+    access_token = create_access_token(user.id)
     return LoginResponse(
         id=user.id,
         username=user.username,
