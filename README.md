@@ -7,7 +7,9 @@ Admin frontend, consumer frontend, and API/backend for task optimization and ref
 - Admin frontend: React + Vite on `http://localhost:4173`
 - Consumer frontend: React + Vite on `http://localhost:3000`
 - Backend API: FastAPI on `http://localhost:9000`
-- Database: PostgreSQL in Docker on `localhost:5433`
+- Database: PostgreSQL in Docker on `localhost:5544` (container `5432`)
+
+If the default frontend ports are busy, Vite automatically selects the next free port.
 
 ## Major Changes and Updates
 
@@ -76,6 +78,26 @@ Admin frontend, consumer frontend, and API/backend for task optimization and ref
 - `GET /api/users/{id}/task-records`
 - `POST /api/tasks/start`
 
+### 8) Full Support Chat System (Client + Admin + Realtime)
+
+- Added full support ticketing + messaging backend with JWT-protected access.
+- Added role-aware visibility:
+	- Merchants can access only their own tickets.
+	- `super_admin`, `support`, and `ops` can access all tickets.
+- Added realtime chat transport via WebSocket endpoint per ticket.
+- Added unread-message workflow for support staff:
+	- unread count endpoint
+	- mark-all-read endpoint
+	- admin unread badge polling in layout
+- Added support status workflow (`open`, `in_progress`, `resolved`, `closed`).
+- Added client support UI:
+	- `optimization-front/src/pages/Support.tsx`
+	- `optimization-front/src/components/ChatModal.tsx`
+- Added admin support desk UI:
+	- `src/pages/SupportDesk.tsx`
+	- support API + socket helpers in both frontends
+- Added WebSocket proxy support in both Vite configs (`ws: true` on `/api` proxy).
+
 ## Prerequisites
 
 - Node.js 18+
@@ -107,6 +129,8 @@ npm run dev
 - Admin: `http://localhost:4173`
 - API health: `http://localhost:9000/health`
 
+If port `4173` is in use, Vite will pick another port automatically (example: `4174`).
+
 ## Quick Start (Consumer App)
 
 1. Install consumer frontend dependencies:
@@ -126,7 +150,7 @@ npm run dev
 
 - Consumer app: `http://localhost:3000`
 
-If port `3000` is already in use, Vite will select the next free port automatically. In the current workspace run, the client is available on `http://localhost:3001`.
+If port `3000` is already in use, Vite will select the next free port automatically (example: `3002`).
 
 ## Development Notes
 
@@ -168,6 +192,15 @@ FastAPI serves all routes under `/api`.
 - Withdrawals: `/withdrawals`, `/withdrawals/{id}/approve`, `/withdrawals/{id}/reject`
 - Settings: `/settings`, `/settings/bulk`
 - Reporting: `/logs`, `/transactions`, `/tracked-clicks`, `/stats`
+- Support:
+	- `POST /support/tickets`
+	- `GET /support/tickets`
+	- `GET /support/tickets/{ticket_id}`
+	- `POST /support/tickets/{ticket_id}/messages`
+	- `PUT /support/tickets/{ticket_id}/status`
+	- `GET /support/unread-count`
+	- `POST /support/mark-all-read`
+	- `WS /support/ws?ticket_id={id}&token={jwt}`
 
 Health route:
 
