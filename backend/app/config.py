@@ -13,5 +13,11 @@ class Settings(BaseSettings):
 
     model_config = SettingsConfigDict(env_file=".env.backend", env_file_encoding="utf-8", extra="ignore")
 
+    def __init__(self, **data):
+        super().__init__(**data)
+        # Transform DATABASE_URL to use psycopg driver if it's using old postgresql:// format
+        if self.database_url.startswith("postgresql://"):
+            self.database_url = self.database_url.replace("postgresql://", "postgresql+psycopg://", 1)
+
 
 settings = Settings()
