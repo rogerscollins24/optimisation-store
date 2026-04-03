@@ -1,0 +1,39 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: admin-panel-postgres
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: adminpanel
+    ports:
+      # 5433 may be occupied by another container; use 5544 for this project
+      - "5544:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d adminpanel"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: admin-panel-api
+    environment:
+      DATABASE_URL: postgresql+psycopg://admin:admin@postgres:5432/adminpanel
+      APP_PORT: "9000"
+      # Allow both frontends (admin on 3000, client on 4173)
+      CORS_ORIGINS: "http://localhost:3000,http://127.0.0.1:3000,http://localhost:4173,http://127.0.0.1:4173"
+      # Change this secret in production
+      JWT_SECRET_KEY: "support-chat-secret-key-change-in-prod"
+    ports:
+      - "9000:9000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:

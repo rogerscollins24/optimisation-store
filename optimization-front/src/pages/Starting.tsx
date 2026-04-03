@@ -3,6 +3,7 @@ import { Bell, UserCircle, Star, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useUser, Task } from '../store';
 import { useAuth } from '../context/AuthContext';
+import ChatModal from '../components/ChatModal';
 
 interface Product {
   id: number;
@@ -41,6 +42,7 @@ const getVisibleProducts = (items: Product[], count = 8) => {
 
 export default function Starting() {
   const { user, refreshUser, setUser } = useAuth();
+  const supportToken = user?.access_token ?? null;
   const { addTask } = useUser();
   const [products, setProducts] = useState<Product[]>([]);
   const [visibleProducts, setVisibleProducts] = useState<Product[]>([]);
@@ -52,6 +54,7 @@ export default function Starting() {
   const [supportUrl, setSupportUrl] = useState('https://t.me/');
   const [requiredDeposit, setRequiredDeposit] = useState<number | null>(null);
   const [depositAmount, setDepositAmount] = useState('');
+  const [chatSignal, setChatSignal] = useState(-1);
 
   const totalTasks = user ? taskTotalsByVip[user.vip_level] ?? 60 : 40;
 
@@ -223,7 +226,12 @@ export default function Starting() {
       setDepositAmount('');
       setPendingTaskBlocked(false);
       if (data.user) {
-        setUser({ ...data.user, credit_score: data.user.credit_score ?? 100 });
+        setUser((previous) => ({
+          ...data.user,
+          credit_score: data.user.credit_score ?? 100,
+          access_token: previous?.access_token,
+          token_type: previous?.token_type,
+        }));
       }
       await refreshUser();
     } catch (error) {
@@ -509,7 +517,12 @@ export default function Starting() {
                   </div>
                   <div className="flex items-center justify-between">
                     <Link to="/deposit" className="text-blue-600 underline font-medium">Go to Deposit</Link>
-                    <a href={supportUrl} target="_blank" rel="noreferrer" className="text-blue-600 underline font-medium">Contact Support / Chat</a>
+                    <button
+                      onClick={() => setChatSignal((prev) => prev + 1)}
+                      className="text-blue-600 underline font-medium"
+                    >
+                      Contact Support / Chat
+                    </button>
                   </div>
                 </div>
               )}
@@ -525,6 +538,17 @@ export default function Starting() {
           </div>
         </div>
       )}
+
+      <ChatModal
+        token={supportToken}
+        openSignal={chatSignal}
+        presetSubject="Balance issue"
+        presetMessage={
+          hasDepositWarning
+            ? `Hello Support, I need help with a pending task and insufficient balance. Required deposit: USDT ${computedRequiredDeposit.toFixed(2)}. Please advise.`
+            : null
+        }
+      />
     </div>
   );
 }
