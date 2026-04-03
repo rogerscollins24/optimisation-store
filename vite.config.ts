@@ -13,6 +13,7 @@ export default defineConfig({
   server: {
     host: '0.0.0.0',
     port: 4173,
+    allowedHosts: true,
     strictPort: false,
     proxy: {
       '/api': {
@@ -23,5 +24,10 @@ export default defineConfig({
     },
     // Keep HMR optional for remote/editor-based environments.
     hmr: process.env.DISABLE_HMR !== 'true',
+  },
+  preview: {
+    host: '0.0.0.0',
+    port: Number(process.env.PORT) || 4173,
+    allowedHosts: true,
   },
 });
