@@ -1,0 +1,50 @@
+services:
+  - type: web
+    name: optimization-backend
+    runtime: python
+    plan: free
+    buildCommand: |
+      cd backend && pip install -r requirements.txt
+    startCommand: |
+      cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11
+      - key: DATABASE_URL
+        value: postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}
+      - key: CORS_ORIGINS
+        value: http://localhost:3000,http://localhost:4173,https://localhost:3000,https://localhost:4173
+      - key: JWT_SECRET
+        value: ${JWT_SECRET}
+      - key: JWT_ALGORITHM
+        value: HS256
+    autoDeploy: true
+    
+  - type: web
+    name: optimization-frontend
+    runtime: node
+    plan: free
+    buildCommand: |
+      cd optimization-front && npm install && npm run build
+    startCommand: |
+      cd optimization-front && npm run preview
+    envVars:
+      - key: VITE_API_URL
+        value: https://optimization-backend.onrender.com
+    autoDeploy: true
+    routes:
+      - path: /
+        destination: dist
+
+  - type: pserv
+    name: optimization-db
+    runtime: postgres
+    plan: free
+    env: postgres
+    envVars:
+      - key: POSTGRES_DB
+        value: optimization_db
+      - key: POSTGRES_USER
+        value: ${DB_USER}
+      - key: POSTGRES_PASSWORD
+        value: ${DB_PASSWORD}
