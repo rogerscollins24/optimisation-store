@@ -22,12 +22,24 @@ services:
     autoDeploy: true
     
   - type: web
+    name: optimization-admin
+    env: node
+    rootDir: .
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm run preview -- --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: VITE_API_URL
+        value: https://optimization-backend.onrender.com
+    autoDeploy: true
+
+  - type: web
     name: optimization-frontend
     env: node
     rootDir: optimization-front
     plan: free
     buildCommand: npm install && npm run build
-    startCommand: npm run preview
+    startCommand: npm run preview -- --host 0.0.0.0 --port $PORT
     envVars:
       - key: VITE_API_URL
         value: https://optimization-backend.onrender.com

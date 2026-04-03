@@ -14,6 +14,14 @@ class SupportSocket {
 
   constructor(token: string) {
     this.token = token;
+    const configuredApiUrl = (import.meta.env.VITE_API_URL as string | undefined)?.trim();
+    if (configuredApiUrl) {
+      const apiUrl = new URL(configuredApiUrl);
+      const wsProtocol = apiUrl.protocol === 'https:' ? 'wss:' : 'ws:';
+      this.url = `${wsProtocol}//${apiUrl.host}/api/support/ws`;
+      return;
+    }
+
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     this.url = `${protocol}//${window.location.host}/api/support/ws`;
   }
