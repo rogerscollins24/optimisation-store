@@ -21,20 +21,17 @@ services:
         value: HS256
     autoDeploy: true
     
-  - type: static
+  - type: web
     name: optimization-frontend
+    env: node
     rootDir: optimization-front
     plan: free
     buildCommand: npm install && npm run build
-    staticPublishPath: ./dist
+    startCommand: npm run preview
     envVars:
       - key: VITE_API_URL
         value: https://optimization-backend.onrender.com
     autoDeploy: true
-    routes:
-      - type: rewrite
-        source: /*
-        destination: /index.html
 
 databases:
   - name: optimization-db
