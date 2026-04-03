@@ -182,6 +182,53 @@ docker compose down -v
 npm run docker:up
 ```
 
+## One-Time Product Import (from seo-main)
+
+Use this when you need to replace this app's product catalog with rows from the seo-main `products` table.
+
+1. Ensure destination API is running (`http://localhost:9000`) and source DB is reachable.
+2. Dry-run first (no writes):
+
+```bash
+python backend/scripts/import_products_from_seo_main.py --dry-run --replace-all
+```
+
+3. Run live import (deletes all destination products, then recreates from source):
+
+```bash
+python backend/scripts/import_products_from_seo_main.py --replace-all
+```
+
+4. If delete constraints block `--replace-all`, run an idempotent sync by product name (preserves existing IDs and updates fields like `image_url`):
+
+```bash
+python backend/scripts/import_products_from_seo_main.py \
+	--source-db-url "postgresql://user:pass@host:5432/db" \
+	--upsert-by-name
+```
+
+Defaults:
+
+- Source DB URL: `postgresql://techload:techload@localhost:5433/techload`
+- Target API base: `http://localhost:9000/api`
+- Imported defaults: `commission_rate=1.0`, `stock=100`
+- Upsert mode: `--upsert-by-name` updates existing products by normalized name and creates missing ones
+
+Cleanup note:
+
+- Temporary probe/smoke products and products with empty `image_url` should be removed after validation so the storefront only shows production-ready items.
+
+Optional overrides:
+
+```bash
+python backend/scripts/import_products_from_seo_main.py \
+	--source-db-url "postgresql://user:pass@host:5432/db" \
+	--target-api-base "http://localhost:9000/api" \
+	--commission-rate 1.2 \
+	--stock 80 \
+	--replace-all
+```
+
 ## Admin Functional Coverage
 
 - Users: list, search/filter, create, update, lock/unlock, delete, CSV export
