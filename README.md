@@ -62,8 +62,13 @@ If the default frontend ports are busy, Vite automatically selects the next free
 - Added authenticated routing and user refresh endpoints.
 - Wired Starting screen to task start + submit lifecycle with pending-task resume behavior.
 - Reworked the Starting screen for desktop and mobile with a full-width responsive shell.
-- Starting screen now renders a fixed 3x3 product grid with the Start action in the center.
-- The eight surrounding product cards rotate randomly every 8 seconds using the live product feed.
+- Starting screen now renders a centered fixed 3x3 product grid with the Start action in the middle.
+- Added a short 3–6 second reveal/spin delay before the selected product task appears.
+- Moved Task Progress into the same top stats row as balance and commission for a tighter mobile layout.
+- Added a paint/canvas textured background treatment for the refreshed client views.
+- Refreshed the Home page with an autoplay banner, darker quick-action menu, and richer VIP tier cards.
+- Redesigned the Support page so `New Chat` opens in the main panel with a cleaner ticket/chat layout.
+- Support access is now routed through the account/profile area while the floating chat shortcut remains available.
 - Added a visible Pending section beneath the Starting grid so blocked tasks are surfaced outside the modal flow.
 - Pending views now treat both `pending` and `pending_debited` as active blocked tasks in the client UI.
 - Added deposit prompt and clickable support/chat link when balance is insufficient.
@@ -199,24 +204,19 @@ python backend/scripts/import_products_from_seo_main.py --dry-run --replace-all
 python backend/scripts/import_products_from_seo_main.py --replace-all
 ```
 
-4. If delete constraints block `--replace-all`, run an idempotent sync by product name (preserves existing IDs and updates fields like `image_url`):
+For safe repeat syncs without deleting destination rows first, use the idempotent upsert mode:
 
 ```bash
-python backend/scripts/import_products_from_seo_main.py \
-	--source-db-url "postgresql://user:pass@host:5432/db" \
-	--upsert-by-name
+python backend/scripts/import_products_from_seo_main.py --upsert-by-name
 ```
+
+This updates destination products by matching `name` and only creates entries that are missing.
 
 Defaults:
 
 - Source DB URL: `postgresql://techload:techload@localhost:5433/techload`
 - Target API base: `http://localhost:9000/api`
 - Imported defaults: `commission_rate=1.0`, `stock=100`
-- Upsert mode: `--upsert-by-name` updates existing products by normalized name and creates missing ones
-
-Cleanup note:
-
-- Temporary probe/smoke products and products with empty `image_url` should be removed after validation so the storefront only shows production-ready items.
 
 Optional overrides:
 

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { MessageSquarePlus, SendHorizonal, Sparkles } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import SupportSocket from '../lib/socket';
 import {
@@ -9,6 +10,19 @@ import {
   type SupportMessage,
   type SupportTicket,
 } from '../lib/supportApi';
+
+const getTicketTitle = (ticket?: Partial<SupportTicket> | null) => {
+  const subject = String(ticket?.subject ?? '').trim();
+  if (!subject || /^null+$/i.test(subject)) {
+    return ticket?.id ? `Ticket #${ticket.id}` : 'New conversation';
+  }
+  return subject;
+};
+
+const getStatusLabel = (status?: string) => {
+  const normalized = String(status ?? 'open').replace(/_/g, ' ').trim();
+  return normalized.charAt(0).toUpperCase() + normalized.slice(1);
+};
 
 export default function Support() {
   const { user } = useAuth();
@@ -21,7 +35,6 @@ export default function Support() {
   const [newSubject, setNewSubject] = useState('');
   const [newMessage, setNewMessage] = useState('');
   const [showNewChat, setShowNewChat] = useState(false);
-  const [status, setStatus] = useState('all');
 
   const socketRef = useRef<SupportSocket | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
@@ -30,25 +43,37 @@ export default function Support() {
 
   useEffect(() => {
     if (!token) return;
+
+    let cancelled = false;
     const load = async () => {
-      const data = await listSupportTickets(token, {
-        status: status === 'all' ? undefined : status,
-        limit: 100,
-      });
-      setTickets(data);
-      if (!activeId && data.length > 0) {
-        setActiveId(data[0].id);
-        setMessages(data[0].messages ?? []);
+      try {
+        const data = await listSupportTickets(token, { limit: 100 });
+        if (cancelled) return;
+
+        setTickets(data);
+        if (!showNewChat) {
+          setActiveId((current) => {
+            if (current && data.some((ticket) => ticket.id === current)) {
+              return current;
+            }
+            return data[0]?.id ?? null;
+          });
+        }
+      } catch {
+        // keep existing UI state if refresh fails
       }
     };
 
     void load();
     const id = window.setInterval(() => void load(), 6000);
-    return () => window.clearInterval(id);
-  }, [token, status, activeId]);
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+    };
+  }, [token, showNewChat]);
 
   useEffect(() => {
-    if (!token || !activeId) return;
+    if (!token || !activeId || showNewChat) return;
 
     const loadTicket = async () => {
       const ticket = await getSupportTicket(token, activeId);
@@ -69,11 +94,11 @@ export default function Support() {
     socket.connect(activeId).catch(() => undefined);
 
     return () => socket.disconnect();
-  }, [token, activeId]);
+  }, [token, activeId, showNewChat]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  }, [messages, showNewChat]);
 
   const handleSend = async () => {
     if (!token || !activeId || !draft.trim()) return;
@@ -101,107 +126,183 @@ export default function Support() {
   };
 
   if (!token) {
-    return <div className="rounded-xl bg-white p-6 text-slate-600 shadow-sm">Please login to access support.</div>;
+    return <div className="support-texture rounded-[28px] p-6 text-slate-700 shadow-sm">Please login to access support.</div>;
   }
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[320px_1fr]">
-      <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="font-bold text-slate-800">Support Tickets</h2>
-          <div className="flex items-center gap-2">
+    <div className="support-texture min-h-full rounded-[30px] p-3 md:p-4">
+      <div className="grid gap-4 lg:grid-cols-[320px_1fr]">
+        <section className="rounded-[28px] border border-white/50 bg-white/70 p-4 shadow-[0_12px_30px_rgba(15,23,42,0.12)] backdrop-blur-sm">
+          <div className="mb-4 flex items-start justify-between gap-3">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-sky-700/75">Support</p>
+              <h2 className="text-2xl font-bold text-slate-800">Tickets</h2>
+            </div>
             <button
-              onClick={() => setShowNewChat((prev) => !prev)}
-              className="rounded-lg bg-cyan-600 px-3 py-1 text-sm font-semibold text-white"
+              onClick={() => {
+                setShowNewChat(true);
+                setActiveId(null);
+                setMessages([]);
+              }}
+              className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-sky-600 to-cyan-500 px-4 py-2 text-sm font-semibold text-white shadow-md transition-transform hover:-translate-y-0.5"
             >
+              <MessageSquarePlus size={16} />
               New Chat
             </button>
-            <select
-              value={status}
-              onChange={(event) => setStatus(event.target.value)}
-              className="rounded-lg border border-slate-300 px-2 py-1 text-sm"
-            >
-              <option value="all">All</option>
-              <option value="open">Open</option>
-              <option value="in_progress">In Progress</option>
-              <option value="resolved">Resolved</option>
-              <option value="closed">Closed</option>
-            </select>
           </div>
-        </div>
 
-        {showNewChat ? (
-          <div className="mb-3 rounded-lg border border-slate-200 p-3 bg-slate-50 space-y-2">
-            <input
-              value={newSubject}
-              onChange={(event) => setNewSubject(event.target.value)}
-              placeholder="Subject"
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-            />
-            <textarea
-              value={newMessage}
-              onChange={(event) => setNewMessage(event.target.value)}
-              placeholder="Describe your issue"
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm min-h-[90px]"
-            />
-            <button
-              onClick={() => void handleCreateChat()}
-              disabled={!newSubject.trim()}
-              className="rounded-lg bg-cyan-600 px-3 py-1 text-sm font-semibold text-white disabled:opacity-60"
-            >
-              Create Ticket
-            </button>
+          <div className="max-h-[68vh] space-y-2 overflow-y-auto pr-1">
+            {tickets.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-slate-300 bg-white/70 px-4 py-6 text-sm text-slate-500">
+                No tickets yet. Start a new chat to contact support.
+              </div>
+            ) : (
+              tickets.map((ticket) => (
+                <button
+                  key={ticket.id}
+                  onClick={() => {
+                    setShowNewChat(false);
+                    setActiveId(ticket.id);
+                    setMessages(ticket.messages ?? []);
+                  }}
+                  className={`w-full rounded-2xl border px-4 py-3 text-left transition-all duration-200 ${
+                    activeId === ticket.id && !showNewChat
+                      ? 'border-cyan-400 bg-cyan-50/90 shadow-sm'
+                      : 'border-slate-200 bg-white/80 hover:border-slate-300 hover:bg-white'
+                  }`}
+                >
+                  <p className="truncate text-sm font-semibold text-slate-800">{getTicketTitle(ticket)}</p>
+                  <div className="mt-1 flex items-center justify-between text-xs text-slate-500">
+                    <span>Ticket #{ticket.id}</span>
+                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600">
+                      {getStatusLabel(ticket.status)}
+                    </span>
+                  </div>
+                </button>
+              ))
+            )}
           </div>
-        ) : null}
+        </section>
 
-        <div className="space-y-2 max-h-[65vh] overflow-y-auto">
-          {tickets.map((ticket) => (
-            <button
-              key={ticket.id}
-              onClick={() => {
-                setActiveId(ticket.id);
-                setMessages(ticket.messages ?? []);
-              }}
-              className={`w-full text-left rounded-lg border px-3 py-2 ${activeId === ticket.id ? 'border-cyan-400 bg-cyan-50' : 'border-slate-200 bg-white'}`}
-            >
-              <p className="font-semibold text-sm text-slate-800 truncate">{ticket.subject}</p>
-              <p className="text-xs text-slate-500 mt-1">Ticket #{ticket.id}</p>
-            </button>
-          ))}
-        </div>
-      </section>
+        <section className="flex min-h-[68vh] flex-col rounded-[30px] border border-white/40 bg-white/14 p-4 shadow-[0_14px_32px_rgba(37,99,235,0.14)] backdrop-blur-[2px]">
+          <div className="mb-4 rounded-[24px] bg-gradient-to-r from-[#3f629d] via-[#7090c1] to-[#9fb4d6] px-4 py-3 text-white shadow-lg">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-lg font-bold">{showNewChat ? 'Start a new chat' : getTicketTitle(activeTicket)}</p>
+                <p className="text-xs text-blue-100">{showNewChat ? 'Write your issue and support will reply here.' : getStatusLabel(activeTicket?.status)}</p>
+              </div>
+              <span className="inline-flex items-center gap-1 rounded-full bg-white/15 px-3 py-1 text-[11px] font-semibold tracking-wide text-white/95">
+                <Sparkles size={12} />
+                Live Support
+              </span>
+            </div>
+          </div>
 
-      <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm flex flex-col min-h-[65vh]">
-        <h3 className="font-bold text-slate-800 mb-3">{activeTicket ? activeTicket.subject : 'Select a ticket'}</h3>
+          {showNewChat ? (
+            <div className="grid flex-1 gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+              <div className="rounded-[24px] border border-white/35 bg-[#9fb4d6]/70 p-5 shadow-sm backdrop-blur-sm">
+                <h3 className="mb-4 text-lg font-bold text-slate-800">Create ticket</h3>
+                <div className="space-y-3">
+                  <input
+                    value={newSubject}
+                    onChange={(event) => setNewSubject(event.target.value)}
+                    placeholder="Subject"
+                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-cyan-400 focus:bg-white"
+                  />
+                  <textarea
+                    value={newMessage}
+                    onChange={(event) => setNewMessage(event.target.value)}
+                    placeholder="Describe your issue"
+                    className="min-h-[180px] w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-cyan-400 focus:bg-white"
+                  />
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => void handleCreateChat()}
+                      disabled={!newSubject.trim()}
+                      className="rounded-2xl bg-gradient-to-r from-cyan-600 to-sky-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md transition disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      Create Ticket
+                    </button>
+                    <button
+                      onClick={() => setShowNewChat(false)}
+                      className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </div>
 
-        <div className="flex-1 overflow-y-auto bg-slate-50 rounded-lg p-3 space-y-3">
-          {messages.map((msg) => (
-            <div key={msg.id} className={`flex ${msg.is_admin_reply ? 'justify-start' : 'justify-end'}`}>
-              <div className={`max-w-[80%] rounded-xl px-3 py-2 text-sm ${msg.is_admin_reply ? 'bg-white border border-slate-200 text-slate-700' : 'bg-cyan-500 text-white'}`}>
-                <p>{msg.content}</p>
-                <p className={`text-[11px] mt-1 ${msg.is_admin_reply ? 'text-slate-400' : 'text-cyan-100'}`}>{new Date(msg.created_at).toLocaleString()}</p>
+              <div className="rounded-[24px] border border-white/30 bg-[#6f8fbe]/72 p-5 text-white shadow-sm">
+                <h3 className="text-lg font-bold">Need help fast?</h3>
+                <p className="mt-3 text-sm text-blue-100">
+                  Open a ticket and keep the conversation in one place. Replies from support will appear in this chat panel automatically.
+                </p>
+                <div className="mt-5 rounded-2xl bg-white/10 p-4 text-sm text-blue-50">
+                  Tip: include your issue, recent action, and any balance or task details for a faster reply.
+                </div>
               </div>
             </div>
-          ))}
-          <div ref={bottomRef} />
-        </div>
+          ) : activeTicket ? (
+            <>
+              <div className="flex-1 space-y-3 overflow-y-auto rounded-[24px] bg-[#a9bddf]/72 p-4 backdrop-blur-[2px] md:p-6">
+                {messages.length === 0 ? (
+                  <div className="rounded-2xl bg-white/70 px-4 py-6 text-sm text-slate-600 shadow-sm">
+                    No messages yet. Send a message to start the conversation.
+                  </div>
+                ) : (
+                  messages.map((msg) => (
+                    <div key={msg.id} className={`flex ${msg.is_admin_reply ? 'justify-start' : 'justify-end'}`}>
+                      <div
+                        className={`max-w-[80%] rounded-[20px] px-4 py-3 text-sm shadow-sm ${
+                          msg.is_admin_reply
+                            ? 'border border-slate-200 bg-white text-slate-700'
+                            : 'bg-[#173f99] text-white'
+                        }`}
+                      >
+                        <p>{msg.content}</p>
+                        <p className={`mt-1 text-[11px] ${msg.is_admin_reply ? 'text-slate-400' : 'text-blue-100'}`}>
+                          {new Date(msg.created_at).toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+                  ))
+                )}
+                <div ref={bottomRef} />
+              </div>
 
-        <div className="mt-3 flex gap-2">
-          <input
-            value={draft}
-            onChange={(event) => setDraft(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter') {
-                event.preventDefault();
-                void handleSend();
-              }
-            }}
-            placeholder="Type a message"
-            className="flex-1 rounded-lg border border-slate-300 px-3 py-2"
-          />
-          <button onClick={() => void handleSend()} className="rounded-lg bg-cyan-600 px-4 text-white font-semibold">Send</button>
-        </div>
-      </section>
+              <div className="mt-4 flex gap-2 rounded-[24px] bg-[#6f8fbe]/78 p-3 shadow-inner">
+                <input
+                  value={draft}
+                  onChange={(event) => setDraft(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') {
+                      event.preventDefault();
+                      void handleSend();
+                    }
+                  }}
+                  placeholder="Enter your message"
+                  className="flex-1 rounded-2xl border border-white/20 bg-white/90 px-4 py-3 text-slate-800 outline-none"
+                />
+                <button
+                  onClick={() => void handleSend()}
+                  className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-cyan-500 to-sky-500 px-4 py-3 font-semibold text-white shadow-md transition hover:brightness-105"
+                >
+                  <SendHorizonal size={16} />
+                  Send
+                </button>
+              </div>
+            </>
+          ) : (
+            <div className="flex flex-1 items-center justify-center rounded-[24px] bg-[#a9bddf]/72 p-6 text-center text-slate-700">
+              <div>
+                <p className="text-lg font-bold">No ticket selected</p>
+                <p className="mt-2 text-sm text-slate-600">Choose a ticket on the left or start a new chat.</p>
+              </div>
+            </div>
+          )}
+        </section>
+      </div>
     </div>
   );
 }

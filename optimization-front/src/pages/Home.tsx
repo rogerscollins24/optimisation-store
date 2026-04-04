@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { HeadphonesIcon, Gift, ArrowDownToLine, ArrowUpFromLine, FileText, Award, HelpCircle } from 'lucide-react';
+import { HeadphonesIcon, Gift, ArrowDownToLine, ArrowUpFromLine, FileText, Award, HelpCircle, ChevronRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export default function Home() {
@@ -15,77 +15,124 @@ export default function Home() {
   ];
 
   const vipLevels = [
-    { level: 1, amount: '100.00', commission: '0.50%', tasks: 40 },
-    { level: 2, amount: '500.00', commission: '0.55%', tasks: 45 },
-    { level: 3, amount: '1500.00', commission: '0.60%', tasks: 50 },
-    { level: 4, amount: '3000.00', commission: '0.65%', tasks: 55 },
+    {
+      level: 1,
+      amount: '100 USDT',
+      commission: '0.5%',
+      comboProfit: '3%',
+      tasks: 40,
+      bg: 'bg-[#426b82]',
+      badge: 'from-amber-300 to-yellow-500',
+    },
+    {
+      level: 2,
+      amount: '500 USDT',
+      commission: '1%',
+      comboProfit: '6%',
+      tasks: 45,
+      bg: 'bg-[#155fd7]',
+      badge: 'from-slate-200 to-indigo-200',
+    },
+    {
+      level: 3,
+      amount: '2000 USDT',
+      commission: '1.5%',
+      comboProfit: '9%',
+      tasks: 50,
+      bg: 'bg-[#f2a622]',
+      badge: 'from-yellow-300 to-orange-500',
+    },
+    {
+      level: 4,
+      amount: '5000 USDT',
+      commission: '2%',
+      comboProfit: '12%',
+      tasks: 55,
+      bg: 'bg-[#7a1fb0]',
+      badge: 'from-fuchsia-300 to-violet-500',
+    },
   ];
 
   return (
-    <div className="flex min-h-full flex-col bg-transparent pb-6">
-      <div className="rounded-b-[2rem] bg-blue-600 px-4 pb-16 pt-8 text-white md:px-8 md:pb-20 md:pt-10">
-        <div className="flex justify-between items-center mb-6">
+    <div className="canvas-texture flex min-h-full flex-col pb-6">
+      <div className="px-4 pt-5 md:px-8 md:pt-6">
+        <div className="mb-5 flex items-center justify-between rounded-2xl bg-white/80 px-4 py-4 shadow-sm backdrop-blur-sm">
           <div>
-            <h1 className="text-2xl font-bold md:text-3xl">Welcome back,</h1>
-            <p className="text-lg md:text-xl">{user?.username ?? 'Guest'}!</p>
+            <h1 className="text-2xl font-bold text-slate-900 md:text-3xl">Stacks</h1>
+            <p className="mt-1 text-sm font-medium text-slate-600">👋 Welcome back, {user?.username ?? 'Guest'}!</p>
           </div>
           <Link to="/profile">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm md:h-14 md:w-14">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 md:h-14 md:w-14">
               <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.username ?? 'Stacks'}`} alt="Avatar" className="h-10 w-10 rounded-full md:h-12 md:w-12" />
             </div>
           </Link>
         </div>
+
+        <div className="overflow-hidden rounded-[28px] shadow-lg">
+          <video
+            autoPlay
+            muted
+            loop
+            playsInline
+            poster="https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=800&q=80"
+            className="h-44 w-full object-cover md:h-60"
+          >
+            <source src="https://videos.pexels.com/video-files/7565438/7565438-hd_1920_1080_25fps.mp4" type="video/mp4" />
+          </video>
+        </div>
+
+        <div className="mt-4 rounded-[26px] bg-[#2f2f31] px-3 py-4 text-white shadow-md md:px-4 md:py-5">
+          <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-white/90">
+            <span>Menu</span>
+            <span className="text-cyan-400">List</span>
+          </div>
+          <div className="grid grid-cols-4 gap-3 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7">
+            {menuItems.map((item, index) => {
+              const content = (
+                <>
+                  <div className={`mx-auto mb-2 flex h-11 w-11 items-center justify-center rounded-xl bg-[#3d3d40] shadow-inner ${item.bg}`}>
+                    <item.icon className={item.color} size={20} strokeWidth={1.8} />
+                  </div>
+                  <span className="block text-center text-[11px] font-semibold text-cyan-400 md:text-xs">{item.label}</span>
+                </>
+              );
+
+              return item.to ? (
+                <Link key={index} to={item.to} className="rounded-xl bg-[#38383b] p-3 transition-transform duration-200 hover:-translate-y-0.5">
+                  {content}
+                </Link>
+              ) : (
+                <div key={index} className="cursor-pointer rounded-xl bg-[#38383b] p-3 transition-transform duration-200 hover:-translate-y-0.5">
+                  {content}
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </div>
 
-      <div className="-mt-10 px-4 md:px-8">
-        <div className="bg-white rounded-xl shadow-md overflow-hidden mb-6">
-          <img 
-            src="https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=800&q=80" 
-            alt="Banner" 
-            className="h-40 w-full object-cover md:h-56"
-          />
+      <div className="px-4 pt-5 md:px-8">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-lg font-bold text-slate-800 md:text-2xl">VIP Levels</h2>
+          <button type="button" className="inline-flex items-center gap-1 text-sm font-semibold text-sky-500">
+            View More <ChevronRight size={16} />
+          </button>
         </div>
 
-        <div className="mb-8 grid grid-cols-4 gap-x-2 gap-y-6 rounded-xl bg-white p-4 shadow-sm sm:grid-cols-5 md:grid-cols-6 md:gap-4 md:p-6 lg:grid-cols-7">
-          {menuItems.map((item, index) => {
-            const content = (
-              <>
-                <div className={`mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full md:h-14 md:w-14 ${item.bg}`}>
-                  <item.icon className={item.color} size={24} />
-                </div>
-                <span className="block text-center text-xs text-gray-600 md:text-sm">{item.label}</span>
-              </>
-            );
-
-            return item.to ? (
-              <Link key={index} to={item.to} className="block">
-                {content}
-              </Link>
-            ) : (
-              <div key={index} className="cursor-pointer">
-                {content}
-              </div>
-            );
-          })}
-        </div>
-
-        <h2 className="mb-4 text-lg font-bold text-gray-800 md:mb-6 md:text-2xl">VIP Levels</h2>
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-4 xl:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
           {vipLevels.map((vip) => (
-            <div key={vip.level} className="flex items-center justify-between rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-inner">
-                  V{vip.level}
-                </div>
-                <div>
-                  <h3 className="font-bold text-gray-800">VIP {vip.level}</h3>
-                  <p className="text-xs text-gray-500">Amount: {vip.amount} USDT</p>
-                </div>
+            <div key={vip.level} className={`rounded-2xl p-5 text-white shadow-md ${vip.bg}`}>
+              <div className={`mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br ${vip.badge} text-sm font-bold text-white shadow-inner`}>
+                VIP{vip.level}
               </div>
-              <div className="text-right">
-                <p className="text-sm font-semibold text-blue-600">{vip.commission} Comm.</p>
-                <p className="text-xs text-gray-500">{vip.tasks} Tasks/Day</p>
-              </div>
+              <h3 className="mb-3 text-2xl font-bold">VIP{vip.level}</h3>
+              <ul className="space-y-2 text-sm leading-6 text-white/95">
+                <li>• Receive a set of {vip.tasks} product optimization data tasks.</li>
+                <li>• Profit for each product optimization is {vip.commission}.</li>
+                <li>• Combined product optimization profit is {vip.comboProfit}.</li>
+                <li>• Activate with {vip.amount}.</li>
+                <li>• Up to 3 sets of product optimization data tasks can be completed per day.</li>
+              </ul>
             </div>
           ))}
         </div>

@@ -40,6 +40,8 @@ const getVisibleProducts = (items: Product[], count = 8) => {
   return shuffleProducts(items).slice(0, Math.min(count, items.length));
 };
 
+const wait = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
+
 export default function Starting() {
   const { user, refreshUser, setUser } = useAuth();
   const supportToken = user?.access_token ?? null;
@@ -155,14 +157,18 @@ export default function Starting() {
 
     setIsOptimizing(true);
     try {
-      const response = await fetch('/api/tasks/start', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: user.id,
-          currentTaskNumber: (user.tasks_completed_in_set ?? 0) + 1,
+      const revealDelay = 3000 + Math.floor(Math.random() * 3001);
+      const [response] = await Promise.all([
+        fetch('/api/tasks/start', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: user.id,
+            currentTaskNumber: (user.tasks_completed_in_set ?? 0) + 1,
+          }),
         }),
-      });
+        wait(revealDelay),
+      ]);
       if (!response.ok) {
         const error = await parseError(response);
         if (error.task) {
@@ -260,7 +266,7 @@ export default function Starting() {
   const computedRequiredDeposit = requiredDeposit ?? (user && user.balance < 0 ? Math.abs(user.balance) : 0);
 
   return (
-    <div className="relative flex min-h-full flex-col bg-gray-50 pb-6">
+    <div className="canvas-texture relative flex min-h-full flex-col pb-6">
       <div className="flex items-center justify-between rounded-xl bg-white p-4 shadow-sm md:p-5">
         <h1 className="text-xl font-bold text-blue-600">Stacks</h1>
         <div className="flex items-center gap-4">
@@ -271,28 +277,32 @@ export default function Starting() {
         </div>
       </div>
 
-      <div className="grid gap-6 p-4 lg:grid-cols-[1fr_320px] lg:items-start md:p-6">
-        <div>
-        <div className="flex items-center gap-3 mb-6">
-          <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+      <div className="p-4 md:p-6">
+        <div className="mx-auto w-full max-w-6xl">
+        <div className="mb-6 flex items-center gap-3">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100">
             <span className="text-2xl">👋</span>
           </div>
           <div>
             <h2 className="text-xl font-bold text-gray-800">Hi, {user?.username}</h2>
             <div className="flex items-center gap-2">
-              <span className="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full font-bold">VIP {user?.vip_level ?? 1}</span>
+              <span className="rounded-full bg-yellow-100 px-2 py-1 text-xs font-bold text-yellow-800">VIP {user?.vip_level ?? 1}</span>
             </div>
           </div>
         </div>
 
-        <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-4 text-white shadow-md">
-            <p className="text-sm opacity-80 mb-1">Total Balance</p>
+        <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 p-4 text-white shadow-md">
+            <p className="mb-1 text-sm opacity-80">Total Balance</p>
             <p className="text-xl font-bold">{(user?.balance ?? 0).toFixed(2)} <span className="text-sm font-normal">USDT</span></p>
           </div>
-          <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl p-4 text-white shadow-md">
-            <p className="text-sm opacity-80 mb-1">Today's Commission</p>
+          <div className="rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-600 p-4 text-white shadow-md">
+            <p className="mb-1 text-sm opacity-80">Today's Commission</p>
             <p className="text-xl font-bold">{(user?.commission_today ?? 0).toFixed(2)} <span className="text-sm font-normal">USDT</span></p>
+          </div>
+          <div className="flex min-h-[132px] flex-col justify-center rounded-xl border border-slate-200 bg-white p-4 shadow-sm md:p-5">
+            <p className="text-sm font-semibold text-slate-700">Task Progress</p>
+            <p className="mt-3 text-4xl font-bold leading-none text-blue-600">{user?.tasks_completed_in_set ?? 0}<span className="text-2xl text-slate-500">/{totalTasks}</span></p>
           </div>
         </div>
 
@@ -303,16 +313,16 @@ export default function Starting() {
           </span>
         </div>
 
-        <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm md:p-6">
-          <div className="grid grid-cols-3 gap-3 sm:gap-4">
+        <div className="mx-auto max-w-[1040px] rounded-2xl p-2 md:p-4">
+          <div className="grid grid-cols-3 justify-items-center gap-3 sm:gap-4 md:gap-5">
             {productCells.map((product, cellIndex) => {
               if (cellIndex === 4) {
                 return (
-                  <div key="start-cell" className="aspect-square">
+                  <div key="start-cell" className="aspect-square w-full max-w-[180px]">
                     <button
                       onClick={handleStart}
                       disabled={isOptimizing || pendingTaskBlocked || (user?.tasks_completed_in_set ?? 0) >= totalTasks}
-                      className={`mx-auto flex h-full w-full max-h-[180px] max-w-[180px] flex-col items-center justify-center rounded-full text-center text-white font-bold text-lg shadow-2xl transition-transform active:scale-95 ${
+                      className={`mx-auto flex h-full w-full flex-col items-center justify-center rounded-full text-center text-white font-bold text-lg shadow-2xl transition-transform active:scale-95 ${
                         (isOptimizing || pendingTaskBlocked || (user?.tasks_completed_in_set ?? 0) >= totalTasks)
                           ? 'bg-gray-400 cursor-not-allowed'
                           : 'bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700'
@@ -330,7 +340,7 @@ export default function Starting() {
               }
 
               return (
-                <div key={`product-cell-${cellIndex}`} className="aspect-square overflow-hidden rounded-2xl border border-slate-100 bg-slate-50 shadow-sm">
+                <div key={`product-cell-${cellIndex}`} className="aspect-square w-full max-w-[180px] overflow-hidden rounded-2xl border border-slate-100 bg-slate-50 shadow-sm">
                   {product ? (
                     <img
                       src={product.image_url || 'https://picsum.photos/seed/default/300/300'}
@@ -345,11 +355,6 @@ export default function Starting() {
                 </div>
               );
             })}
-          </div>
-
-          <div className="mt-4 flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-600">
-            <span>Products rotate every 8 seconds.</span>
-            <span>{Math.min(visibleProducts.length, 8)}/8 visible</span>
           </div>
         </div>
 
@@ -431,18 +436,8 @@ export default function Starting() {
             </div>
           )}
         </div>
-        </div>
-
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-          <p className="text-sm font-semibold text-slate-700">Task Progress</p>
-          <p className="mt-2 text-3xl font-bold text-blue-600">{user?.tasks_completed_in_set ?? 0}<span className="text-base text-slate-500">/{totalTasks}</span></p>
-          <p className="mt-4 text-sm text-slate-600">Complete the current pending task before starting the next one. Use Deposit if your balance is insufficient.</p>
-          <div className="mt-5 space-y-2 text-sm">
-            <Link to="/records" className="block rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 font-medium text-blue-700">View Records</Link>
-            <Link to="/deposit" className="block rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-2 font-medium text-emerald-700">Go to Deposit</Link>
-          </div>
-        </div>
       </div>
+    </div>
 
       {currentTask && (
         <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
