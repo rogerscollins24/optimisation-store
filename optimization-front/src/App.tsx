@@ -16,9 +16,9 @@ import Deposit from './pages/Deposit';
 import Withdraw from './pages/Withdraw';
 import Login from './pages/Login';
 import Support from './pages/Support';
-import PersonalInformation from './pages/PersonalInformation';
-import WalletBinding from './pages/WalletBinding';
-import Notifications from './pages/Notifications';
+import PersonalInformation from './pages/PersonalInformation.tsx';
+import WalletBinding from './pages/WalletBinding.tsx';
+import Notifications from './pages/Notifications.tsx';
 
 function RequireAuth({ children }: { children: ReactElement }) {
   const { user, loading } = useAuth();

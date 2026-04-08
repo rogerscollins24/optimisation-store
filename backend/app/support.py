@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket, WebSocketDisconnect, status
@@ -145,6 +146,20 @@ def _mark_ticket_read_for_user(db: Session, ticket_id: int, user_id: int) -> int
     return int(updated)
 
 
+def _serialize_message_payload(message: SupportMessage) -> dict:
+    created_at = message.created_at
+    created_at_value = created_at.isoformat() if isinstance(created_at, datetime) else str(created_at)
+    return {
+        "id": message.id,
+        "content": message.content,
+        "is_admin_reply": message.is_admin_reply,
+        "read_by_admin": message.read_by_admin,
+        "read_by_user": message.read_by_user,
+        "created_at": created_at_value,
+        "sender_id": message.sender_id,
+    }
+
+
 def _verify_ws_token(token: str) -> int:
     try:
         payload = jwt.decode(token, settings.jwt_secret_key, algorithms=[settings.jwt_algorithm])
@@ -264,18 +279,7 @@ async def add_message(
     db.commit()
     db.refresh(message)
 
-    await manager.broadcast(
-        ticket.id,
-        {
-            "id": message.id,
-            "content": message.content,
-            "is_admin_reply": message.is_admin_reply,
-            "read_by_admin": message.read_by_admin,
-            "read_by_user": message.read_by_user,
-            "created_at": message.created_at.isoformat(),
-            "sender_id": message.sender_id,
-        },
-    )
+    await manager.broadcast(ticket.id, _serialize_message_payload(message))
 
     updated_ticket = _load_ticket(db, ticket.id)
     if not updated_ticket:
@@ -451,18 +455,7 @@ async def websocket_endpoint(
             db.commit()
             db.refresh(message)
 
-            await manager.broadcast(
-                ticket_id,
-                {
-                    "id": message.id,
-                    "content": message.content,
-                    "is_admin_reply": message.is_admin_reply,
-                    "read_by_admin": message.read_by_admin,
-                    "read_by_user": message.read_by_user,
-                    "created_at": message.created_at.isoformat(),
-                    "sender_id": message.sender_id,
-                },
-            )
+            await manager.broadcast(ticket_id, _serialize_message_payload(message))
     except WebSocketDisconnect:
         await manager.disconnect(ticket_id, websocket)
     except Exception:
