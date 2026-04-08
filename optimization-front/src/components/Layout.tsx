@@ -2,6 +2,7 @@ import { Outlet, NavLink } from 'react-router-dom';
 import { FileText } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { useLanguage } from '../context/LanguageContext';
 import { BrandHomeIcon, ShipWheelIcon } from './BrandIcons';
 
 export function cn(...inputs: (string | undefined | null | false)[]) {
@@ -9,6 +10,8 @@ export function cn(...inputs: (string | undefined | null | false)[]) {
 }
 
 export default function Layout() {
+  const { t } = useLanguage();
+
   return (
     <div className="flex min-h-screen flex-col bg-gradient-to-br from-gray-50 to-slate-100">
       <div className="flex-1 overflow-y-auto pb-24">
@@ -26,7 +29,7 @@ export default function Layout() {
             }
           >
             <BrandHomeIcon size={24} />
-            <span>Home</span>
+            <span>{t('home')}</span>
           </NavLink>
 
           <NavLink
@@ -38,7 +41,7 @@ export default function Layout() {
             <div className="mb-1 rounded-full bg-white p-2.5 shadow-[0_12px_24px_rgba(59,130,246,0.24)] ring-4 ring-sky-100">
               <ShipWheelIcon size={42} />
             </div>
-            <span className="font-medium">Starting</span>
+            <span className="font-medium">{t('starting')}</span>
           </NavLink>
 
           <NavLink
@@ -48,7 +51,7 @@ export default function Layout() {
             }
           >
             <FileText size={24} />
-            <span>Records</span>
+            <span>{t('records')}</span>
           </NavLink>
         </div>
       </nav>

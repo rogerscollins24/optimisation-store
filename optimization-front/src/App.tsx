@@ -7,6 +7,7 @@ import { ReactElement } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { UserProvider } from './store';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { LanguageProvider } from './context/LanguageContext';
 import Layout from './components/Layout';
 import Home from './pages/Home';
 import Starting from './pages/Starting';
@@ -19,6 +20,7 @@ import Support from './pages/Support';
 import PersonalInformation from './pages/PersonalInformation.tsx';
 import WalletBinding from './pages/WalletBinding.tsx';
 import Notifications from './pages/Notifications.tsx';
+import Faqs from './pages/Faqs';
 
 function RequireAuth({ children }: { children: ReactElement }) {
   const { user, loading } = useAuth();
@@ -36,33 +38,36 @@ function RequireAuth({ children }: { children: ReactElement }) {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <UserProvider>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route
-              path="/"
-              element={
-                <RequireAuth>
-                  <Layout />
-                </RequireAuth>
-              }
-            >
-              <Route index element={<Home />} />
-              <Route path="starting" element={<Starting />} />
-              <Route path="records" element={<Records />} />
-              <Route path="profile" element={<Profile />} />
-              <Route path="profile/personal" element={<PersonalInformation />} />
-              <Route path="profile/wallet" element={<WalletBinding />} />
-              <Route path="notifications" element={<Notifications />} />
-              <Route path="deposit" element={<Deposit />} />
-              <Route path="withdraw" element={<Withdraw />} />
-              <Route path="support" element={<Support />} />
-            </Route>
-          </Routes>
-        </BrowserRouter>
-      </UserProvider>
-    </AuthProvider>
+    <LanguageProvider>
+      <AuthProvider>
+        <UserProvider>
+          <BrowserRouter>
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route
+                path="/"
+                element={
+                  <RequireAuth>
+                    <Layout />
+                  </RequireAuth>
+                }
+              >
+                <Route index element={<Home />} />
+                <Route path="starting" element={<Starting />} />
+                <Route path="records" element={<Records />} />
+                <Route path="profile" element={<Profile />} />
+                <Route path="profile/personal" element={<PersonalInformation />} />
+                <Route path="profile/wallet" element={<WalletBinding />} />
+                <Route path="notifications" element={<Notifications />} />
+                <Route path="faqs" element={<Faqs />} />
+                <Route path="deposit" element={<Deposit />} />
+                <Route path="withdraw" element={<Withdraw />} />
+                <Route path="support" element={<Support />} />
+              </Route>
+            </Routes>
+          </BrowserRouter>
+        </UserProvider>
+      </AuthProvider>
+    </LanguageProvider>
   );
 }
