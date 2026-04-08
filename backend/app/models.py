@@ -39,6 +39,12 @@ class User(Base):
         nullable=True,
         index=True,
     )
+    managed_by_admin_id: Mapped[int | None] = mapped_column(
+        Integer,
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
     created_at: Mapped[DateTime] = mapped_column(DateTime, server_default=func.now())
 
     support_tickets = relationship("SupportTicket", back_populates="user", foreign_keys="SupportTicket.user_id")
@@ -58,6 +64,17 @@ class User(Base):
         back_populates="created_users",
         remote_side="User.id",
         foreign_keys=[created_by_admin_id],
+    )
+    managed_users = relationship(
+        "User",
+        back_populates="managed_by_admin",
+        foreign_keys="User.managed_by_admin_id",
+    )
+    managed_by_admin = relationship(
+        "User",
+        back_populates="managed_users",
+        remote_side="User.id",
+        foreign_keys=[managed_by_admin_id],
     )
 
 
@@ -146,6 +163,7 @@ class Notification(Base):
     message: Mapped[str] = mapped_column(Text)
     status: Mapped[str] = mapped_column(String, default="Active")
     recipients: Mapped[str] = mapped_column(Text, default="all")
+    created_at: Mapped[DateTime] = mapped_column(DateTime, server_default=func.now())
 
 
 class UserTask(Base):
@@ -193,6 +211,7 @@ class SupportMessage(Base):
     content: Mapped[str] = mapped_column(Text)
     is_admin_reply: Mapped[bool] = mapped_column(Boolean, default=False)
     read_by_admin: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    read_by_user: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
     created_at: Mapped[DateTime] = mapped_column(DateTime, server_default=func.now())
 
     ticket = relationship("SupportTicket", back_populates="messages")

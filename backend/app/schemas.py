@@ -88,6 +88,7 @@ class UserCreateRequest(BaseModel):
     training_commission_rate: float = 25.0
     status: str = "Active"
     role: UserRole = UserRole.MERCHANT
+    managed_by_admin_id: int | None = None
 
 
 class UserUpdateRequest(BaseModel):
@@ -115,6 +116,7 @@ class UserUpdateRequest(BaseModel):
     training_commission_rate: float | None = None
     status: str | None = None
     role: UserRole | None = None
+    managed_by_admin_id: int | None = None
 
 
 class TrainingAccountCreateRequest(BaseModel):
@@ -198,6 +200,7 @@ class SupportMessageSchema(BaseModel):
     content: str
     is_admin_reply: bool
     read_by_admin: bool
+    read_by_user: bool
     created_at: datetime
 
     class Config:

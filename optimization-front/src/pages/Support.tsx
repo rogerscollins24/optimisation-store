@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { MessageSquarePlus, SendHorizonal, Sparkles } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import SupportSocket from '../lib/socket';
 import {
   createSupportTicket,
   getSupportTicket,
   listSupportTickets,
+  markSupportTicketRead,
   postSupportMessage,
   type SupportMessage,
   type SupportTicket,
@@ -25,7 +27,8 @@ const getStatusLabel = (status?: string) => {
 };
 
 export default function Support() {
-  const { user } = useAuth();
+  const location = useLocation();
+  const { user, refreshBadges } = useAuth();
   const token = user?.access_token ?? null;
 
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
@@ -38,6 +41,13 @@ export default function Support() {
 
   const socketRef = useRef<SupportSocket | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
+
+  const requestedTicketId = useMemo(() => {
+    const value = new URLSearchParams(location.search).get('ticket');
+    if (!value) return null;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }, [location.search]);
 
   const activeTicket = useMemo(() => tickets.find((item) => item.id === activeId) ?? null, [tickets, activeId]);
 
@@ -53,6 +63,9 @@ export default function Support() {
         setTickets(data);
         if (!showNewChat) {
           setActiveId((current) => {
+            if (requestedTicketId && data.some((ticket) => ticket.id === requestedTicketId)) {
+              return requestedTicketId;
+            }
             if (current && data.some((ticket) => ticket.id === current)) {
               return current;
             }
@@ -70,7 +83,7 @@ export default function Support() {
       cancelled = true;
       window.clearInterval(id);
     };
-  }, [token, showNewChat]);
+  }, [token, showNewChat, requestedTicketId]);
 
   useEffect(() => {
     if (!token || !activeId || showNewChat) return;
@@ -78,6 +91,8 @@ export default function Support() {
     const loadTicket = async () => {
       const ticket = await getSupportTicket(token, activeId);
       setMessages(ticket.messages ?? []);
+      await markSupportTicketRead(token, activeId).catch(() => 0);
+      await refreshBadges();
     };
 
     void loadTicket();
@@ -90,11 +105,15 @@ export default function Support() {
         if (prev.some((msg) => msg.id === payload.id)) return prev;
         return [...prev, payload];
       });
+      if (payload.is_admin_reply) {
+        void markSupportTicketRead(token, activeId).catch(() => 0);
+      }
+      void refreshBadges();
     });
     socket.connect(activeId).catch(() => undefined);
 
     return () => socket.disconnect();
-  }, [token, activeId, showNewChat]);
+  }, [token, activeId, showNewChat, refreshBadges]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -112,6 +131,7 @@ export default function Support() {
 
     const ticket = await postSupportMessage(token, activeId, text);
     setMessages(ticket.messages ?? []);
+    void refreshBadges();
   };
 
   const handleCreateChat = async () => {
@@ -123,6 +143,7 @@ export default function Support() {
     setNewSubject('');
     setNewMessage('');
     setShowNewChat(false);
+    void refreshBadges();
   };
 
   if (!token) {

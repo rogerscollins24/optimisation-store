@@ -1,7 +1,8 @@
 import { Outlet, NavLink } from 'react-router-dom';
-import { Home, LifeBuoy, Play, FileText } from 'lucide-react';
+import { FileText } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { BrandHomeIcon, ShipWheelIcon } from './BrandIcons';
 
 export function cn(...inputs: (string | undefined | null | false)[]) {
   return twMerge(clsx(inputs));
@@ -21,21 +22,21 @@ export default function Layout() {
           <NavLink
             to="/"
             className={({ isActive }) =>
-              cn('flex w-16 flex-col items-center justify-center gap-1 text-xs', isActive ? 'text-blue-600' : 'text-gray-500')
+              cn('flex w-16 flex-col items-center justify-center gap-1 text-xs', isActive ? 'text-sky-600' : 'text-gray-500')
             }
           >
-            <Home size={24} />
+            <BrandHomeIcon size={24} />
             <span>Home</span>
           </NavLink>
 
           <NavLink
             to="/starting"
             className={({ isActive }) =>
-              cn('relative -top-4 flex w-16 flex-col items-center justify-center gap-1 text-xs', isActive ? 'text-blue-600' : 'text-gray-500')
+              cn('relative -top-5 flex w-24 flex-col items-center justify-center gap-1 text-xs', isActive ? 'text-blue-600' : 'text-gray-500')
             }
           >
-            <div className="mb-1 rounded-full bg-blue-600 p-3 text-white shadow-lg">
-              <Play size={28} fill="currentColor" />
+            <div className="mb-1 rounded-full bg-white p-2.5 shadow-[0_12px_24px_rgba(59,130,246,0.24)] ring-4 ring-sky-100">
+              <ShipWheelIcon size={42} />
             </div>
             <span className="font-medium">Starting</span>
           </NavLink>
@@ -48,16 +49,6 @@ export default function Layout() {
           >
             <FileText size={24} />
             <span>Records</span>
-          </NavLink>
-
-          <NavLink
-            to="/support"
-            className={({ isActive }) =>
-              cn('flex w-16 flex-col items-center justify-center gap-1 text-xs', isActive ? 'text-blue-600' : 'text-gray-500')
-            }
-          >
-            <LifeBuoy size={24} />
-            <span>Support</span>
           </NavLink>
         </div>
       </nav>

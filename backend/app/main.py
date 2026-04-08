@@ -46,6 +46,14 @@ def on_startup() -> None:
                 )
             )
             conn.execute(text("CREATE INDEX IF NOT EXISTS ix_users_created_by_admin_id ON users (created_by_admin_id)"))
+    if "managed_by_admin_id" not in user_columns:
+        with engine.begin() as conn:
+            conn.execute(
+                text(
+                    "ALTER TABLE users ADD COLUMN managed_by_admin_id INTEGER REFERENCES users(id) ON DELETE SET NULL"
+                )
+            )
+            conn.execute(text("CREATE INDEX IF NOT EXISTS ix_users_managed_by_admin_id ON users (managed_by_admin_id)"))
 
     support_ticket_columns = {column["name"] for column in inspector.get_columns("support_tickets")}
     if "assigned_to_admin_id" not in support_ticket_columns:
@@ -60,6 +68,17 @@ def on_startup() -> None:
                     "CREATE INDEX IF NOT EXISTS ix_support_tickets_assigned_to_admin_id ON support_tickets (assigned_to_admin_id)"
                 )
             )
+    support_message_columns = {column["name"] for column in inspector.get_columns("support_messages")}
+    if "read_by_user" not in support_message_columns:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE support_messages ADD COLUMN read_by_user BOOLEAN DEFAULT TRUE"))
+            conn.execute(text("CREATE INDEX IF NOT EXISTS ix_support_messages_read_by_user ON support_messages (read_by_user)"))
+
+    notification_columns = {column["name"] for column in inspector.get_columns("notifications")}
+    if "created_at" not in notification_columns:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE notifications ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP"))
+
     with engine.begin() as conn:
         conn.execute(text("UPDATE users SET role = 'super_admin' WHERE username = 'jane_smith'"))
     with SessionLocal() as db:

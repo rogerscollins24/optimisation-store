@@ -1,16 +1,17 @@
+from datetime import datetime, timezone
 import random
 import secrets
 import shutil
 from pathlib import Path
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, UploadFile
 from sqlalchemy import delete, func, or_, select
 from sqlalchemy.orm import Session
 
 from .deps import create_access_token, get_optional_current_user
 from .database import get_db
-from .models import ActivityLog, Combo, ComboItem, Notification, Product, Setting, Task, User, UserTask, Withdrawal
+from .models import ActivityLog, Combo, ComboItem, Notification, Product, Setting, SupportTicket, Task, User, UserTask, Withdrawal
 from .enums import UserRole
 from .schemas import (
     BalanceUpdateRequest,
@@ -101,6 +102,61 @@ def _to_dict(model_obj, extra: dict | None = None) -> dict:
     if extra:
         result.update(extra)
     return result
+
+
+def _resolve_managed_admin_id(db: Session, managed_by_admin_id: int | None) -> int | None:
+    if managed_by_admin_id is None:
+        return None
+    assignee = db.get(User, managed_by_admin_id)
+    if not assignee or _normalize_role_value(assignee.role) != UserRole.SUB_ADMIN.value:
+        raise HTTPException(status_code=400, detail="Support owner must be an existing sub admin")
+    return assignee.id
+
+
+def _coerce_datetime(value: str | None) -> datetime | None:
+    if not value:
+        return None
+    try:
+        if len(value) == 10:
+            return datetime.fromisoformat(value)
+        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid datetime format")
+
+
+def _reset_daily_metrics_if_due(user: User) -> bool:
+    now_utc = datetime.now(timezone.utc)
+    last_reset = user.last_commission_reset
+
+    if last_reset is None:
+        user.last_commission_reset = now_utc
+        if float(user.commission_today or 0) != 0 or int(user.task_count_today or 0) != 0:
+            user.commission_today = 0
+            user.task_count_today = 0
+            return True
+        return False
+
+    if last_reset.tzinfo is None:
+        last_reset = last_reset.replace(tzinfo=timezone.utc)
+    else:
+        last_reset = last_reset.astimezone(timezone.utc)
+
+    if last_reset.date() < now_utc.date():
+        user.commission_today = 0
+        user.task_count_today = 0
+        user.last_commission_reset = now_utc
+        return True
+
+    return False
+
+
+def _serialize_user(user: User) -> dict:
+    payload = _to_dict(user)
+    cfg = _VIP_CONFIG.get(user.vip_level, {"tasks_per_set": 60, "rate": 0.025})
+    total_tasks = int(cfg["tasks_per_set"])
+    payload["remaining_tasks"] = max(total_tasks - int(user.tasks_completed_in_set or 0), 0)
+    payload["tasks_per_set"] = total_tasks
+    return payload
 
 
 def _log_action(db: Session, request: Request | None, action: str, target: str, details: str) -> None:
@@ -197,9 +253,12 @@ def _format_task_record(task: UserTask, combo_products: list[dict] | None = None
 
 
 @router.get("/users")
-def get_users(db: Session = Depends(get_db)):
-    users = db.scalars(select(User).order_by(User.id)).all()
-    return [_to_dict(user) for user in users]
+def get_users(role: str | None = Query(default=None), db: Session = Depends(get_db)):
+    query = select(User).order_by(User.id)
+    if role:
+        query = query.where(User.role == role)
+    users = db.scalars(query).all()
+    return [_serialize_user(user) for user in users]
 
 
 @router.post("/users")
@@ -217,6 +276,10 @@ def create_user(
 
     target_role = _resolve_created_role(current_admin, payload.role)
     creator_id = current_admin.id if current_admin and _normalize_role_value(current_admin.role) in ADMIN_ROLES else None
+    managed_by_admin_id = _resolve_managed_admin_id(db, payload.managed_by_admin_id)
+    if managed_by_admin_id is None and target_role == UserRole.MERCHANT.value and current_admin:
+        if _normalize_role_value(current_admin.role) == UserRole.SUB_ADMIN.value:
+            managed_by_admin_id = current_admin.id
 
     user = User(
         username=payload.username,
@@ -228,6 +291,7 @@ def create_user(
         balance=payload.balance,
         commission=payload.commission,
         commission_today=payload.commission_today,
+        last_commission_reset=_coerce_datetime(payload.last_commission_reset),
         vip_level=payload.vip_level,
         invite_code=payload.invite_code,
         referred_by=payload.referred_by,
@@ -243,6 +307,7 @@ def create_user(
         status=payload.status,
         role=target_role,
         created_by_admin_id=creator_id,
+        managed_by_admin_id=managed_by_admin_id,
     )
     db.add(user)
     db.flush()
@@ -294,6 +359,7 @@ def create_training_account(
         status="Active",
         role=UserRole.MERCHANT.value,
         created_by_admin_id=current_admin.id if current_admin and _normalize_role_value(current_admin.role) in ADMIN_ROLES else None,
+        managed_by_admin_id=current_admin.id if current_admin and _normalize_role_value(current_admin.role) == UserRole.SUB_ADMIN.value else None,
     )
     db.add(training_user)
     db.flush()
@@ -324,12 +390,74 @@ def update_user(
     updates = payload.model_dump(exclude_none=True)
     if "role" in updates:
         updates["role"] = _resolve_updated_role(current_admin, updates["role"])
+    if "managed_by_admin_id" in updates:
+        updates["managed_by_admin_id"] = _resolve_managed_admin_id(db, updates["managed_by_admin_id"])
+    if "last_commission_reset" in updates:
+        updates["last_commission_reset"] = _coerce_datetime(updates["last_commission_reset"])
     for key, value in updates.items():
         setattr(db_user, key, value)
 
     _log_action(db, request, "Updated User", f"User ID: {user_id}", str(updates))
     db.commit()
     return {"success": True}
+
+
+@router.put("/users/{user_id}/profile")
+def update_client_profile(
+    user_id: int,
+    payload: UserUpdateRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User | None = Depends(get_optional_current_user),
+):
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+
+    current_role = _normalize_role_value(current_user.role)
+    if current_user.id != user_id and current_role not in ADMIN_ROLES:
+        raise HTTPException(status_code=403, detail="You are not allowed to update this profile")
+
+    db_user = db.get(User, user_id)
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    allowed_fields = {"email", "phone", "gender", "exchange", "wallet_address"}
+    updates = {key: value for key, value in payload.model_dump(exclude_none=True).items() if key in allowed_fields}
+    for key, value in updates.items():
+        setattr(db_user, key, value)
+
+    _log_action(db, request, "Updated Client Profile", f"User ID: {user_id}", str(updates))
+    db.commit()
+    return {"success": True, "user": _serialize_user(db_user)}
+
+
+@router.put("/users/{user_id}/support-assignment")
+def assign_user_support_owner(
+    user_id: int,
+    payload: UserUpdateRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_admin: User | None = Depends(get_optional_current_user),
+):
+    if not current_admin or _normalize_role_value(current_admin.role) != UserRole.SUPER_ADMIN.value:
+        raise HTTPException(status_code=403, detail="Only super admins can assign support owners")
+
+    db_user = db.get(User, user_id)
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if _normalize_role_value(db_user.role) in ADMIN_ROLES:
+        raise HTTPException(status_code=400, detail="Only client accounts can be assigned to a sub admin")
+
+    managed_by_admin_id = _resolve_managed_admin_id(db, payload.managed_by_admin_id)
+    db_user.managed_by_admin_id = managed_by_admin_id
+
+    ticket_query = db.query(SupportTicket).filter(SupportTicket.user_id == user_id)
+    ticket_query.update({SupportTicket.assigned_to_admin_id: managed_by_admin_id}, synchronize_session=False)
+
+    owner_label = f"sub_admin #{managed_by_admin_id}" if managed_by_admin_id else "unassigned"
+    _log_action(db, request, "Updated Client Support Owner", f"User ID: {user_id}", owner_label)
+    db.commit()
+    return {"success": True, "user": _serialize_user(db_user)}
 
 
 @router.delete("/users/{user_id}")
@@ -362,6 +490,7 @@ def update_user_balance(user_id: int, payload: BalanceUpdateRequest, request: Re
     if not db_user:
         raise HTTPException(status_code=404, detail="User not found")
 
+    _reset_daily_metrics_if_due(db_user)
     value = payload.amount if payload.type == "add" else -payload.amount
     db_user.balance = float(db_user.balance) + float(value)
 
@@ -372,6 +501,7 @@ def update_user_balance(user_id: int, payload: BalanceUpdateRequest, request: Re
     if payload.type == "add" and db_user.is_training_account and db_user.trainer_owner_id:
         inviter = db.get(User, db_user.trainer_owner_id)
         if inviter:
+            _reset_daily_metrics_if_due(inviter)
             commission_rate = float(db_user.training_commission_rate or 25.0)
             commission_amount = round(float(payload.amount) * (commission_rate / 100.0), 2)
             inviter.balance = float(inviter.balance) + commission_amount
@@ -502,6 +632,9 @@ def start_task(payload: TaskStartRequest, db: Session = Depends(get_db)):
     user = db.get(User, payload.userId)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+    if _reset_daily_metrics_if_due(user):
+        db.commit()
+        db.refresh(user)
 
     pending_task = db.scalar(
         select(UserTask)
@@ -1044,7 +1177,12 @@ def client_login(body: LoginRequest, db: Session = Depends(get_db)):
     user = db.scalar(select(User).where(User.username == body.username))
     if not user or user.login_password != body.password:
         raise HTTPException(status_code=401, detail="Invalid username or password")
-    user_payload = _to_dict(user)
+
+    if _reset_daily_metrics_if_due(user):
+        db.commit()
+        db.refresh(user)
+
+    user_payload = _serialize_user(user)
     user_payload["access_token"] = create_access_token(user.id)
     user_payload["token_type"] = "bearer"
     return user_payload
@@ -1055,7 +1193,10 @@ def client_user_overview(user_id: int, db: Session = Depends(get_db)):
     user = db.scalar(select(User).where(User.id == user_id))
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    return _to_dict(user)
+    if _reset_daily_metrics_if_due(user):
+        db.commit()
+        db.refresh(user)
+    return _serialize_user(user)
 
 
 _VIP_CONFIG = {
@@ -1071,6 +1212,9 @@ def client_pending_tasks(user_id: int, db: Session = Depends(get_db)):
     user = db.scalar(select(User).where(User.id == user_id))
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+    if _reset_daily_metrics_if_due(user):
+        db.commit()
+        db.refresh(user)
 
     tasks = db.scalars(
         select(UserTask)
@@ -1097,6 +1241,9 @@ def client_submit_task(user_id: int, body: SubmitTaskRequest, request: Request, 
     user = db.scalar(select(User).where(User.id == user_id))
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+    if _reset_daily_metrics_if_due(user):
+        db.commit()
+        db.refresh(user)
 
     user_task = db.scalar(
         select(UserTask).where(UserTask.user_id == user_id, UserTask.task_code == body.taskCode)
@@ -1108,7 +1255,7 @@ def client_submit_task(user_id: int, body: SubmitTaskRequest, request: Request, 
         return {
             "success": True,
             "task_record": _to_dict(user_task),
-            "user": _to_dict(user),
+            "user": _serialize_user(user),
         }
 
     if user_task.status not in ["pending", "pending_debited"]:
@@ -1180,7 +1327,7 @@ def client_submit_task(user_id: int, body: SubmitTaskRequest, request: Request, 
         "success": True,
         "commission": commission,
         "task_record": _to_dict(user_task),
-        "user": _to_dict(user),
+        "user": _serialize_user(user),
     }
 
 

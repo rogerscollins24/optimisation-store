@@ -27,6 +27,9 @@ export type AdminUser = {
   id: number;
   username: string;
   role?: string;
+  managed_by_admin_id?: number | null;
+  balance?: number;
+  status?: string;
 };
 
 export type SupportLoginResult = {
@@ -131,11 +134,25 @@ export async function adminAssignSupportTicket(
   return parseResponse<SupportTicket>(response);
 }
 
-export async function adminListUsers(token: string): Promise<AdminUser[]> {
-  const response = await fetch('/api/users', {
+export async function adminListUsers(token: string, role?: string): Promise<AdminUser[]> {
+  const qs = role ? `?role=${encodeURIComponent(role)}` : '';
+  const response = await fetch(`/api/users${qs}`, {
     headers: authHeader(token),
   });
   return parseResponse<AdminUser[]>(response);
+}
+
+export async function adminAssignClientSupportOwner(
+  token: string,
+  userId: number,
+  managedByAdminId: number | null,
+): Promise<{ success: boolean }> {
+  const response = await fetch(`/api/users/${userId}/support-assignment`, {
+    method: 'PUT',
+    headers: authJsonHeader(token),
+    body: JSON.stringify({ managed_by_admin_id: managedByAdminId }),
+  });
+  return parseResponse<{ success: boolean }>(response);
 }
 
 export async function adminGetSupportUnreadCount(token: string): Promise<number> {

@@ -3,6 +3,7 @@ export type SupportMessage = {
   content: string;
   is_admin_reply: boolean;
   read_by_admin: boolean;
+  read_by_user: boolean;
   created_at: string;
   sender_id?: number | null;
 };
@@ -10,12 +11,14 @@ export type SupportMessage = {
 export type SupportTicket = {
   id: number;
   user_id?: number | null;
+  assigned_to_admin_id?: number | null;
   subject: string;
   status: string;
   created_at: string;
   updated_at: string;
   user_username?: string | null;
   user_email?: string | null;
+  assigned_admin_username?: string | null;
   messages: SupportMessage[];
 };
 
@@ -72,4 +75,21 @@ export async function postSupportMessage(token: string, ticketId: number, conten
     body: JSON.stringify({ content }),
   });
   return parseResponse<SupportTicket>(response);
+}
+
+export async function getClientSupportUnreadCount(token: string): Promise<number> {
+  const response = await fetch('/api/support/client-unread-count', {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const payload = await parseResponse<{ unread?: number }>(response);
+  return Number(payload?.unread || 0);
+}
+
+export async function markSupportTicketRead(token: string, ticketId: number): Promise<number> {
+  const response = await fetch(`/api/support/tickets/${ticketId}/mark-read`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const payload = await parseResponse<{ updated?: number }>(response);
+  return Number(payload?.updated || 0);
 }

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { CheckCircle2, Loader2, RefreshCcw, Search, Send } from 'lucide-react';
 import SupportSocket from '../lib/socket';
 import {
+  adminAssignClientSupportOwner,
   adminAssignSupportTicket,
   adminGetSupportTicket,
   adminGetSupportUnreadCount,
@@ -89,7 +90,7 @@ export default function SupportDesk() {
     }
 
     const loadAdmins = async () => {
-      const users = await adminListUsers(token);
+      const users = await adminListUsers(token, 'sub_admin');
       setSubAdmins(users.filter((user) => user.role === 'sub_admin'));
     };
 
@@ -166,6 +167,9 @@ export default function SupportDesk() {
     const parsed = Number(assignedToValue);
     const nextAssignee = assignedToValue && !Number.isNaN(parsed) ? parsed : null;
     await adminAssignSupportTicket(token, activeId, nextAssignee);
+    if (activeTicket?.user_id) {
+      await adminAssignClientSupportOwner(token, activeTicket.user_id, nextAssignee);
+    }
     await loadTickets(token);
   };
 
@@ -226,7 +230,7 @@ export default function SupportDesk() {
               </div>
               <p className="text-xs text-slate-500 mt-1">{ticket.user_username || ticket.user_email || `User #${ticket.user_id || 'N/A'}`}</p>
               {ticket.assigned_admin_username ? (
-                <p className="text-[11px] text-slate-500 mt-1">Assigned: {ticket.assigned_admin_username}</p>
+                <p className="mt-1 text-[11px] text-slate-500">Support owner: {ticket.assigned_admin_username}</p>
               ) : null}
             </button>
           ))}

@@ -16,6 +16,9 @@ import Deposit from './pages/Deposit';
 import Withdraw from './pages/Withdraw';
 import Login from './pages/Login';
 import Support from './pages/Support';
+import PersonalInformation from './pages/PersonalInformation';
+import WalletBinding from './pages/WalletBinding';
+import Notifications from './pages/Notifications';
 
 function RequireAuth({ children }: { children: ReactElement }) {
   const { user, loading } = useAuth();
@@ -50,6 +53,9 @@ export default function App() {
               <Route path="starting" element={<Starting />} />
               <Route path="records" element={<Records />} />
               <Route path="profile" element={<Profile />} />
+              <Route path="profile/personal" element={<PersonalInformation />} />
+              <Route path="profile/wallet" element={<WalletBinding />} />
+              <Route path="notifications" element={<Notifications />} />
               <Route path="deposit" element={<Deposit />} />
               <Route path="withdraw" element={<Withdraw />} />
               <Route path="support" element={<Support />} />

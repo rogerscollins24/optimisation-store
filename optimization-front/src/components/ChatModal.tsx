@@ -4,10 +4,12 @@ import SupportSocket from '../lib/socket';
 import {
   createSupportTicket,
   listSupportTickets,
+  markSupportTicketRead,
   postSupportMessage,
   type SupportMessage,
   type SupportTicket,
 } from '../lib/supportApi';
+import { useAuth } from '../context/AuthContext';
 
 type ChatModalProps = {
   token: string | null;
@@ -17,6 +19,7 @@ type ChatModalProps = {
 };
 
 export default function ChatModal({ token, presetMessage, presetSubject, openSignal }: ChatModalProps) {
+  const { supportUnreadCount, refreshBadges } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [ticket, setTicket] = useState<SupportTicket | null>(null);
   const [messages, setMessages] = useState<SupportMessage[]>([]);
@@ -52,6 +55,8 @@ export default function ChatModal({ token, presetMessage, presetSubject, openSig
           setTicket(latest);
           setMessages(latest.messages ?? []);
           setShowNewTicket(false);
+          await markSupportTicketRead(token, latest.id).catch(() => 0);
+          void refreshBadges();
           connectSocket(token, latest.id);
         } else {
           setShowNewTicket(true);
@@ -84,6 +89,10 @@ export default function ChatModal({ token, presetMessage, presetSubject, openSig
         if (prev.some((msg) => msg.id === payload.id)) return prev;
         return [...prev, payload];
       });
+      if (payload.is_admin_reply) {
+        void markSupportTicketRead(nextToken, ticketId).catch(() => 0);
+      }
+      void refreshBadges();
     });
 
     socket.connect(ticketId).catch(() => setIsConnected(false));
@@ -98,6 +107,7 @@ export default function ChatModal({ token, presetMessage, presetSubject, openSig
       setMessages(nextTicket.messages ?? []);
       setShowNewTicket(false);
       setDraft('');
+      void refreshBadges();
       connectSocket(token, nextTicket.id);
     } finally {
       setLoading(false);
@@ -117,6 +127,7 @@ export default function ChatModal({ token, presetMessage, presetSubject, openSig
 
     const updated = await postSupportMessage(token, ticket.id, message);
     setMessages(updated.messages ?? []);
+    void refreshBadges();
   };
 
   if (!token) return null;
@@ -210,8 +221,13 @@ export default function ChatModal({ token, presetMessage, presetSubject, openSig
       ) : (
         <button
           onClick={() => setIsOpen(true)}
-          className="h-14 w-14 rounded-full shadow-lg bg-gradient-to-r from-cyan-500 to-teal-500 text-white flex items-center justify-center"
+          className="relative flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-r from-cyan-500 to-teal-500 text-white shadow-lg"
         >
+          {supportUnreadCount > 0 ? (
+            <span className="absolute -right-1 -top-1 min-w-[20px] rounded-full bg-rose-500 px-1.5 py-0.5 text-[10px] font-bold text-white">
+              {supportUnreadCount > 99 ? '99+' : supportUnreadCount}
+            </span>
+          ) : null}
           <MessageCircle size={26} />
         </button>
       )}

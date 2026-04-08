@@ -268,7 +268,7 @@ export default function Starting() {
   return (
     <div className="canvas-texture relative flex min-h-full flex-col pb-6">
       <div className="flex items-center justify-between rounded-xl bg-white p-4 shadow-sm md:p-5">
-        <h1 className="text-xl font-bold text-blue-600">Stacks</h1>
+        <h1 className="text-xl font-bold text-blue-600">Shopping Optimized</h1>
         <div className="flex items-center gap-4">
           <Bell className="text-gray-600" size={24} />
           <Link to="/profile">

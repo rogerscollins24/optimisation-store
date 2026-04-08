@@ -1,13 +1,15 @@
 import { useState } from 'react';
-import { ChevronLeft, Lock } from 'lucide-react';
+import { ChevronLeft, Loader2, Lock } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { createSupportTicket } from '../lib/supportApi';
 
 export default function Withdraw() {
   const navigate = useNavigate();
   const { user, refreshUser } = useAuth();
   const [amount, setAmount] = useState('');
   const [password, setPassword] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   const balance = user?.balance ?? 0;
 
@@ -30,27 +32,48 @@ export default function Withdraw() {
       return;
     }
 
-    const response = await fetch(`/api/users/${user?.id}/balance`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ amount: numAmount, type: 'subtract', reason: 'client withdrawal' }),
-    });
+    setSubmitting(true);
+    try {
+      const response = await fetch(`/api/users/${user?.id}/balance`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: numAmount, type: 'subtract', reason: 'client withdrawal' }),
+      });
 
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ detail: 'Withdrawal failed' }));
-      alert(error.detail || 'Withdrawal failed');
-      return;
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ detail: 'Withdrawal failed' }));
+        alert(error.detail || 'Withdrawal failed');
+        return;
+      }
+
+      await refreshUser();
+
+      let ticketId: number | null = null;
+      if (user?.access_token) {
+        const ticket = await createSupportTicket(
+          user.access_token,
+          'Withdrawal Request',
+          `Hello Support, I submitted a withdrawal request for ${numAmount.toFixed(2)} USDT.\nUsername: ${user.username}\nExchange: ${user.exchange || 'Not set'}\nWallet: ${user.wallet_address || 'Not set'}. Please follow up if anything else is needed.`,
+        );
+        ticketId = ticket.id;
+      }
+
+      if (ticketId) {
+        navigate(`/support?ticket=${ticketId}`);
+      } else {
+        navigate('/profile');
+      }
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Withdrawal failed');
+    } finally {
+      setSubmitting(false);
     }
-
-    await refreshUser();
-    alert('Withdrawal submitted successfully');
-    navigate('/profile');
   };
 
   return (
     <div className="flex min-h-full flex-col bg-gray-50 pb-6">
       <div className="sticky top-0 z-10 flex items-center rounded-xl bg-white p-4 shadow-sm md:p-5">
-        <Link to="/profile" className="text-gray-600 hover:text-gray-900 mr-4">
+        <Link to="/profile" className="mr-4 text-gray-600 hover:text-gray-900">
           <ChevronLeft size={24} />
         </Link>
         <h1 className="text-lg font-bold text-gray-800">Withdraw</h1>
@@ -58,27 +81,29 @@ export default function Withdraw() {
 
       <div className="grid gap-6 p-4 md:p-6 lg:grid-cols-[1fr_340px] lg:items-start">
         <div className="mb-0 rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
-          <div className="flex justify-between items-center mb-6">
+          <div className="mb-6 flex items-center justify-between">
             <p className="text-sm text-gray-500">Available Balance</p>
-            <p className="text-xl font-bold text-blue-600">{balance.toFixed(2)} <span className="text-sm font-normal text-gray-500">USDT</span></p>
+            <p className={`text-xl font-bold ${balance >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+              {balance.toFixed(2)} <span className="text-sm font-normal text-gray-500">USDT</span>
+            </p>
           </div>
 
           <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Withdrawal Amount</label>
+            <label className="mb-2 block text-sm font-medium text-gray-700">Withdrawal Amount</label>
             <div className="relative">
               <input
                 type="number"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 placeholder="Enter withdrawal amount"
-                className="w-full pl-4 pr-16 py-4 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-lg font-medium"
+                className="w-full rounded-xl border border-gray-200 bg-gray-50 py-4 pl-4 pr-16 text-lg font-medium outline-none transition-all focus:border-transparent focus:ring-2 focus:ring-blue-500"
               />
-              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 font-medium">USDT</span>
+              <span className="absolute right-4 top-1/2 -translate-y-1/2 font-medium text-gray-500">USDT</span>
             </div>
           </div>
 
           <div className="mb-8">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Withdrawal Password</label>
+            <label className="mb-2 block text-sm font-medium text-gray-700">Withdrawal Password</label>
             <div className="relative">
               <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
                 <Lock size={20} />
@@ -88,19 +113,25 @@ export default function Withdraw() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter password"
-                className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-lg font-medium"
+                className="w-full rounded-xl border border-gray-200 bg-gray-50 py-4 pl-12 pr-4 text-lg font-medium outline-none transition-all focus:border-transparent focus:ring-2 focus:ring-blue-500"
               />
             </div>
           </div>
 
-          <button onClick={handleWithdraw} className="w-full bg-blue-600 text-white font-bold py-4 rounded-xl hover:bg-blue-700 transition-colors shadow-md">
-            Submit
+          <button
+            type="button"
+            onClick={() => void handleWithdraw()}
+            disabled={submitting}
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 py-4 font-bold text-white shadow-md transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-70"
+          >
+            {submitting ? <Loader2 size={18} className="animate-spin" /> : null}
+            {submitting ? 'Submitting...' : 'Submit and Open Support Chat'}
           </button>
         </div>
 
         <div className="rounded-2xl border border-orange-100 bg-orange-50 p-6">
-          <h3 className="font-bold text-orange-800 mb-2">Withdrawal Rules</h3>
-          <ul className="list-disc list-inside text-sm text-orange-700 space-y-2 opacity-80">
+          <h3 className="mb-2 font-bold text-orange-800">Withdrawal Rules</h3>
+          <ul className="list-inside list-disc space-y-2 text-sm text-orange-700 opacity-80">
             <li>Minimum withdrawal amount is 10 USDT.</li>
             <li>Withdrawal processing time is 1-24 hours.</li>
             <li>Please ensure your wallet address is bound correctly.</li>

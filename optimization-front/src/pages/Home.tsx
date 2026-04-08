@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { HeadphonesIcon, Gift, ArrowDownToLine, ArrowUpFromLine, FileText, Award, HelpCircle, ChevronRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { BrandHomeIcon } from '../components/BrandIcons';
 
 export default function Home() {
   const { user } = useAuth();
@@ -58,12 +59,15 @@ export default function Home() {
       <div className="px-4 pt-5 md:px-8 md:pt-6">
         <div className="mb-5 flex items-center justify-between rounded-2xl bg-white/80 px-4 py-4 shadow-sm backdrop-blur-sm">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900 md:text-3xl">Stacks</h1>
+            <div className="flex items-center gap-2">
+              <BrandHomeIcon size={24} className="text-slate-900" />
+              <h1 className="text-xl font-bold leading-tight text-slate-900 md:text-2xl">Shopping Optimized</h1>
+            </div>
             <p className="mt-1 text-sm font-medium text-slate-600">👋 Welcome back, {user?.username ?? 'Guest'}!</p>
           </div>
           <Link to="/profile">
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 md:h-14 md:w-14">
-              <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.username ?? 'Stacks'}`} alt="Avatar" className="h-10 w-10 rounded-full md:h-12 md:w-12" />
+              <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.username ?? 'ShoppingOptimized'}`} alt="Avatar" className="h-10 w-10 rounded-full md:h-12 md:w-12" />
             </div>
           </Link>
         </div>
@@ -119,19 +123,21 @@ export default function Home() {
           </button>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
           {vipLevels.map((vip) => (
-            <div key={vip.level} className={`rounded-2xl p-5 text-white shadow-md ${vip.bg}`}>
-              <div className={`mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br ${vip.badge} text-sm font-bold text-white shadow-inner`}>
-                VIP{vip.level}
+            <div key={vip.level} className={`rounded-2xl px-4 py-3.5 text-white shadow-md ${vip.bg}`}>
+              <div className="mb-2 flex items-center gap-2">
+                <div className={`flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br ${vip.badge} text-[10px] font-bold text-white shadow-inner`}>
+                  VIP{vip.level}
+                </div>
+                <h3 className="text-xl font-bold leading-none">VIP{vip.level}</h3>
               </div>
-              <h3 className="mb-3 text-2xl font-bold">VIP{vip.level}</h3>
-              <ul className="space-y-2 text-sm leading-6 text-white/95">
-                <li>• Receive a set of {vip.tasks} product optimization data tasks.</li>
-                <li>• Profit for each product optimization is {vip.commission}.</li>
-                <li>• Combined product optimization profit is {vip.comboProfit}.</li>
+              <ul className="space-y-1 text-[13px] leading-5 text-white/95">
+                <li>• Receive {vip.tasks} optimization tasks per set.</li>
+                <li>• Each task earns {vip.commission} profit.</li>
+                <li>• Combined profit reaches {vip.comboProfit}.</li>
                 <li>• Activate with {vip.amount}.</li>
-                <li>• Up to 3 sets of product optimization data tasks can be completed per day.</li>
+                <li>• Up to 3 sets can be completed daily.</li>
               </ul>
             </div>
           ))}

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Search, Plus, Edit2, Trash2, Eye, Lock, X } from 'lucide-react';
+import { Search, Plus, Edit2, Trash2, Lock, X } from 'lucide-react';
 import { useAdminAuth } from '../context/AdminAuthContext';
+import { adminAssignClientSupportOwner, adminListUsers } from '../lib/adminApi';
 
 const initialForm = {
   username: '',
@@ -37,6 +38,7 @@ export default function Users() {
   const [showModal, setShowModal] = useState(false);
   const [editingUser, setEditingUser] = useState<any | null>(null);
   const [formData, setFormData] = useState(initialForm);
+  const [subAdmins, setSubAdmins] = useState<any[]>([]);
 
   const availableRoles = currentRole === 'super_admin'
     ? ['merchant', 'sub_admin', 'super_admin']
@@ -54,7 +56,12 @@ export default function Users() {
   useEffect(() => {
     if (!token) return;
     void fetchUsers();
-  }, [token]);
+    if (currentRole === 'super_admin') {
+      void adminListUsers(token, 'sub_admin').then((data) => setSubAdmins(data)).catch(() => setSubAdmins([]));
+    } else {
+      setSubAdmins([]);
+    }
+  }, [token, currentRole]);
 
   const set = (key: string, val: string) => setFormData((prev) => ({ ...prev, [key]: val }));
 
@@ -150,9 +157,17 @@ export default function Users() {
     void fetchUsers();
   };
 
+  const handleAssignSupportOwner = async (userId: number, value: string) => {
+    if (!token || currentRole !== 'super_admin') return;
+    const parsed = Number(value);
+    const nextAssignee = value && !Number.isNaN(parsed) ? parsed : null;
+    await adminAssignClientSupportOwner(token, userId, nextAssignee);
+    void fetchUsers();
+  };
+
   const exportCSV = () => {
-    const headers = ['ID', 'Username', 'Phone', 'Balance', 'VIP Level', 'Current Set', 'Exchange', 'Wallet', 'Status'];
-    const rows = filteredUsers.map((u) => [u.id, u.username, u.phone, u.balance, u.vip_level, u.current_set, u.exchange, u.wallet_address, u.status]);
+    const headers = ['ID', 'Username', 'Phone', 'Balance', 'VIP Level', 'Current Set', 'Exchange', 'Wallet', 'Status', 'Support Owner'];
+    const rows = filteredUsers.map((u) => [u.id, u.username, u.phone, u.balance, u.vip_level, u.current_set, u.exchange, u.wallet_address, u.status, u.managed_by_admin_id ?? '']);
     const csv = [headers, ...rows].map((r) => r.map((v) => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
@@ -361,6 +376,7 @@ export default function Users() {
                 <th className="px-4 py-4 font-medium">Current Set</th>
                 <th className="px-4 py-4 font-medium">Exchange</th>
                 <th className="px-4 py-4 font-medium">Wallet Address</th>
+                <th className="px-4 py-4 font-medium">Support Owner</th>
                 <th className="px-4 py-4 font-medium text-right">Actions</th>
               </tr>
             </thead>
@@ -383,16 +399,32 @@ export default function Users() {
                   <td className="px-4 py-4">{user.exchange || '—'}</td>
                   <td className="px-4 py-4 max-w-[120px] truncate">{user.wallet_address || '—'}</td>
                   <td className="px-4 py-4">
+                    {currentRole === 'super_admin' && user.role === 'merchant' ? (
+                      <select
+                        value={user.managed_by_admin_id ?? ''}
+                        onChange={(event) => void handleAssignSupportOwner(user.id, event.target.value)}
+                        className="rounded-lg border border-slate-700/50 bg-slate-900/70 px-2 py-1 text-xs text-slate-200"
+                      >
+                        <option value="">Unassigned</option>
+                        {subAdmins.map((admin) => (
+                          <option key={admin.id} value={admin.id}>{admin.username}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <span className="text-xs text-slate-500">{user.managed_by_admin_id ? `#${user.managed_by_admin_id}` : '—'}</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-4">
                     <div className="flex items-center justify-end gap-1">
-                      <button onClick={() => handleLockUser(user.id)} className="p-1.5 text-slate-400 hover:text-amber-400 hover:bg-amber-400/10 rounded-lg" title="Lock"><Lock size={16} /></button>
-                      <button onClick={() => openEditModal(user)} className="p-1.5 text-slate-400 hover:text-emerald-400 hover:bg-emerald-400/10 rounded-lg" title="Edit"><Edit2 size={16} /></button>
-                      <button onClick={() => handleDeleteUser(user.id)} className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-400/10 rounded-lg" title="Delete"><Trash2 size={16} /></button>
+                      <button onClick={() => handleLockUser(user.id)} className="rounded-lg p-1.5 text-slate-400 hover:bg-amber-400/10 hover:text-amber-400" title="Lock"><Lock size={16} /></button>
+                      <button onClick={() => openEditModal(user)} className="rounded-lg p-1.5 text-slate-400 hover:bg-emerald-400/10 hover:text-emerald-400" title="Edit"><Edit2 size={16} /></button>
+                      <button onClick={() => handleDeleteUser(user.id)} className="rounded-lg p-1.5 text-slate-400 hover:bg-rose-400/10 hover:text-rose-400" title="Delete"><Trash2 size={16} /></button>
                     </div>
                   </td>
                 </tr>
               ))}
               {filteredUsers.length === 0 && (
-                <tr><td colSpan={10} className="px-6 py-8 text-center text-slate-500">No users found.</td></tr>
+                <tr><td colSpan={11} className="px-6 py-8 text-center text-slate-500">No users found.</td></tr>
               )}
             </tbody>
           </table>

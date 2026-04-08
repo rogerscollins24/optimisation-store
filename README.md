@@ -1,6 +1,6 @@
-# Optimize Admin Panel
+# Shopping Optimized Platform
 
-Admin frontend, consumer frontend, and API/backend for task optimization and referral-based commission workflows.
+Admin frontend, consumer frontend, and FastAPI backend for task optimization, support workflows, account management, and referral-based commissions.
 
 ## Stack and Ports
 
@@ -73,7 +73,12 @@ If the default frontend ports are busy, Vite automatically selects the next free
 - Pending views now treat both `pending` and `pending_debited` as active blocked tasks in the client UI.
 - Added deposit prompt and clickable support/chat link when balance is insufficient.
 - Wired Records to backend task history including combo item details and pending states.
-- Wired Profile, Deposit, Withdraw to live user state and backend balance updates.
+- Wired Profile, Deposit, and Withdraw to live user state and backend balance updates.
+- Deposit and withdrawal submissions now automatically create support tickets and redirect the client into chat.
+- Added account pages for Personal Information, Wallet Binding, and client Notifications.
+- Added unread badges for support replies and admin notifications across the client experience.
+- Profile now highlights remaining tasks, wallet details, and color-coded balance/commission cards.
+- Rebranded the client app to **Shopping Optimized** with custom home/wheel icons and a tighter VIP card layout.
 - Added local proxy (`/api -> http://localhost:9000`) in consumer app Vite config.
 
 ### 7) New Client-Facing API Endpoints
@@ -83,6 +88,8 @@ If the default frontend ports are busy, Vite automatically selects the next free
 - `GET /api/users/{id}/pending-tasks`
 - `POST /api/users/{id}/submit-task`
 - `GET /api/users/{id}/task-records`
+- `PUT /api/users/{id}/profile`
+- `PUT /api/users/{id}/support-assignment`
 - `POST /api/tasks/start`
 
 ### 8) Full Support Chat System (Client + Admin + Realtime)
@@ -91,12 +98,16 @@ If the default frontend ports are busy, Vite automatically selects the next free
 - Added role-aware visibility:
 	- Merchants can access only their own tickets.
 	- `super_admin` can access all tickets.
-	- `sub_admin` can access tickets from users they created plus tickets explicitly assigned to them.
+	- `sub_admin` can access tickets from users they created, clients assigned to them as support owner, plus tickets explicitly assigned to them.
 - Added realtime chat transport via WebSocket endpoint per ticket.
 - Added unread-message workflow for support staff:
 	- unread count endpoint
 	- mark-all-read endpoint
 	- admin unread badge polling in layout
+- Added unread-message workflow for clients:
+	- `GET /support/client-unread-count`
+	- `POST /support/tickets/{ticket_id}/mark-read`
+	- floating chat badge + in-page auto-read handling
 - Added support status workflow (`open`, `in_progress`, `resolved`, `closed`).
 - Added super-admin ticket assignment endpoint and UI (`PUT /support/tickets/{ticket_id}/assignment`).
 - Added single admin login session for all admin pages, including Support (no second login in Support).
@@ -115,7 +126,14 @@ If the default frontend ports are busy, Vite automatically selects the next free
 - Admin account creation policy:
 	- `super_admin` can create `super_admin`, `sub_admin`, and `merchant` users.
 	- `sub_admin` can create `sub_admin` and `merchant` users.
-- User ownership (`created_by_admin_id`) and ticket assignment (`assigned_to_admin_id`) are persisted and enforced in support visibility rules.
+- User ownership (`created_by_admin_id`), support ownership (`managed_by_admin_id`), and ticket assignment (`assigned_to_admin_id`) are persisted and enforced in support visibility rules.
+- Super admins can now assign a sub-admin as the ongoing support owner for any client from both the admin `Users` table and the `SupportDesk` workflow.
+
+### 10) Daily Reset + Client Branding Refresh
+
+- Added GMT/UTC-aware daily reset logic for `commission_today` and `task_count_today`.
+- Client overview responses now include `remaining_tasks` and `tasks_per_set` for the account page.
+- The consumer-facing brand is now **Shopping Optimized**, including updated app title, metadata, toolbar icons, and refreshed home/profile presentation.
 
 ## Prerequisites
 
@@ -249,7 +267,7 @@ python backend/scripts/import_products_from_seo_main.py \
 
 FastAPI serves all routes under `/api`.
 
-- Users: `/users`, `/users/{id}`, `/users/{id}/lock`, `/users/{id}/balance`, `/users/training-account`, `/users/{id}/overview`, `/users/{id}/pending-tasks`, `/users/{id}/submit-task`, `/users/{id}/task-records`
+- Users: `/users`, `/users/{id}`, `/users/{id}/lock`, `/users/{id}/balance`, `/users/training-account`, `/users/{id}/overview`, `/users/{id}/pending-tasks`, `/users/{id}/submit-task`, `/users/{id}/task-records`, `/users/{id}/profile`, `/users/{id}/support-assignment`
 - Auth: `/auth/login`
 - Products: `/products`, `/products/{id}`
 - Tasks: `/tasks`, `/tasks/{id}`, `/tasks/start`
@@ -263,10 +281,12 @@ FastAPI serves all routes under `/api`.
 	- `GET /support/tickets`
 	- `GET /support/tickets/{ticket_id}`
 	- `POST /support/tickets/{ticket_id}/messages`
+	- `POST /support/tickets/{ticket_id}/mark-read`
 	- `PUT /support/tickets/{ticket_id}/status`
 	- `PUT /support/tickets/{ticket_id}/assignment`
 	- `GET /support/unread-count`
 	- `POST /support/mark-all-read`
+	- `GET /support/client-unread-count`
 	- `WS /support/ws?ticket_id={id}&token={jwt}`
 
 Health route:
