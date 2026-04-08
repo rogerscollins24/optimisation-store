@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { MessageCircle, Send, X } from 'lucide-react';
 import SupportSocket from '../lib/socket';
+import { useLanguage } from '../context/LanguageContext';
 import {
   createSupportTicket,
   listSupportTickets,
@@ -20,6 +21,7 @@ type ChatModalProps = {
 
 export default function ChatModal({ token, presetMessage, presetSubject, openSignal }: ChatModalProps) {
   const { supportUnreadCount, refreshBadges } = useAuth();
+  const { t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const [ticket, setTicket] = useState<SupportTicket | null>(null);
   const [messages, setMessages] = useState<SupportMessage[]>([]);
@@ -138,8 +140,8 @@ export default function ChatModal({ token, presetMessage, presetSubject, openSig
         <div className="w-[360px] h-[560px] rounded-2xl overflow-hidden shadow-2xl border border-gray-200 bg-white flex flex-col">
           <div className="bg-gradient-to-r from-cyan-500 to-teal-500 text-white px-5 py-4 flex items-center justify-between">
             <div>
-              <p className="text-2xl font-bold leading-none">Support Chat</p>
-              <p className="text-cyan-100 mt-1 text-sm">{ticket?.status?.replace('_', ' ') || 'New conversation'}</p>
+              <p className="text-2xl font-bold leading-none">{t('support')} Chat</p>
+              <p className="text-cyan-100 mt-1 text-sm">{ticket?.status?.replace('_', ' ') || t('newChat')}</p>
             </div>
             <div className="flex items-center gap-2">
               <button
@@ -150,7 +152,7 @@ export default function ChatModal({ token, presetMessage, presetSubject, openSig
                 }}
                 className="text-xs px-2 py-1 rounded border border-white/50 hover:bg-black/10"
               >
-                New Chat
+                {t('newChat')}
               </button>
               <button onClick={() => setIsOpen(false)} className="p-1 rounded hover:bg-black/10">
                 <X size={24} />
@@ -159,24 +161,24 @@ export default function ChatModal({ token, presetMessage, presetSubject, openSig
           </div>
 
           {loading ? (
-            <div className="flex-1 flex items-center justify-center text-slate-500">Loading...</div>
+            <div className="flex-1 flex items-center justify-center text-slate-500">{t('loading')}</div>
           ) : showNewTicket ? (
             <div className="flex-1 p-4 flex flex-col gap-4">
-              <p className="font-semibold text-slate-700">Start a support request</p>
+              <p className="font-semibold text-slate-700">{t('startSupportRequest')}</p>
               <input
                 value={subject}
                 onChange={(event) => setSubject(event.target.value)}
-                placeholder="Subject"
+                placeholder={t('subject')}
                 className="rounded-lg border border-slate-300 px-3 py-2"
               />
               <textarea
                 value={draft}
                 onChange={(event) => setDraft(event.target.value)}
-                placeholder="Message"
+                placeholder={t('enterYourMessage')}
                 className="rounded-lg border border-slate-300 px-3 py-2 min-h-[120px]"
               />
               <button onClick={handleCreateTicket} className="bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg py-2 font-semibold">
-                Create Ticket
+                {t('createTicket')}
               </button>
             </div>
           ) : (
@@ -196,7 +198,7 @@ export default function ChatModal({ token, presetMessage, presetSubject, openSig
               </div>
 
               <div className="border-t border-slate-200 p-3 bg-white">
-                <div className="text-xs text-slate-400 mb-2">{isConnected ? 'Connected' : 'Reconnecting...'}</div>
+                <div className="text-xs text-slate-400 mb-2">{isConnected ? t('connected') : t('reconnecting')}</div>
                 <div className="flex gap-2">
                   <input
                     value={draft}
@@ -207,7 +209,7 @@ export default function ChatModal({ token, presetMessage, presetSubject, openSig
                         void handleSend();
                       }
                     }}
-                    placeholder="Type a message..."
+                    placeholder={t('enterYourMessage')}
                     className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm"
                   />
                   <button onClick={() => void handleSend()} className="bg-cyan-500 hover:bg-cyan-600 rounded-lg p-2 text-white">

@@ -1,11 +1,13 @@
 import { FormEvent, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import { BrandHomeIcon } from '../components/BrandIcons';
 
 export default function Login() {
   const navigate = useNavigate();
   const { login } = useAuth();
+  const { t } = useLanguage();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -35,9 +37,9 @@ export default function Login() {
               <BrandHomeIcon size={28} className="text-white" />
             </div>
             <h1 className="text-4xl font-bold leading-tight">Shopping Optimized</h1>
-            <p className="mt-3 text-sm text-blue-100">A responsive optimization workspace for web and mobile.</p>
+            <p className="mt-3 text-sm text-blue-100">{t('loginTagline')}</p>
           </div>
-          <p className="text-sm text-blue-100">Sign in to continue optimizing tasks and tracking records.</p>
+          <p className="text-sm text-blue-100">{t('signInContinue')}</p>
         </div>
 
         <div className="p-8 md:p-10">
@@ -46,29 +48,29 @@ export default function Login() {
               <BrandHomeIcon size={30} className="text-white" />
             </div>
             <h2 className="text-3xl font-bold leading-tight text-slate-900">Shopping Optimized</h2>
-            <p className="mt-2 text-sm text-slate-500">Login to continue optimizing tasks</p>
+            <p className="mt-2 text-sm text-slate-500">{t('loginPrompt')}</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="mb-2 block text-sm font-medium text-slate-700">Username</label>
+              <label className="mb-2 block text-sm font-medium text-slate-700">{t('username')}</label>
               <input
                 type="text"
                 value={username}
                 onChange={(event) => setUsername(event.target.value)}
                 className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-                placeholder="Enter username"
+                placeholder={t('enterUsername')}
                 required
               />
             </div>
             <div>
-              <label className="mb-2 block text-sm font-medium text-slate-700">Password</label>
+              <label className="mb-2 block text-sm font-medium text-slate-700">{t('password')}</label>
               <input
                 type="password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-                placeholder="Enter password"
+                placeholder={t('enterPassword')}
                 required
               />
             </div>
@@ -80,7 +82,7 @@ export default function Login() {
               disabled={submitting}
               className="w-full rounded-2xl bg-blue-600 py-3 font-semibold text-white shadow-lg transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-300"
             >
-              {submitting ? 'Signing in...' : 'Login'}
+              {submitting ? t('signingIn') : t('login')}
             </button>
           </form>
         </div>

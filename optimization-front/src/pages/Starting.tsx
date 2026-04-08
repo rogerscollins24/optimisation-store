@@ -3,6 +3,7 @@ import { Bell, UserCircle, Star, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useUser, Task } from '../store';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import ChatModal from '../components/ChatModal';
 
 interface Product {
@@ -44,6 +45,7 @@ const wait = (ms: number) => new Promise((resolve) => window.setTimeout(resolve,
 
 export default function Starting() {
   const { user, refreshUser, setUser } = useAuth();
+  const { t } = useLanguage();
   const supportToken = user?.access_token ?? null;
   const { addTask } = useUser();
   const [products, setProducts] = useState<Product[]>([]);
@@ -145,13 +147,13 @@ export default function Starting() {
     if (typeof body?.detail === 'string') {
       return { message: body.detail };
     }
-    return { message: 'Request failed' };
+    return { message: t('requestFailed') };
   };
 
   const handleStart = async () => {
     if (!user) return;
     if (user.tasks_completed_in_set >= totalTasks) {
-      alert('You have completed all tasks for this set.');
+      alert(t('completedAllTasks'));
       return;
     }
 
@@ -177,7 +179,7 @@ export default function Starting() {
           setSupportUrl(typeof error.supportUrl === 'string' && error.supportUrl ? error.supportUrl : 'https://t.me/');
           return;
         }
-        throw new Error(error.message || 'Task failed');
+        throw new Error(error.message || t('taskFailed'));
       }
 
       const data = await response.json();
@@ -189,7 +191,7 @@ export default function Starting() {
       setRequiredDeposit(null);
       setDepositAmount('');
     } catch (error) {
-      alert(error instanceof Error ? error.message : 'Unable to start task');
+      alert(error instanceof Error ? error.message : t('unableToStartTask'));
     } finally {
       setIsOptimizing(false);
     }
@@ -220,7 +222,7 @@ export default function Starting() {
           await refreshUser();
           return;
         }
-        throw new Error(error.message || 'Submit failed');
+        throw new Error(error.message || t('submitFailed'));
       }
 
       const data = await response.json();
@@ -241,7 +243,7 @@ export default function Starting() {
       }
       await refreshUser();
     } catch (error) {
-      alert(error instanceof Error ? error.message : 'Unable to submit task');
+      alert(error instanceof Error ? error.message : t('unableToSubmitTask'));
     } finally {
       setIsSubmitting(false);
     }
@@ -284,7 +286,7 @@ export default function Starting() {
             <span className="text-2xl">👋</span>
           </div>
           <div>
-            <h2 className="text-xl font-bold text-gray-800">Hi, {user?.username}</h2>
+            <h2 className="text-xl font-bold text-gray-800">{t('welcomeBack', { name: user?.username ?? t('guest') })}</h2>
             <div className="flex items-center gap-2">
               <span className="rounded-full bg-yellow-100 px-2 py-1 text-xs font-bold text-yellow-800">VIP {user?.vip_level ?? 1}</span>
             </div>
@@ -293,21 +295,21 @@ export default function Starting() {
 
         <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
           <div className="rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 p-4 text-white shadow-md">
-            <p className="mb-1 text-sm opacity-80">Total Balance</p>
+            <p className="mb-1 text-sm opacity-80">{t('totalBalance')}</p>
             <p className="text-xl font-bold">{(user?.balance ?? 0).toFixed(2)} <span className="text-sm font-normal">USDT</span></p>
           </div>
           <div className="rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-600 p-4 text-white shadow-md">
-            <p className="mb-1 text-sm opacity-80">Today's Commission</p>
+            <p className="mb-1 text-sm opacity-80">{t('commissionToday')}</p>
             <p className="text-xl font-bold">{(user?.commission_today ?? 0).toFixed(2)} <span className="text-sm font-normal">USDT</span></p>
           </div>
           <div className="flex min-h-[132px] flex-col justify-center rounded-xl border border-slate-200 bg-white p-4 shadow-sm md:p-5">
-            <p className="text-sm font-semibold text-slate-700">Task Progress</p>
+            <p className="text-sm font-semibold text-slate-700">{t('taskProgress')}</p>
             <p className="mt-3 text-4xl font-bold leading-none text-blue-600">{user?.tasks_completed_in_set ?? 0}<span className="text-2xl text-slate-500">/{totalTasks}</span></p>
           </div>
         </div>
 
         <div className="mb-4 flex justify-between items-center">
-          <h3 className="font-bold text-gray-800">Start Optimization</h3>
+          <h3 className="font-bold text-gray-800">{t('startOptimization')}</h3>
           <span className="text-sm text-gray-500 bg-gray-200 px-3 py-1 rounded-full">
             {user?.tasks_completed_in_set ?? 0}/{totalTasks}
           </span>
@@ -333,7 +335,7 @@ export default function Starting() {
                       ) : (
                         <span className="mb-2 text-4xl">🚀</span>
                       )}
-                      <span>{isOptimizing ? 'Optimizing...' : pendingTaskBlocked ? 'Pending' : 'Start'}</span>
+                      <span>{isOptimizing ? t('optimizing') : pendingTaskBlocked ? t('pending') : t('start')}</span>
                     </button>
                   </div>
                 );
@@ -349,7 +351,7 @@ export default function Starting() {
                     />
                   ) : (
                     <div className="flex h-full w-full items-center justify-center bg-slate-100 text-xs font-medium uppercase tracking-[0.2em] text-slate-400">
-                      Waiting
+                      {t('waiting')}
                     </div>
                   )}
                 </div>
@@ -360,24 +362,24 @@ export default function Starting() {
 
         {pendingTaskBlocked && !currentTask && (
           <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700">
-            You have a pending task and cannot start a new one until it is submitted.
+            {t('pendingTaskWarning')}
             <button onClick={() => window.location.reload()} className="ml-2 underline font-medium">
-              Resume Pending Task
+              {t('resumePendingTask')}
             </button>
           </div>
         )}
 
         <div className="mt-6 rounded-xl border border-slate-200 bg-white p-4 shadow-sm md:p-5">
           <div className="flex items-center justify-between">
-            <h3 className="text-base font-bold text-slate-800">Pending</h3>
+            <h3 className="text-base font-bold text-slate-800">{t('pendingSection')}</h3>
             <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700">
-              {pendingTasks.length} active
+              {pendingTasks.length} {t('activeLabel')}
             </span>
           </div>
 
           {pendingTasks.length === 0 ? (
             <div className="mt-4 rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-sm text-slate-500">
-              No pending tasks right now.
+              {t('noPendingTasks')}
             </div>
           ) : (
             <div className="mt-4 space-y-4">
@@ -394,21 +396,21 @@ export default function Starting() {
                         <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
                           task.status === 'pending_debited' ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700'
                         }`}>
-                          {task.status === 'pending_debited' ? 'Pending Deposit' : 'Pending'}
+                          {task.status === 'pending_debited' ? t('pendingDeposit') : t('pending')}
                         </span>
                       </div>
 
                       <div className="mt-3 grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
                         <div className="rounded-lg bg-slate-50 px-3 py-2">
-                          <p className="text-xs text-slate-500">Amount</p>
+                          <p className="text-xs text-slate-500">{t('amountLabel')}</p>
                           <p className="font-semibold text-slate-800">USDT {task.price.toFixed(2)}</p>
                         </div>
                         <div className="rounded-lg bg-slate-50 px-3 py-2">
-                          <p className="text-xs text-slate-500">Commission</p>
+                          <p className="text-xs text-slate-500">{t('commissionLabel')}</p>
                           <p className="font-semibold text-emerald-600">USDT {task.commission.toFixed(2)}</p>
                         </div>
                         <div className="rounded-lg bg-slate-50 px-3 py-2 col-span-2 sm:col-span-1">
-                          <p className="text-xs text-slate-500">Task Code</p>
+                          <p className="text-xs text-slate-500">{t('taskCode')}</p>
                           <p className="font-mono text-xs font-semibold text-slate-800">{task.taskCode}</p>
                         </div>
                       </div>
@@ -421,11 +423,11 @@ export default function Starting() {
                           }}
                           className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
                         >
-                          Resume Task
+                          {t('resumeTask')}
                         </button>
                         {task.status === 'pending_debited' && (
                           <Link to="/deposit" className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700">
-                            Deposit Funds
+                            {t('depositFunds')}
                           </Link>
                         )}
                       </div>
@@ -443,7 +445,7 @@ export default function Starting() {
         <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
           <div className="w-full max-w-3xl overflow-hidden rounded-2xl bg-white shadow-2xl">
             <div className="bg-blue-600 p-4 text-white flex justify-between items-center">
-              <h3 className="font-bold text-lg">Task Submission</h3>
+              <h3 className="font-bold text-lg">{t('taskSubmission')}</h3>
               <button onClick={handleCloseModal} className="text-white/80 hover:text-white">
                 <X size={24} />
               </button>
@@ -476,19 +478,19 @@ export default function Starting() {
 
                   <div className="space-y-3 bg-gray-50 p-4 rounded-xl border border-gray-100">
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">Total Amount</span>
+                      <span className="text-gray-500">{t('totalAmount')}</span>
                       <span className="font-bold text-gray-800">USDT {currentTask.price.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">Commission</span>
+                      <span className="text-gray-500">{t('commissionLabel')}</span>
                       <span className="font-bold text-green-600">USDT {currentTask.commission.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">Created At</span>
+                      <span className="text-gray-500">{t('createdAt')}</span>
                       <span className="text-gray-800">{new Date(currentTask.createdAt).toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">Task Code</span>
+                      <span className="text-gray-500">{t('taskCode')}</span>
                       <span className="text-gray-800 font-mono">{currentTask.taskCode}</span>
                     </div>
                   </div>
@@ -497,10 +499,10 @@ export default function Starting() {
 
               {hasDepositWarning && (
                 <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700 space-y-2">
-                  <p className="font-semibold">Insufficient balance. Please deposit to continue.</p>
-                  <p>Required deposit: USDT {computedRequiredDeposit.toFixed(2)}</p>
+                  <p className="font-semibold">{t('insufficientBalanceDeposit')}</p>
+                  <p>{t('requiredDeposit')}: USDT {computedRequiredDeposit.toFixed(2)}</p>
                   <div>
-                    <label className="block text-xs text-rose-600 mb-1">Deposit amount</label>
+                    <label className="block text-xs text-rose-600 mb-1">{t('depositAmount')}</label>
                     <input
                       value={depositAmount}
                       onChange={(e) => setDepositAmount(e.target.value)}
@@ -511,12 +513,12 @@ export default function Starting() {
                     />
                   </div>
                   <div className="flex items-center justify-between">
-                    <Link to="/deposit" className="text-blue-600 underline font-medium">Go to Deposit</Link>
+                    <Link to="/deposit" className="text-blue-600 underline font-medium">{t('goToDeposit')}</Link>
                     <button
                       onClick={() => setChatSignal((prev) => prev + 1)}
                       className="text-blue-600 underline font-medium"
                     >
-                      Contact Support / Chat
+                      {t('contactSupportChat')}
                     </button>
                   </div>
                 </div>

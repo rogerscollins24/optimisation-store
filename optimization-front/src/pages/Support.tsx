@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { MessageSquarePlus, SendHorizonal, Sparkles } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import SupportSocket from '../lib/socket';
 import {
   createSupportTicket,
@@ -29,6 +30,7 @@ const getStatusLabel = (status?: string) => {
 export default function Support() {
   const location = useLocation();
   const { user, refreshBadges } = useAuth();
+  const { t } = useLanguage();
   const token = user?.access_token ?? null;
 
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
@@ -147,7 +149,7 @@ export default function Support() {
   };
 
   if (!token) {
-    return <div className="support-texture rounded-[28px] p-6 text-slate-700 shadow-sm">Please login to access support.</div>;
+    return <div className="support-texture rounded-[28px] p-6 text-slate-700 shadow-sm">{t('pleaseLoginToAccessSupport')}</div>;
   }
 
   return (
@@ -156,8 +158,8 @@ export default function Support() {
         <section className="rounded-[28px] border border-white/50 bg-white/70 p-4 shadow-[0_12px_30px_rgba(15,23,42,0.12)] backdrop-blur-sm">
           <div className="mb-4 flex items-start justify-between gap-3">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-sky-700/75">Support</p>
-              <h2 className="text-2xl font-bold text-slate-800">Tickets</h2>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-sky-700/75">{t('support')}</p>
+              <h2 className="text-2xl font-bold text-slate-800">{t('tickets')}</h2>
             </div>
             <button
               onClick={() => {
@@ -168,14 +170,14 @@ export default function Support() {
               className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-sky-600 to-cyan-500 px-4 py-2 text-sm font-semibold text-white shadow-md transition-transform hover:-translate-y-0.5"
             >
               <MessageSquarePlus size={16} />
-              New Chat
+              {t('newChat')}
             </button>
           </div>
 
           <div className="max-h-[68vh] space-y-2 overflow-y-auto pr-1">
             {tickets.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-slate-300 bg-white/70 px-4 py-6 text-sm text-slate-500">
-                No tickets yet. Start a new chat to contact support.
+                {t('noTicketsYet')}
               </div>
             ) : (
               tickets.map((ticket) => (
@@ -209,12 +211,12 @@ export default function Support() {
           <div className="mb-4 rounded-[24px] bg-gradient-to-r from-[#3f629d] via-[#7090c1] to-[#9fb4d6] px-4 py-3 text-white shadow-lg">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-lg font-bold">{showNewChat ? 'Start a new chat' : getTicketTitle(activeTicket)}</p>
-                <p className="text-xs text-blue-100">{showNewChat ? 'Write your issue and support will reply here.' : getStatusLabel(activeTicket?.status)}</p>
+                <p className="text-lg font-bold">{showNewChat ? t('startNewChat') : getTicketTitle(activeTicket)}</p>
+                <p className="text-xs text-blue-100">{showNewChat ? t('writeIssueAndSupportWillReply') : getStatusLabel(activeTicket?.status)}</p>
               </div>
               <span className="inline-flex items-center gap-1 rounded-full bg-white/15 px-3 py-1 text-[11px] font-semibold tracking-wide text-white/95">
                 <Sparkles size={12} />
-                Live Support
+                {t('liveSupport')}
               </span>
             </div>
           </div>
@@ -222,18 +224,18 @@ export default function Support() {
           {showNewChat ? (
             <div className="grid flex-1 gap-4 lg:grid-cols-[1.2fr_0.8fr]">
               <div className="rounded-[24px] border border-white/35 bg-[#9fb4d6]/70 p-5 shadow-sm backdrop-blur-sm">
-                <h3 className="mb-4 text-lg font-bold text-slate-800">Create ticket</h3>
+                <h3 className="mb-4 text-lg font-bold text-slate-800">{t('createTicket')}</h3>
                 <div className="space-y-3">
                   <input
                     value={newSubject}
                     onChange={(event) => setNewSubject(event.target.value)}
-                    placeholder="Subject"
+                    placeholder={t('subject')}
                     className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-cyan-400 focus:bg-white"
                   />
                   <textarea
                     value={newMessage}
                     onChange={(event) => setNewMessage(event.target.value)}
-                    placeholder="Describe your issue"
+                    placeholder={t('describeYourIssue')}
                     className="min-h-[180px] w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-cyan-400 focus:bg-white"
                   />
                   <div className="flex gap-3">
@@ -242,25 +244,23 @@ export default function Support() {
                       disabled={!newSubject.trim()}
                       className="rounded-2xl bg-gradient-to-r from-cyan-600 to-sky-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md transition disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                      Create Ticket
+                      {t('createTicket')}
                     </button>
                     <button
                       onClick={() => setShowNewChat(false)}
                       className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700"
                     >
-                      Cancel
+                      {t('cancel')}
                     </button>
                   </div>
                 </div>
               </div>
 
               <div className="rounded-[24px] border border-white/30 bg-[#6f8fbe]/72 p-5 text-white shadow-sm">
-                <h3 className="text-lg font-bold">Need help fast?</h3>
-                <p className="mt-3 text-sm text-blue-100">
-                  Open a ticket and keep the conversation in one place. Replies from support will appear in this chat panel automatically.
-                </p>
+                <h3 className="text-lg font-bold">{t('needHelpFast')}</h3>
+                <p className="mt-3 text-sm text-blue-100">{t('supportConversationHint')}</p>
                 <div className="mt-5 rounded-2xl bg-white/10 p-4 text-sm text-blue-50">
-                  Tip: include your issue, recent action, and any balance or task details for a faster reply.
+                  {t('supportTip')}
                 </div>
               </div>
             </div>
@@ -269,7 +269,7 @@ export default function Support() {
               <div className="flex-1 space-y-3 overflow-y-auto rounded-[24px] bg-[#a9bddf]/72 p-4 backdrop-blur-[2px] md:p-6">
                 {messages.length === 0 ? (
                   <div className="rounded-2xl bg-white/70 px-4 py-6 text-sm text-slate-600 shadow-sm">
-                    No messages yet. Send a message to start the conversation.
+                    {t('noMessagesYet')}
                   </div>
                 ) : (
                   messages.map((msg) => (
@@ -302,7 +302,7 @@ export default function Support() {
                       void handleSend();
                     }
                   }}
-                  placeholder="Enter your message"
+                  placeholder={t('enterYourMessage')}
                   className="flex-1 rounded-2xl border border-white/20 bg-white/90 px-4 py-3 text-slate-800 outline-none"
                 />
                 <button
@@ -310,15 +310,15 @@ export default function Support() {
                   className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-cyan-500 to-sky-500 px-4 py-3 font-semibold text-white shadow-md transition hover:brightness-105"
                 >
                   <SendHorizonal size={16} />
-                  Send
+                  {t('send')}
                 </button>
               </div>
             </>
           ) : (
             <div className="flex flex-1 items-center justify-center rounded-[24px] bg-[#a9bddf]/72 p-6 text-center text-slate-700">
               <div>
-                <p className="text-lg font-bold">No ticket selected</p>
-                <p className="mt-2 text-sm text-slate-600">Choose a ticket on the left or start a new chat.</p>
+                <p className="text-lg font-bold">{t('noTicketSelected')}</p>
+                <p className="mt-2 text-sm text-slate-600">{t('chooseTicketOrStartChat')}</p>
               </div>
             </div>
           )}

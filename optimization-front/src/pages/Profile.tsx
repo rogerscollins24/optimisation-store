@@ -1,6 +1,7 @@
 import { Bell, ArrowDownToLine, ArrowUpFromLine, User, Link as LinkIcon, HeadphonesIcon, LogOut, ChevronLeft } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 
 const taskTotalsByVip: Record<number, number> = {
   1: 40,
@@ -12,6 +13,7 @@ const taskTotalsByVip: Record<number, number> = {
 export default function Profile() {
   const navigate = useNavigate();
   const { user, logout, notificationCount, supportUnreadCount } = useAuth();
+  const { t } = useLanguage();
 
   const balance = user?.balance ?? 0;
   const commissionToday = user?.commission_today ?? 0;
@@ -23,25 +25,25 @@ export default function Profile() {
 
   const menuSections = [
     {
-      title: 'My Financial',
+      title: t('myFinancial'),
       items: [
-        { icon: ArrowDownToLine, label: 'Deposit', to: '/deposit', color: 'text-green-500', bg: 'bg-green-100' },
-        { icon: ArrowUpFromLine, label: 'Withdraw', to: '/withdraw', color: 'text-orange-500', bg: 'bg-orange-100' },
+        { icon: ArrowDownToLine, label: t('deposit'), to: '/deposit', color: 'text-green-500', bg: 'bg-green-100' },
+        { icon: ArrowUpFromLine, label: t('withdrawal'), to: '/withdraw', color: 'text-orange-500', bg: 'bg-orange-100' },
       ],
     },
     {
-      title: 'My Details',
+      title: t('myDetails'),
       items: [
-        { icon: User, label: 'Personal Information', to: '/profile/personal', color: 'text-blue-500', bg: 'bg-blue-100' },
-        { icon: LinkIcon, label: 'Bind Wallet Address', to: '/profile/wallet', color: 'text-purple-500', bg: 'bg-purple-100' },
+        { icon: User, label: t('personalInformation'), to: '/profile/personal', color: 'text-blue-500', bg: 'bg-blue-100' },
+        { icon: LinkIcon, label: t('bindWalletAddress'), to: '/profile/wallet', color: 'text-purple-500', bg: 'bg-purple-100' },
       ],
     },
     {
-      title: 'Other',
+      title: t('otherSection'),
       items: [
-        { icon: HeadphonesIcon, label: 'Contact Us', to: '/support', color: 'text-teal-500', bg: 'bg-teal-100', badge: supportUnreadCount > 0 ? `${supportUnreadCount} new` : null },
-        { icon: Bell, label: 'Notifications', to: '/notifications', color: 'text-yellow-500', bg: 'bg-yellow-100', badge: notificationCount > 0 ? `${notificationCount}` : null },
-        { icon: LogOut, label: 'Logout', color: 'text-red-500', bg: 'bg-red-100', action: () => { logout(); navigate('/login'); } },
+        { icon: HeadphonesIcon, label: t('contactUs'), to: '/support', color: 'text-teal-500', bg: 'bg-teal-100', badge: supportUnreadCount > 0 ? `${supportUnreadCount}` : null },
+        { icon: Bell, label: t('notificationsTitle'), to: '/notifications', color: 'text-yellow-500', bg: 'bg-yellow-100', badge: notificationCount > 0 ? `${notificationCount}` : null },
+        { icon: LogOut, label: t('logout'), color: 'text-red-500', bg: 'bg-red-100', action: () => { logout(); navigate('/login'); } },
       ],
     },
   ];
@@ -52,7 +54,7 @@ export default function Profile() {
         <Link to="/" className="text-gray-600 hover:text-gray-900">
           <ChevronLeft size={24} />
         </Link>
-        <h1 className="text-lg font-bold text-gray-800">Profile</h1>
+        <h1 className="text-lg font-bold text-gray-800">{t('profile')}</h1>
         <Link to="/notifications" className="relative text-gray-600 hover:text-gray-900">
           {topBadgeCount > 0 ? (
             <span className="absolute -right-2 -top-2 min-w-[18px] rounded-full bg-rose-500 px-1.5 py-0.5 text-[10px] font-bold text-white">
@@ -73,23 +75,23 @@ export default function Profile() {
               <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.username ?? 'ShoppingOptimized'}`} alt="Avatar" className="h-14 w-14 rounded-full" />
             </div>
             <div>
-              <h2 className="mb-1 text-xl font-bold">{user?.username ?? 'Guest'}</h2>
+              <h2 className="mb-1 text-xl font-bold">{user?.username ?? t('guest')}</h2>
               <div className="flex flex-wrap items-center gap-2 text-sm">
                 <span className="rounded-full bg-yellow-400 px-2 py-0.5 text-xs font-bold text-yellow-900">VIP {vipLevel}</span>
-                <span className="opacity-80">Invitation Code: {user?.invite_code || 'N/A'}</span>
+                <span className="opacity-80">{t('invitationCode')}: {user?.invite_code || 'N/A'}</span>
               </div>
             </div>
           </div>
 
           <div className="relative z-10 mb-6 text-sm text-blue-50">
-            <p>{user?.email || 'No email added yet'}</p>
-            <p className="mt-1">{user?.phone || 'No phone added yet'}</p>
-            <p className="mt-1">Wallet: {user?.wallet_address || 'Not bound yet'}</p>
+            <p>{user?.email || t('noEmailAddedYet')}</p>
+            <p className="mt-1">{user?.phone || t('noPhoneAddedYet')}</p>
+            <p className="mt-1">{t('wallet')}: {user?.wallet_address || t('notBoundYet')}</p>
           </div>
 
           <div className="relative z-10 mb-6">
             <div className="mb-2 flex justify-between text-sm">
-              <span className="opacity-80">Credit Score</span>
+              <span className="opacity-80">{t('creditScore')}</span>
               <span className="font-bold">{creditScore}%</span>
             </div>
             <div className="h-2 w-full overflow-hidden rounded-full bg-white/20">
@@ -99,15 +101,15 @@ export default function Profile() {
 
           <div className="relative z-10 grid gap-3 md:grid-cols-3">
             <div className={`rounded-xl border p-3 backdrop-blur-sm ${balance >= 0 ? 'border-emerald-200/30 bg-emerald-500/20' : 'border-rose-200/30 bg-rose-500/20'}`}>
-              <p className="mb-1 text-xs opacity-80">Total Balance</p>
+              <p className="mb-1 text-xs opacity-80">{t('totalBalance')}</p>
               <p className={`text-lg font-bold ${balance >= 0 ? 'text-emerald-100' : 'text-rose-100'}`}>{balance.toFixed(2)} <span className="text-xs font-normal">USDT</span></p>
             </div>
             <div className="rounded-xl border border-violet-200/30 bg-violet-500/20 p-3 backdrop-blur-sm">
-              <p className="mb-1 text-xs opacity-80">Commission Today</p>
+              <p className="mb-1 text-xs opacity-80">{t('commissionToday')}</p>
               <p className="text-lg font-bold text-violet-50">{commissionToday.toFixed(2)} <span className="text-xs font-normal">USDT</span></p>
             </div>
             <div className="rounded-xl border border-cyan-200/30 bg-cyan-500/20 p-3 backdrop-blur-sm">
-              <p className="mb-1 text-xs opacity-80">Remaining Tasks</p>
+              <p className="mb-1 text-xs opacity-80">{t('remainingTasks')}</p>
               <p className="text-lg font-bold text-cyan-50">{remainingTasks} <span className="text-xs font-normal">/ {totalTasks}</span></p>
             </div>
           </div>

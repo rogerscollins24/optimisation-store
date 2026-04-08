@@ -2,10 +2,12 @@ import { useEffect, useMemo, useState } from 'react';
 import { ChevronLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import { useUser, Task } from '../store';
 
 export default function Records() {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const { records, setRecords } = useUser();
   const [activeTab, setActiveTab] = useState<'all' | 'pending' | 'completed'>('all');
 
@@ -54,7 +56,7 @@ export default function Records() {
         <Link to="/" className="text-gray-600 hover:text-gray-900">
           <ChevronLeft size={24} />
         </Link>
-        <h1 className="text-lg font-bold text-gray-800">Records</h1>
+        <h1 className="text-lg font-bold text-gray-800">{t('records')}</h1>
       </div>
 
       <div className="mt-4 flex overflow-hidden rounded-xl border border-gray-200 bg-white">
@@ -68,7 +70,7 @@ export default function Records() {
                 : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
             }`}
           >
-            {tab}
+            {t(tab)}
           </button>
         ))}
       </div>
@@ -76,7 +78,7 @@ export default function Records() {
       <div className="pt-4">
         {filteredRecords.length === 0 ? (
           <div className="text-center py-12 text-gray-500">
-            <p>No records found.</p>
+            <p>{t('noRecordsFound')}</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
@@ -87,7 +89,7 @@ export default function Records() {
                 <span className={`text-xs px-2 py-1 rounded-full font-medium ${
                   record.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
                 }`}>
-                  {record.status === 'completed' ? 'Completed' : 'Pending'}
+                  {record.status === 'completed' ? t('completed') : t('pending')}
                 </span>
               </div>
 
@@ -97,7 +99,7 @@ export default function Records() {
                   <h3 className="text-sm font-medium text-gray-800 line-clamp-2 mb-1">{record.title}</h3>
                   <p className="text-xs text-gray-500">{new Date(record.createdAt).toLocaleString()}</p>
                   {record.status === 'pending_debited' && (
-                    <p className="text-xs text-rose-600 mt-1">Balance is negative. Deposit and submit this task to continue.</p>
+                    <p className="text-xs text-rose-600 mt-1">{t('balanceNegativeContinue')}</p>
                   )}
                 </div>
               </div>
@@ -115,18 +117,18 @@ export default function Records() {
 
               <div className="flex justify-between items-center pt-3 border-t border-gray-50">
                 <div>
-                  <p className="text-xs text-gray-500 mb-1">Total Amount</p>
+                  <p className="text-xs text-gray-500 mb-1">{t('totalAmount')}</p>
                   <p className="text-sm font-bold text-gray-800">USDT {record.price.toFixed(2)}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-xs text-gray-500 mb-1">Commission</p>
+                  <p className="text-xs text-gray-500 mb-1">{t('commissionLabel')}</p>
                   <p className="text-sm font-bold text-green-600">+USDT {record.commission.toFixed(2)}</p>
                 </div>
               </div>
 
               {record.status !== 'completed' && (
                 <Link to="/starting" className="mt-3 inline-block text-sm text-blue-600 underline font-medium">
-                  Resume Task
+                  {t('resumeTask')}
                 </Link>
               )}
               </div>

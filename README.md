@@ -79,6 +79,9 @@ If the default frontend ports are busy, Vite automatically selects the next free
 - Added unread badges for support replies and admin notifications across the client experience.
 - Profile now highlights remaining tasks, wallet details, and color-coded balance/commission cards.
 - Rebranded the client app to **Shopping Optimized** with custom home/wheel icons and a tighter VIP card layout.
+- Added a looping local banner video on the Home page using a bundled MP4 asset.
+- Implemented a dedicated FAQ page and wired the Home quick-action tile to open it.
+- Added a persistent client language selector with multi-language UI text for Home, navigation, and FAQs.
 - Added local proxy (`/api -> http://localhost:9000`) in consumer app Vite config.
 
 ### 7) New Client-Facing API Endpoints
@@ -133,7 +136,13 @@ If the default frontend ports are busy, Vite automatically selects the next free
 
 - Added GMT/UTC-aware daily reset logic for `commission_today` and `task_count_today`.
 - Client overview responses now include `remaining_tasks` and `tasks_per_set` for the account page.
-- The consumer-facing brand is now **Shopping Optimized**, including updated app title, metadata, toolbar icons, and refreshed home/profile presentation.
+- The consumer-facing brand is now **Shopping Optimized**, including updated app title, metadata, toolbar icons, refreshed home/profile presentation, a local looping banner video, and a FAQ help page.
+
+### 11) Client Language Switching
+
+- Added a top-right language selector with flag icons and persistent local storage.
+- Supported languages: English, Français, Español, Italiano, Polski, Русский, Deutsch, Nederlands, Türkçe, and Português.
+- Home labels, VIP descriptions, navigation labels, and FAQ content now respond to the selected language.
 
 ## Prerequisites
 
@@ -187,6 +196,8 @@ npm install
 ```bash
 npm run dev
 ```
+
+> The Home page now includes a local looping banner video from `public/videos/banner-dodplZ4U.mp4`, the FAQ tile opens `/faqs`, and the language dropdown persists the selected language in local storage.
 
 3. Open:
 

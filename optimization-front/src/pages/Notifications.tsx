@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Bell, ChevronLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 
 type NotificationItem = {
   id: number;
@@ -14,6 +15,7 @@ type NotificationItem = {
 
 export default function Notifications() {
   const { markNotificationsRead } = useAuth();
+  const { t } = useLanguage();
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -48,18 +50,18 @@ export default function Notifications() {
         </Link>
         <div className="flex items-center gap-2">
           <Bell size={20} className="text-amber-500" />
-          <h1 className="text-lg font-bold text-gray-800">Notifications</h1>
+          <h1 className="text-lg font-bold text-gray-800">{t('notificationsTitle')}</h1>
         </div>
       </div>
 
       <div className="p-4 md:p-6">
         {loading ? (
           <div className="rounded-2xl border border-gray-100 bg-white p-8 text-center text-gray-500 shadow-sm">
-            Loading notifications...
+            {t('loadingNotifications')}
           </div>
         ) : !hasNotifications ? (
           <div className="rounded-2xl border border-gray-100 bg-white p-8 text-center text-gray-500 shadow-sm">
-            No active notifications from admin right now.
+            {t('noActiveNotifications')}
           </div>
         ) : (
           <div className="space-y-4">
@@ -69,11 +71,11 @@ export default function Notifications() {
                   <div>
                     <h2 className="text-lg font-bold text-slate-800">{item.title}</h2>
                     <p className="mt-1 text-sm text-slate-500">
-                      {item.created_at ? new Date(item.created_at).toLocaleString() : 'Recently posted'}
+                      {item.created_at ? new Date(item.created_at).toLocaleString() : t('recentlyPosted')}
                     </p>
                   </div>
                   <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
-                    {item.recipients || 'all'}
+                    {item.recipients || t('all')}
                   </span>
                 </div>
                 <p className="mt-4 whitespace-pre-wrap text-sm leading-6 text-slate-700">{item.message}</p>
