@@ -18,6 +18,7 @@ from .models import ActivityLog, Combo, ComboItem, Notification, Product, Settin
 from .enums import UserRole
 from .schemas import (
     BalanceUpdateRequest,
+    ClientSignupRequest,
     LoginRequest,
     ComboCreateRequest,
     ComboUpdateRequest,
@@ -93,6 +94,24 @@ def _generate_invite_code(db: Session, prefix: str = "INV") -> str:
         if not exists:
             return candidate
     raise HTTPException(status_code=500, detail="Failed to generate unique invite code")
+
+
+def _validate_math_captcha(num_a: int, num_b: int, answer: int) -> bool:
+    return num_a + num_b == answer
+
+
+def _build_signup_username(db: Session, email: str) -> str:
+    base = (email.split("@", 1)[0] or "client").strip().lower()
+    sanitized = "".join(ch for ch in base if ch.isalnum() or ch == "_")
+    if not sanitized:
+        sanitized = "client"
+
+    candidate = sanitized
+    suffix = 1
+    while db.scalar(select(User.id).where(User.username == candidate)):
+        suffix += 1
+        candidate = f"{sanitized}{suffix}"
+    return candidate
 
 
 def _to_dict(model_obj, extra: dict | None = None) -> dict:
@@ -714,6 +733,9 @@ def start_task(payload: TaskStartRequest, db: Session = Depends(get_db)):
         db.commit()
         db.refresh(user)
 
+    if user.status != "Active":
+        raise HTTPException(status_code=403, detail="Account not active. Contact support.")
+
     pending_task = db.scalar(
         select(UserTask)
         .where(
@@ -1251,9 +1273,28 @@ def get_stats(db: Session = Depends(get_db)):
 
 @router.post("/auth/login")
 def client_login(body: LoginRequest, db: Session = Depends(get_db)):
-    user = db.scalar(select(User).where(User.username == body.username))
+    login_value = body.username.strip()
+    user = db.scalar(select(User).where(User.username == login_value))
+    if not user and "@" in login_value:
+        user = db.scalar(select(User).where(User.email == login_value))
+
     if not user or user.login_password != body.password:
         raise HTTPException(status_code=401, detail="Invalid username or password")
+
+    role_value = _normalize_role_value(user.role)
+    if role_value == UserRole.MERCHANT.value:
+        if (
+            body.captcha_num_a is None
+            or body.captcha_num_b is None
+            or body.captcha_answer is None
+            or not _validate_math_captcha(body.captcha_num_a, body.captcha_num_b, body.captcha_answer)
+        ):
+            raise HTTPException(status_code=400, detail="Invalid captcha answer")
+
+        if user.status == "Suspended":
+            raise HTTPException(status_code=403, detail="Your account is suspended")
+        if user.status not in {"Active", "Inactive", "Pending"}:
+            raise HTTPException(status_code=403, detail="Your account is not active")
 
     if _reset_daily_metrics_if_due(user):
         db.commit()
@@ -1263,6 +1304,80 @@ def client_login(body: LoginRequest, db: Session = Depends(get_db)):
     user_payload["access_token"] = create_access_token(user.id)
     user_payload["token_type"] = "bearer"
     return user_payload
+
+
+@router.post("/auth/signup")
+def client_signup(body: ClientSignupRequest, db: Session = Depends(get_db)):
+    if not _validate_math_captcha(body.captcha_num_a, body.captcha_num_b, body.captcha_answer):
+        raise HTTPException(status_code=400, detail="Invalid captcha answer")
+
+    normalized_email = body.email.strip().lower()
+    if "@" not in normalized_email or "." not in normalized_email.split("@")[-1]:
+        raise HTTPException(status_code=400, detail="Please provide a valid email")
+
+    duplicate_email = db.scalar(select(User.id).where(User.email == normalized_email))
+    if duplicate_email:
+        raise HTTPException(status_code=400, detail="Email already exists")
+
+    username = _build_signup_username(db, normalized_email)
+
+    normalized_referral_code = (body.referral_code or "").strip()
+    status = "Inactive"
+    referred_by = None
+    created_by_admin_id = None
+    managed_by_admin_id = None
+    success_message = "Signup successful. Account not active. Contact support."
+
+    if normalized_referral_code:
+        referrer = db.scalar(select(User).where(User.invite_code == normalized_referral_code))
+        if not referrer:
+            raise HTTPException(status_code=400, detail="Invalid referral code")
+
+        referrer_role = _normalize_role_value(referrer.role)
+        if referrer_role not in {UserRole.SUPER_ADMIN.value, UserRole.SUB_ADMIN.value}:
+            raise HTTPException(status_code=400, detail="Referral code must belong to an admin")
+
+        status = "Active"
+        referred_by = normalized_referral_code
+        created_by_admin_id = referrer.id
+        managed_by_admin_id = referrer.id
+        success_message = "Signup successful. Your account is active."
+
+    user = User(
+        username=username,
+        email=normalized_email,
+        login_password=body.password,
+        withdraw_password=None,
+        status=status,
+        role=UserRole.MERCHANT.value,
+        referred_by=referred_by,
+        balance=0,
+        commission=0,
+        commission_today=0,
+        vip_level=1,
+        current_set=0,
+        task_count_today=0,
+        tasks_completed_in_set=0,
+        set_starting_balance=0,
+        training_commission_rate=25.0,
+        is_training_account=False,
+        created_by_admin_id=created_by_admin_id,
+        managed_by_admin_id=managed_by_admin_id,
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+
+    return {
+        "success": True,
+        "message": success_message,
+        "user": {
+            "id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "status": user.status,
+        },
+    }
 
 
 @router.get("/users/{user_id}/overview")
@@ -1321,6 +1436,9 @@ def client_submit_task(user_id: int, body: SubmitTaskRequest, request: Request, 
     if _reset_daily_metrics_if_due(user):
         db.commit()
         db.refresh(user)
+
+    if user.status != "Active":
+        raise HTTPException(status_code=403, detail="Account not active. Contact support.")
 
     user_task = db.scalar(
         select(UserTask).where(UserTask.user_id == user_id, UserTask.task_code == body.taskCode)

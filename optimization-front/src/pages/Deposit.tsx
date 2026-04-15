@@ -12,8 +12,13 @@ export default function Deposit() {
   const [amount, setAmount] = useState('');
   const [tab, setTab] = useState<'deposit' | 'history'>('deposit');
   const [submitting, setSubmitting] = useState(false);
+  const isAccountActive = user?.status === 'Active';
 
   const handleDepositRequest = async () => {
+    if (!isAccountActive) {
+      navigate('/support');
+      return;
+    }
     const numAmount = Number(amount);
     if (!user?.access_token) {
       alert(t('pleaseLoginAgain'));
@@ -66,6 +71,11 @@ export default function Deposit() {
       </div>
 
       <div className="p-4 md:p-6">
+        {!isAccountActive && (
+          <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700">
+            Account not active. Contact support.
+          </div>
+        )}
         {tab === 'deposit' ? (
           <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
             <div className="mb-0 rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
@@ -89,7 +99,7 @@ export default function Deposit() {
               <button
                 type="button"
                 onClick={() => void handleDepositRequest()}
-                disabled={submitting}
+                disabled={submitting || !isAccountActive}
                 className="mb-4 flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 py-4 font-bold text-white shadow-md transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-70"
               >
                 {submitting ? <Loader2 size={18} className="animate-spin" /> : null}
@@ -106,7 +116,7 @@ export default function Deposit() {
               <button
                 type="button"
                 onClick={() => void handleDepositRequest()}
-                disabled={submitting}
+                disabled={submitting || !isAccountActive}
                 className="w-full rounded-xl border border-blue-200 bg-white px-6 py-3 font-bold text-blue-600 shadow-sm transition-colors hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-70"
               >
                 {t('contactCustomerService')}

@@ -46,6 +46,10 @@ If the default frontend ports are busy, Vite automatically selects the next free
 - Non-combo product assignment now only selects active products with `price < user balance`.
 - Random non-combo selection uses a balance-based price band so higher balances skew toward higher-priced products.
 - Combo tasks remain an explicit override and keep their configured custom prices/commissions.
+- Client signup supports optional referral code and math captcha.
+- Signup with a valid admin referral code (`super_admin` or `sub_admin`) creates an `Active` client and auto-assigns support ownership to that admin.
+- Signup without referral code creates an `Inactive` client and shows contact-support guidance until activation.
+- Inactive clients can log in and access support chat, but cannot start/submit tasks or perform deposit/withdraw actions until `Active`.
 
 ### 5) Training Account + Referral Commission Flow
 
@@ -57,6 +61,7 @@ If the default frontend ports are busy, Vite automatically selects the next free
 ### 6) Consumer App Integration (`optimization-front`)
 
 - Added protected login flow (`username` + `login_password`) with local persistence.
+- Added client signup flow (`email` + `password`) with optional referral code and math captcha.
 - Added authenticated routing and user refresh endpoints.
 - Wired Starting screen to task start + submit lifecycle with pending-task resume behavior.
 - Reworked the Starting screen for desktop and mobile with a full-width responsive shell.
@@ -85,6 +90,7 @@ If the default frontend ports are busy, Vite automatically selects the next free
 ### 7) New Client-Facing API Endpoints
 
 - `POST /api/auth/login`
+- `POST /api/auth/signup`
 - `GET /api/users/{id}/overview`
 - `GET /api/users/{id}/pending-tasks`
 - `POST /api/users/{id}/submit-task`

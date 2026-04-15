@@ -60,6 +60,7 @@ export default function Starting() {
   const [requiredDeposit, setRequiredDeposit] = useState<number | null>(null);
   const [depositAmount, setDepositAmount] = useState('');
   const [chatSignal, setChatSignal] = useState(-1);
+  const isAccountActive = user?.status === 'Active';
 
   const totalTasks = user ? taskTotalsByVip[user.vip_level] ?? 60 : 40;
 
@@ -153,6 +154,11 @@ export default function Starting() {
 
   const handleStart = async () => {
     if (!user) return;
+    if (!isAccountActive) {
+      alert('Account not active. Contact support.');
+      setChatSignal((prev) => prev + 1);
+      return;
+    }
     if (user.tasks_completed_in_set >= totalTasks) {
       alert(t('completedAllTasks'));
       return;
@@ -201,6 +207,11 @@ export default function Starting() {
   const handleSubmitTask = async () => {
     if (!currentTask) return;
     if (!user) return;
+    if (!isAccountActive) {
+      alert('Account not active. Contact support.');
+      setChatSignal((prev) => prev + 1);
+      return;
+    }
 
     setIsSubmitting(true);
     try {
@@ -352,9 +363,9 @@ export default function Starting() {
                   <div key="start-cell" className="aspect-square w-full max-w-[180px]">
                     <button
                       onClick={handleStart}
-                      disabled={isOptimizing || pendingTaskBlocked || (user?.tasks_completed_in_set ?? 0) >= totalTasks}
+                      disabled={isOptimizing || pendingTaskBlocked || (user?.tasks_completed_in_set ?? 0) >= totalTasks || !isAccountActive}
                       className={`mx-auto flex h-full w-full flex-col items-center justify-center rounded-full text-center text-white font-bold text-lg shadow-2xl transition-transform active:scale-95 ${
-                        (isOptimizing || pendingTaskBlocked || (user?.tasks_completed_in_set ?? 0) >= totalTasks)
+                        (isOptimizing || pendingTaskBlocked || (user?.tasks_completed_in_set ?? 0) >= totalTasks || !isAccountActive)
                           ? 'bg-gray-400 cursor-not-allowed'
                           : 'bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700'
                       }`}
@@ -555,7 +566,7 @@ export default function Starting() {
 
               <button
                 onClick={handleSubmitTask}
-                disabled={isSubmitting}
+                disabled={isSubmitting || !isAccountActive}
                 className="w-full bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 transition-colors shadow-md disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {isSubmitting ? t('submitting') : t('submit')}

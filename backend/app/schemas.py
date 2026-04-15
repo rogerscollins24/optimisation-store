@@ -8,6 +8,18 @@ from .enums import SupportTicketStatus, UserRole
 class LoginRequest(BaseModel):
     username: str
     password: str
+    captcha_num_a: int | None = None
+    captcha_num_b: int | None = None
+    captcha_answer: int | None = None
+
+
+class ClientSignupRequest(BaseModel):
+    email: str
+    password: str
+    captcha_num_a: int
+    captcha_num_b: int
+    captcha_answer: int
+    referral_code: str | None = None
 
 
 class LoginResponse(BaseModel):

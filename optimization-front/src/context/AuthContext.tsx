@@ -4,6 +4,7 @@ import { getClientSupportUnreadCount } from '../lib/supportApi';
 export interface AuthUser {
   id: number;
   username: string;
+  status?: string;
   email?: string | null;
   phone?: string | null;
   gender?: string | null;
@@ -31,7 +32,15 @@ interface AuthContextValue {
   loading: boolean;
   supportUnreadCount: number;
   notificationCount: number;
-  login: (username: string, password: string) => Promise<void>;
+  login: (username: string, password: string, captchaNumA: number, captchaNumB: number, captchaAnswer: number) => Promise<void>;
+  signup: (
+    email: string,
+    password: string,
+    captchaNumA: number,
+    captchaNumB: number,
+    captchaAnswer: number,
+    referralCode?: string,
+  ) => Promise<string>;
   logout: () => void;
   refreshUser: () => Promise<void>;
   refreshBadges: () => Promise<void>;
@@ -138,11 +147,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setNotificationCount(0);
   }, [refreshBadgeCounts, user?.access_token]);
 
-  const login = async (username: string, password: string) => {
+  const login = async (username: string, password: string, captchaNumA: number, captchaNumB: number, captchaAnswer: number) => {
     const response = await fetch('/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password }),
+      body: JSON.stringify({
+        username,
+        password,
+        captcha_num_a: captchaNumA,
+        captcha_num_b: captchaNumB,
+        captcha_answer: captchaAnswer,
+      }),
     });
 
     if (!response.ok) {
@@ -154,6 +169,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const nextUser = { ...data, credit_score: data.credit_score ?? 100 };
     persistUser(nextUser);
     await refreshBadgeCounts(nextUser.access_token);
+  };
+
+  const signup = async (
+    email: string,
+    password: string,
+    captchaNumA: number,
+    captchaNumB: number,
+    captchaAnswer: number,
+    referralCode?: string,
+  ) => {
+    const response = await fetch('/api/auth/signup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email,
+        password,
+        captcha_num_a: captchaNumA,
+        captcha_num_b: captchaNumB,
+        captcha_answer: captchaAnswer,
+        referral_code: referralCode?.trim() ? referralCode.trim() : null,
+      }),
+    });
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        throw new Error('Signup endpoint not found. Restart backend and try again.');
+      }
+      const error = await response.json().catch(() => ({ detail: 'Signup failed' }));
+      throw new Error(error.detail || 'Signup failed');
+    }
+
+    const data = await response.json();
+    return data?.message || 'Signup submitted. Wait for super admin approval.';
   };
 
   const refreshUser = async () => {
@@ -187,6 +235,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         supportUnreadCount,
         notificationCount,
         login,
+        signup,
         logout,
         refreshUser,
         refreshBadges,

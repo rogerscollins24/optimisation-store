@@ -12,10 +12,15 @@ export default function Withdraw() {
   const [amount, setAmount] = useState('');
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const isAccountActive = user?.status === 'Active';
 
   const balance = user?.balance ?? 0;
 
   const handleWithdraw = async () => {
+    if (!isAccountActive) {
+      navigate('/support');
+      return;
+    }
     const numAmount = parseFloat(amount);
     if (Number.isNaN(numAmount) || numAmount <= 0) {
       alert(t('pleaseEnterValidAmount'));
@@ -87,6 +92,11 @@ export default function Withdraw() {
       </div>
 
       <div className="grid gap-6 p-4 md:p-6 lg:grid-cols-[1fr_340px] lg:items-start">
+        {!isAccountActive && (
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700 lg:col-span-2">
+            Account not active. Contact support.
+          </div>
+        )}
         <div className="mb-0 rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
           <div className="mb-6 flex items-center justify-between">
             <p className="text-sm text-gray-500">{t('availableBalance')}</p>
@@ -128,7 +138,7 @@ export default function Withdraw() {
           <button
             type="button"
             onClick={() => void handleWithdraw()}
-            disabled={submitting}
+            disabled={submitting || !isAccountActive}
             className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 py-4 font-bold text-white shadow-md transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-70"
           >
             {submitting ? <Loader2 size={18} className="animate-spin" /> : null}

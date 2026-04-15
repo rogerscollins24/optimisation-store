@@ -319,6 +319,7 @@ export default function Users() {
                 <label className={lbl}>Status</label>
                 <select className={inp} value={formData.status} onChange={(e) => set('status', e.target.value)}>
                   <option value="Active">Active</option>
+                  <option value="Pending">Pending</option>
                   <option value="Suspended">Suspended</option>
                   <option value="Inactive">Inactive</option>
                 </select>
@@ -357,6 +358,7 @@ export default function Users() {
             <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="bg-slate-900/50 border border-slate-700/50 text-slate-300 text-sm rounded-lg p-2 outline-none">
               <option value="">All Statuses</option>
               <option value="Active">Active</option>
+              <option value="Pending">Pending</option>
               <option value="Inactive">Inactive</option>
               <option value="Suspended">Suspended</option>
             </select>
@@ -391,6 +393,7 @@ export default function Users() {
                   <td className="px-4 py-4">
                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
                       user.status === 'Active' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                      : user.status === 'Pending' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
                       : user.status === 'Suspended' ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
                       : 'bg-slate-500/10 text-slate-400 border border-slate-500/20'
                     }`}>{user.status}</span>
