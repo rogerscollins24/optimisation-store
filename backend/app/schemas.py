@@ -235,3 +235,14 @@ class SupportTicketSchema(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class TranslateBatchRequest(BaseModel):
+    texts: list[str]
+    target_language: str
+    source_language: str = "auto"
+
+
+class TranslateBatchResponse(BaseModel):
+    translated_texts: list[str]
+    target_language: str

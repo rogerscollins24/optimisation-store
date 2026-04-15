@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { ChevronLeft, Loader2 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
-import { useLanguage } from '../context/LanguageContext';
 
 export default function WalletBinding() {
   const navigate = useNavigate();
   const { user, refreshUser } = useAuth();
-  const { t } = useLanguage();
+  const { t } = useTranslation();
   const [exchange, setExchange] = useState(user?.exchange ?? '');
   const [walletAddress, setWalletAddress] = useState(user?.wallet_address ?? '');
   const [saving, setSaving] = useState(false);
@@ -15,7 +15,7 @@ export default function WalletBinding() {
   const handleSave = async () => {
     if (!user?.id || !user.access_token) return;
     if (!walletAddress.trim()) {
-      alert('Please enter a wallet address');
+      alert(t('pasteWalletAddress'));
       return;
     }
 
@@ -58,7 +58,7 @@ export default function WalletBinding() {
           <div className="grid gap-4">
             <div>
               <label className="mb-2 block text-sm font-medium text-gray-700">{t('exchangeNetwork')}</label>
-              <input value={exchange} onChange={(event) => setExchange(event.target.value)} placeholder="e.g. Binance, TRC20, ERC20" className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-800 outline-none focus:border-blue-500" />
+              <input value={exchange} onChange={(event) => setExchange(event.target.value)} placeholder={t('exchangePlaceholder')} className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-800 outline-none focus:border-blue-500" />
             </div>
 
             <div>

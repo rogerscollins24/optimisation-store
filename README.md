@@ -42,12 +42,10 @@ If the default frontend ports are busy, Vite automatically selects the next free
 - Pending tasks block starting new tasks until submission.
 - Added negative-balance guard flow: if task amount exceeds balance, the task moves to `pending_debited`, user is blocked, and deposit + support/chat guidance is returned.
 - Pending tasks remain indefinitely until submitted by user or reset by admin.
-- Added commission logic by VIP level for consumer task completion:
-	- VIP1: 40 tasks/set, 0.5%
-	- VIP2: 45 tasks/set, 1.0%
-	- VIP3: 50 tasks/set, 1.5%
-	- VIP4: 55 tasks/set, 2.0%
-	- VIP5+: 60 tasks/set, 2.5%
+- Default commission for non-combo tasks is now fixed at `9%`.
+- Non-combo product assignment now only selects active products with `price < user balance`.
+- Random non-combo selection uses a balance-based price band so higher balances skew toward higher-priced products.
+- Combo tasks remain an explicit override and keep their configured custom prices/commissions.
 
 ### 5) Training Account + Referral Commission Flow
 

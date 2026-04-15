@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import { ChevronLeft, HeadphonesIcon, Loader2 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
-import { useLanguage } from '../context/LanguageContext';
 import { createSupportTicket } from '../lib/supportApi';
 
 export default function Deposit() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { t } = useLanguage();
+  const { t } = useTranslation();
   const [amount, setAmount] = useState('');
   const [tab, setTab] = useState<'deposit' | 'history'>('deposit');
   const [submitting, setSubmitting] = useState(false);
@@ -29,11 +29,15 @@ export default function Deposit() {
       const ticket = await createSupportTicket(
         user.access_token,
         t('depositRequestSubject'),
-        `Hello Support, I would like to make a deposit of ${numAmount.toFixed(2)} USDT.\nUsername: ${user.username}\nCurrent balance: ${(user.balance ?? 0).toFixed(2)} USDT. Please share the payment steps.`,
+        t('depositSupportMessage', {
+          amount: numAmount.toFixed(2),
+          username: user.username,
+          balance: (user.balance ?? 0).toFixed(2),
+        }),
       );
       navigate(`/support?ticket=${ticket.id}`);
     } catch (error) {
-      alert(error instanceof Error ? error.message : 'Unable to create the deposit request');
+      alert(error instanceof Error ? error.message : t('unableToCreateDepositRequest'));
     } finally {
       setSubmitting(false);
     }

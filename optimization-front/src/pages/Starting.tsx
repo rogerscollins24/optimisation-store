@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Bell, UserCircle, Star, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useUser, Task } from '../store';
 import { useAuth } from '../context/AuthContext';
-import { useLanguage } from '../context/LanguageContext';
 import ChatModal from '../components/ChatModal';
+import { useDynamicTranslations } from '../hooks/useDynamicTranslations';
 
 interface Product {
   id: number;
@@ -45,7 +46,7 @@ const wait = (ms: number) => new Promise((resolve) => window.setTimeout(resolve,
 
 export default function Starting() {
   const { user, refreshUser, setUser } = useAuth();
-  const { t } = useLanguage();
+  const { t } = useTranslation();
   const supportToken = user?.access_token ?? null;
   const { addTask } = useUser();
   const [products, setProducts] = useState<Product[]>([]);
@@ -267,10 +268,38 @@ export default function Starting() {
   const hasDepositWarning = requiredDeposit !== null || ((currentTask?.status === 'pending_debited') && (user?.balance ?? 0) < 0);
   const computedRequiredDeposit = requiredDeposit ?? (user && user.balance < 0 ? Math.abs(user.balance) : 0);
 
+  const dynamicTexts = useMemo(() => {
+    const texts: string[] = [];
+
+    pendingTasks.forEach((task) => {
+      if (task.title) texts.push(task.title);
+      task.products?.forEach((item) => {
+        const name = String(item.product_name || '').trim();
+        if (name) texts.push(name);
+      });
+    });
+
+    if (currentTask?.title) {
+      texts.push(currentTask.title);
+      currentTask.products?.forEach((item) => {
+        const name = String(item.product_name || '').trim();
+        if (name) texts.push(name);
+      });
+    }
+
+    productCells.forEach((product) => {
+      if (product?.name) texts.push(product.name);
+    });
+
+    return texts;
+  }, [currentTask, pendingTasks, productCells]);
+
+  const { translateText } = useDynamicTranslations(dynamicTexts);
+
   return (
     <div className="canvas-texture relative flex min-h-full flex-col pb-6">
       <div className="flex items-center justify-between rounded-xl bg-white p-4 shadow-sm md:p-5">
-        <h1 className="text-xl font-bold text-blue-600">Shopping Optimized</h1>
+        <h1 className="text-xl font-bold text-blue-600">{t('brandName')}</h1>
         <div className="flex items-center gap-4">
           <Bell className="text-gray-600" size={24} />
           <Link to="/profile">
@@ -288,7 +317,7 @@ export default function Starting() {
           <div>
             <h2 className="text-xl font-bold text-gray-800">{t('welcomeBack', { name: user?.username ?? t('guest') })}</h2>
             <div className="flex items-center gap-2">
-              <span className="rounded-full bg-yellow-100 px-2 py-1 text-xs font-bold text-yellow-800">VIP {user?.vip_level ?? 1}</span>
+              <span className="rounded-full bg-yellow-100 px-2 py-1 text-xs font-bold text-yellow-800">{t('vipBadge', { level: user?.vip_level ?? 1 })}</span>
             </div>
           </div>
         </div>
@@ -346,7 +375,7 @@ export default function Starting() {
                   {product ? (
                     <img
                       src={product.image_url || 'https://picsum.photos/seed/default/300/300'}
-                      alt={product.name}
+                      alt={translateText(product.name)}
                       className="h-full w-full object-cover transition-transform duration-500"
                     />
                   ) : (
@@ -390,7 +419,7 @@ export default function Starting() {
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                         <div>
-                          <h4 className="line-clamp-2 font-semibold text-slate-800">{task.title}</h4>
+                          <h4 className="line-clamp-2 font-semibold text-slate-800">{translateText(task.title)}</h4>
                           <p className="mt-1 text-xs text-slate-500">{new Date(task.createdAt).toLocaleString()}</p>
                         </div>
                         <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
@@ -454,9 +483,9 @@ export default function Starting() {
             <div className="p-6 md:p-8">
               <div className="mb-6 grid gap-6 md:grid-cols-2">
                 <div className="flex gap-4">
-                <img src={currentTask.image} alt="Product" className="w-24 h-24 object-cover rounded-lg shadow-sm" />
+                <img src={currentTask.image} alt={t('productAlt')} className="w-24 h-24 object-cover rounded-lg shadow-sm" />
                 <div>
-                  <h4 className="font-medium text-gray-800 line-clamp-2 mb-2">{currentTask.title}</h4>
+                  <h4 className="font-medium text-gray-800 line-clamp-2 mb-2">{translateText(currentTask.title)}</h4>
                   <p className="text-blue-600 font-bold">USDT {currentTask.price.toFixed(2)}</p>
                   <div className="flex text-yellow-400 mt-1">
                     {[...Array(5)].map((_, i) => <Star key={i} size={14} fill="currentColor" />)}
@@ -469,7 +498,7 @@ export default function Starting() {
                     <div className="mb-4 space-y-2">
                       {currentTask.products.map((item) => (
                         <div key={item.product_id} className="flex items-center justify-between text-sm rounded-lg bg-blue-50 px-3 py-2 border border-blue-100">
-                          <span className="text-gray-700">{item.product_name}</span>
+                          <span className="text-gray-700">{translateText(item.product_name)}</span>
                           <span className="font-semibold text-blue-700">USDT {Number(item.price).toFixed(2)}</span>
                         </div>
                       ))}
@@ -529,7 +558,7 @@ export default function Starting() {
                 disabled={isSubmitting}
                 className="w-full bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 transition-colors shadow-md disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                {isSubmitting ? 'Submitting...' : 'Submit'}
+                {isSubmitting ? t('submitting') : t('submit')}
               </button>
             </div>
           </div>
@@ -539,10 +568,10 @@ export default function Starting() {
       <ChatModal
         token={supportToken}
         openSignal={chatSignal}
-        presetSubject="Balance issue"
+        presetSubject={t('balanceIssueSubject')}
         presetMessage={
           hasDepositWarning
-            ? `Hello Support, I need help with a pending task and insufficient balance. Required deposit: USDT ${computedRequiredDeposit.toFixed(2)}. Please advise.`
+            ? t('balanceIssueMessage', { amount: computedRequiredDeposit.toFixed(2) })
             : null
         }
       />

@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Bell, ChevronLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
-import { useLanguage } from '../context/LanguageContext';
+import { useDynamicTranslations } from '../hooks/useDynamicTranslations';
 
 type NotificationItem = {
   id: number;
@@ -15,7 +16,7 @@ type NotificationItem = {
 
 export default function Notifications() {
   const { markNotificationsRead } = useAuth();
-  const { t } = useLanguage();
+  const { t } = useTranslation();
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -41,6 +42,16 @@ export default function Notifications() {
   }, [markNotificationsRead]);
 
   const hasNotifications = useMemo(() => notifications.length > 0, [notifications]);
+  const dynamicTexts = useMemo(() => {
+    const texts: string[] = [];
+    notifications.forEach((item) => {
+      if (item.title) texts.push(item.title);
+      if (item.message) texts.push(item.message);
+      if (item.recipients) texts.push(item.recipients);
+    });
+    return texts;
+  }, [notifications]);
+  const { translateText } = useDynamicTranslations(dynamicTexts);
 
   return (
     <div className="flex min-h-full flex-col bg-gray-50 pb-6">
@@ -69,16 +80,16 @@ export default function Notifications() {
               <div key={item.id} className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <h2 className="text-lg font-bold text-slate-800">{item.title}</h2>
+                    <h2 className="text-lg font-bold text-slate-800">{translateText(item.title)}</h2>
                     <p className="mt-1 text-sm text-slate-500">
                       {item.created_at ? new Date(item.created_at).toLocaleString() : t('recentlyPosted')}
                     </p>
                   </div>
                   <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
-                    {item.recipients || t('all')}
+                    {item.recipients ? translateText(item.recipients) : t('all')}
                   </span>
                 </div>
-                <p className="mt-4 whitespace-pre-wrap text-sm leading-6 text-slate-700">{item.message}</p>
+                <p className="mt-4 whitespace-pre-wrap text-sm leading-6 text-slate-700">{translateText(item.message)}</p>
               </div>
             ))}
           </div>

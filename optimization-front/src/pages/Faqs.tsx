@@ -1,9 +1,9 @@
 import { ChevronLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { useLanguage } from '../context/LanguageContext';
+import { useTranslation } from 'react-i18next';
 
 export default function Faqs() {
-  const { t } = useLanguage();
+  const { t } = useTranslation();
 
   return (
     <div className="flex min-h-full flex-col bg-[#f3f3f3] pb-6">

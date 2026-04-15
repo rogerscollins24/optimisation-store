@@ -1,7 +1,7 @@
-import { Bell, ArrowDownToLine, ArrowUpFromLine, User, Link as LinkIcon, HeadphonesIcon, LogOut, ChevronLeft } from 'lucide-react';
+import { Bell, ArrowDownToLine, ArrowUpFromLine, User, Link as LinkIcon, HeadphonesIcon, LogOut, ChevronLeft, type LucideIcon } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { useLanguage } from '../context/LanguageContext';
+import { useTranslation } from 'react-i18next';
 
 const taskTotalsByVip: Record<number, number> = {
   1: 40,
@@ -10,10 +10,25 @@ const taskTotalsByVip: Record<number, number> = {
   4: 55,
 };
 
+type ProfileMenuItem = {
+  icon: LucideIcon;
+  label: string;
+  color: string;
+  bg: string;
+  to?: string;
+  action?: () => void;
+  badge?: string | null;
+};
+
+type ProfileMenuSection = {
+  title: string;
+  items: ProfileMenuItem[];
+};
+
 export default function Profile() {
   const navigate = useNavigate();
   const { user, logout, notificationCount, supportUnreadCount } = useAuth();
-  const { t } = useLanguage();
+  const { t } = useTranslation();
 
   const balance = user?.balance ?? 0;
   const commissionToday = user?.commission_today ?? 0;
@@ -23,7 +38,7 @@ export default function Profile() {
   const remainingTasks = user?.remaining_tasks ?? Math.max(totalTasks - (user?.tasks_completed_in_set ?? 0), 0);
   const topBadgeCount = notificationCount + supportUnreadCount;
 
-  const menuSections = [
+  const menuSections: ProfileMenuSection[] = [
     {
       title: t('myFinancial'),
       items: [
@@ -72,13 +87,13 @@ export default function Profile() {
 
           <div className="relative z-10 mb-6 flex items-center gap-4">
             <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-full border border-white/30 bg-white/20 backdrop-blur-sm">
-              <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.username ?? 'ShoppingOptimized'}`} alt="Avatar" className="h-14 w-14 rounded-full" />
+              <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.username ?? 'ShoppingOptimized'}`} alt={t('avatarAlt')} className="h-14 w-14 rounded-full" />
             </div>
             <div>
               <h2 className="mb-1 text-xl font-bold">{user?.username ?? t('guest')}</h2>
               <div className="flex flex-wrap items-center gap-2 text-sm">
-                <span className="rounded-full bg-yellow-400 px-2 py-0.5 text-xs font-bold text-yellow-900">VIP {vipLevel}</span>
-                <span className="opacity-80">{t('invitationCode')}: {user?.invite_code || 'N/A'}</span>
+                <span className="rounded-full bg-yellow-400 px-2 py-0.5 text-xs font-bold text-yellow-900">{t('vipBadge', { level: vipLevel })}</span>
+                <span className="opacity-80">{t('invitationCode')}: {user?.invite_code || t('notAvailable')}</span>
               </div>
             </div>
           </div>

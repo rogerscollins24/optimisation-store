@@ -1,72 +1,111 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Bell, Check, HeadphonesIcon, Gift, ArrowDownToLine, ArrowUpFromLine, FileText, Award, HelpCircle, ChevronDown, ChevronRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { useLanguage } from '../context/LanguageContext';
+import { useLanguage, type LanguageCode } from '../context/LanguageContext';
+import { useTranslation } from 'react-i18next';
 import { BrandHomeIcon } from '../components/BrandIcons';
 
 export default function Home() {
   const { user, notificationCount } = useAuth();
-  const { language, languages, setLanguage, t } = useLanguage();
+  const { language, languages, setLanguage } = useLanguage();
+  const { t } = useTranslation();
   const [isLanguageOpen, setIsLanguageOpen] = useState(false);
-  const currentLanguage = languages.find((item) => item.code === language) ?? languages[0];
-  const menuItems = [
-    { icon: HeadphonesIcon, labelKey: 'service', color: 'text-blue-500', bg: 'bg-blue-100', to: '/support' },
-    { icon: Gift, labelKey: 'event', color: 'text-pink-500', bg: 'bg-pink-100' },
-    { icon: ArrowUpFromLine, labelKey: 'withdrawal', color: 'text-orange-500', bg: 'bg-orange-100', to: '/withdraw' },
-    { icon: ArrowDownToLine, labelKey: 'deposit', color: 'text-green-500', bg: 'bg-green-100', to: '/deposit' },
-    { icon: FileText, labelKey: 'terms', color: 'text-purple-500', bg: 'bg-purple-100' },
-    { icon: Award, labelKey: 'certificate', color: 'text-yellow-500', bg: 'bg-yellow-100' },
-    { icon: HelpCircle, labelKey: 'faqs', color: 'text-teal-500', bg: 'bg-teal-100', to: '/faqs' },
-  ];
+  const languageMenuRef = useRef<HTMLDivElement | null>(null);
 
-  const vipLevels = [
-    {
-      level: 1,
-      amount: '100 USDT',
-      commission: '0.5%',
-      comboProfit: '3%',
-      tasks: 40,
-      bg: 'bg-[#426b82]',
-      badge: 'from-amber-300 to-yellow-500',
+  const currentLanguage = useMemo(
+    () => languages.find((item) => item.code === language) ?? languages[0],
+    [language, languages],
+  );
+
+  const menuItems = useMemo(
+    () => [
+      { icon: HeadphonesIcon, labelKey: 'service', color: 'text-blue-500', bg: 'bg-blue-100', to: '/support' },
+      { icon: Gift, labelKey: 'event', color: 'text-pink-500', bg: 'bg-pink-100' },
+      { icon: ArrowUpFromLine, labelKey: 'withdrawal', color: 'text-orange-500', bg: 'bg-orange-100', to: '/withdraw' },
+      { icon: ArrowDownToLine, labelKey: 'deposit', color: 'text-green-500', bg: 'bg-green-100', to: '/deposit' },
+      { icon: FileText, labelKey: 'terms', color: 'text-purple-500', bg: 'bg-purple-100' },
+      { icon: Award, labelKey: 'certificate', color: 'text-yellow-500', bg: 'bg-yellow-100' },
+      { icon: HelpCircle, labelKey: 'faqs', color: 'text-teal-500', bg: 'bg-teal-100', to: '/faqs' },
+    ],
+    [],
+  );
+
+  const vipLevels = useMemo(
+    () => [
+      {
+        level: 1,
+        amount: '100 USDT',
+        commission: '0.5%',
+        comboProfit: '3%',
+        tasks: 40,
+        bg: 'bg-[#426b82]',
+        badge: 'from-amber-300 to-yellow-500',
+      },
+      {
+        level: 2,
+        amount: '500 USDT',
+        commission: '1%',
+        comboProfit: '6%',
+        tasks: 45,
+        bg: 'bg-[#155fd7]',
+        badge: 'from-slate-200 to-indigo-200',
+      },
+      {
+        level: 3,
+        amount: '2000 USDT',
+        commission: '1.5%',
+        comboProfit: '9%',
+        tasks: 50,
+        bg: 'bg-[#f2a622]',
+        badge: 'from-yellow-300 to-orange-500',
+      },
+      {
+        level: 4,
+        amount: '5000 USDT',
+        commission: '2%',
+        comboProfit: '12%',
+        tasks: 55,
+        bg: 'bg-[#7a1fb0]',
+        badge: 'from-fuchsia-300 to-violet-500',
+      },
+    ],
+    [],
+  );
+
+  const toggleLanguageMenu = useCallback(() => {
+    setIsLanguageOpen((current) => !current);
+  }, []);
+
+  const handleLanguageSelect = useCallback(
+    (code: LanguageCode) => {
+      setLanguage(code);
+      setIsLanguageOpen(false);
     },
-    {
-      level: 2,
-      amount: '500 USDT',
-      commission: '1%',
-      comboProfit: '6%',
-      tasks: 45,
-      bg: 'bg-[#155fd7]',
-      badge: 'from-slate-200 to-indigo-200',
-    },
-    {
-      level: 3,
-      amount: '2000 USDT',
-      commission: '1.5%',
-      comboProfit: '9%',
-      tasks: 50,
-      bg: 'bg-[#f2a622]',
-      badge: 'from-yellow-300 to-orange-500',
-    },
-    {
-      level: 4,
-      amount: '5000 USDT',
-      commission: '2%',
-      comboProfit: '12%',
-      tasks: 55,
-      bg: 'bg-[#7a1fb0]',
-      badge: 'from-fuchsia-300 to-violet-500',
-    },
-  ];
+    [setLanguage],
+  );
+
+  useEffect(() => {
+    if (!isLanguageOpen) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (languageMenuRef.current && !languageMenuRef.current.contains(event.target as Node)) {
+        setIsLanguageOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isLanguageOpen]);
 
   return (
-    <div className="canvas-texture flex min-h-full flex-col pb-6">
+    <div className="canvas-texture flex min-h-full flex-col overflow-x-hidden pb-6">
       <div className="px-4 pt-5 md:px-8 md:pt-6">
-        <div className="mb-5 flex items-center justify-between rounded-2xl bg-white/80 px-4 py-4 shadow-sm backdrop-blur-sm">
+        <div className="relative z-20 mb-5 flex items-center justify-between overflow-visible rounded-2xl border border-white/70 bg-white/90 px-4 py-4 shadow-sm">
           <div>
             <div className="flex items-center gap-2">
               <BrandHomeIcon size={24} className="text-slate-900" />
-              <h1 className="text-xl font-bold leading-tight text-slate-900 md:text-2xl">Shopping Optimized</h1>
+              <h1 className="text-xl font-bold leading-tight text-slate-900 md:text-2xl">{t('brandName')}</h1>
             </div>
             <p className="mt-1 text-sm font-medium text-slate-600">{t('welcomeBack', { name: user?.username ?? t('guest') })}</p>
           </div>
@@ -81,10 +120,11 @@ export default function Home() {
               <Bell size={22} />
             </Link>
 
-            <div className="relative">
+            <div ref={languageMenuRef} className="relative">
               <button
                 type="button"
-                onClick={() => setIsLanguageOpen((current) => !current)}
+                onClick={toggleLanguageMenu}
+                aria-expanded={isLanguageOpen}
                 className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-3 text-slate-800 shadow-sm"
               >
                 <span className="text-xl leading-none">{currentLanguage.flag}</span>
@@ -93,16 +133,13 @@ export default function Home() {
               </button>
 
               {isLanguageOpen ? (
-                <div className="absolute right-0 top-[calc(100%+10px)] z-30 w-72 rounded-[24px] border border-slate-200 bg-white p-3 shadow-2xl">
+                <div className="absolute right-0 top-full z-[140] mt-2 max-h-[70vh] w-72 overflow-y-auto rounded-[24px] border border-slate-200 bg-white p-3 shadow-2xl">
                   <div className="space-y-1">
                     {languages.map((option) => (
                       <button
                         key={option.code}
                         type="button"
-                        onClick={() => {
-                          setLanguage(option.code);
-                          setIsLanguageOpen(false);
-                        }}
+                        onClick={() => handleLanguageSelect(option.code)}
                         className={`flex w-full items-center justify-between rounded-xl px-4 py-3 text-left text-slate-900 transition-colors ${language === option.code ? 'bg-slate-100' : 'hover:bg-slate-50'}`}
                       >
                         <span className="flex items-center gap-3 text-lg font-semibold">
@@ -119,7 +156,7 @@ export default function Home() {
 
             <Link to="/profile">
               <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 md:h-14 md:w-14">
-                <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.username ?? 'ShoppingOptimized'}`} alt="Avatar" className="h-10 w-10 rounded-full md:h-12 md:w-12" />
+                <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.username ?? 'ShoppingOptimized'}`} alt={t('avatarAlt')} className="h-10 w-10 rounded-full md:h-12 md:w-12" />
               </div>
             </Link>
           </div>

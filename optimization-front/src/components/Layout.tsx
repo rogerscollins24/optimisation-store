@@ -2,7 +2,7 @@ import { Outlet, NavLink } from 'react-router-dom';
 import { FileText } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import { useLanguage } from '../context/LanguageContext';
+import { useTranslation } from 'react-i18next';
 import { BrandHomeIcon, ShipWheelIcon } from './BrandIcons';
 
 export function cn(...inputs: (string | undefined | null | false)[]) {
@@ -10,7 +10,7 @@ export function cn(...inputs: (string | undefined | null | false)[]) {
 }
 
 export default function Layout() {
-  const { t } = useLanguage();
+  const { t } = useTranslation();
 
   return (
     <div className="flex min-h-screen flex-col bg-gradient-to-br from-gray-50 to-slate-100">

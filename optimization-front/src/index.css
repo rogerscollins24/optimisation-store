@@ -21,11 +21,8 @@ body {
 .canvas-texture {
   background-color: #ece7dd;
   background-image:
-    radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.32) 0, rgba(255, 255, 255, 0.32) 1px, transparent 1px),
-    radial-gradient(circle at 80% 30%, rgba(0, 0, 0, 0.025) 0, rgba(0, 0, 0, 0.025) 1px, transparent 1px),
-    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.05) 0, rgba(255, 255, 255, 0.05) 2px, transparent 2px, transparent 6px),
-    repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.02) 0, rgba(0, 0, 0, 0.02) 1px, transparent 1px, transparent 5px);
-  background-size: 24px 24px, 28px 28px, 8px 8px, 10px 10px;
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.24), transparent 42%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.02));
 }
 
 .support-texture {

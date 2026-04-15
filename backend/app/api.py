@@ -1,10 +1,13 @@
 from datetime import datetime, timezone
 import random
+import re
 import secrets
 import shutil
 from pathlib import Path
+from typing import cast
 from uuid import uuid4
 
+from deep_translator import GoogleTranslator
 from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, UploadFile
 from sqlalchemy import delete, func, or_, select
 from sqlalchemy.orm import Session
@@ -29,6 +32,8 @@ from .schemas import (
     SubmitTaskRequest,
     TaskUpdateRequest,
     TrainingAccountCreateRequest,
+    TranslateBatchRequest,
+    TranslateBatchResponse,
     UserCreateRequest,
     UserUpdateRequest,
 )
@@ -126,10 +131,10 @@ def _coerce_datetime(value: str | None) -> datetime | None:
 
 def _reset_daily_metrics_if_due(user: User) -> bool:
     now_utc = datetime.now(timezone.utc)
-    last_reset = user.last_commission_reset
+    last_reset = cast(datetime | None, user.last_commission_reset)
 
     if last_reset is None:
-        user.last_commission_reset = now_utc
+        setattr(user, "last_commission_reset", now_utc)
         if float(user.commission_today or 0) != 0 or int(user.task_count_today or 0) != 0:
             user.commission_today = 0
             user.task_count_today = 0
@@ -144,7 +149,7 @@ def _reset_daily_metrics_if_due(user: User) -> bool:
     if last_reset.date() < now_utc.date():
         user.commission_today = 0
         user.task_count_today = 0
-        user.last_commission_reset = now_utc
+        setattr(user, "last_commission_reset", now_utc)
         return True
 
     return False
@@ -152,7 +157,7 @@ def _reset_daily_metrics_if_due(user: User) -> bool:
 
 def _serialize_user(user: User) -> dict:
     payload = _to_dict(user)
-    cfg = _VIP_CONFIG.get(user.vip_level, {"tasks_per_set": 60, "rate": 0.025})
+    cfg = _VIP_CONFIG.get(user.vip_level, {"tasks_per_set": 60, "rate": 0.09})
     total_tasks = int(cfg["tasks_per_set"])
     payload["remaining_tasks"] = max(total_tasks - int(user.tasks_completed_in_set or 0), 0)
     payload["tasks_per_set"] = total_tasks
@@ -236,6 +241,32 @@ def _extract_combo_id(task_code: str) -> int | None:
         return None
 
 
+def _pick_random_product_for_balance(db: Session, balance: float) -> Product | None:
+    if balance <= 0:
+        return None
+
+    eligible_products = db.scalars(
+        select(Product).where(Product.price < balance, Product.status == "Active")
+    ).all()
+    if not eligible_products:
+        return None
+
+    # As balance rises, favor a higher price band while preserving randomness.
+    if balance < 100:
+        floor_ratio = 0.20
+    elif balance < 500:
+        floor_ratio = 0.40
+    elif balance < 1000:
+        floor_ratio = 0.55
+    else:
+        floor_ratio = 0.70
+
+    band_floor = balance * floor_ratio
+    band_candidates = [product for product in eligible_products if float(product.price) >= band_floor]
+    pool = band_candidates if band_candidates else eligible_products
+    return random.choice(pool)
+
+
 def _get_support_chat_url(db: Session) -> str:
     setting = db.get(Setting, "support_chat_url")
     if not setting or not setting.value:
@@ -250,6 +281,53 @@ def _format_task_record(task: UserTask, combo_products: list[dict] | None = None
     record["combo_id"] = combo_id
     record["products"] = combo_products or []
     return record
+
+
+_PLACEHOLDER_PATTERN = re.compile(r"\{[^{}]+\}")
+
+
+def _protect_placeholders(text: str) -> tuple[str, dict[str, str]]:
+    replacements: dict[str, str] = {}
+
+    def repl(match: re.Match[str]) -> str:
+        index = len(replacements)
+        token = f"ZZPH_{index}_ZZ"
+        replacements[token] = match.group(0)
+        return token
+
+    return _PLACEHOLDER_PATTERN.sub(repl, text), replacements
+
+
+def _restore_placeholders(text: str, replacements: dict[str, str]) -> str:
+    restored = text
+    for token, original in replacements.items():
+        restored = restored.replace(token, original)
+    return restored
+
+
+def _batch_translate_texts(texts: list[str], source_language: str, target_language: str) -> list[str]:
+    if not texts or source_language == target_language:
+        return texts
+
+    translated: list[str] = []
+
+    for text in texts:
+        stripped = text.strip()
+        if not stripped:
+            translated.append(text)
+            continue
+
+        protected_text, replacements = _protect_placeholders(text)
+        try:
+            candidate = GoogleTranslator(source=source_language, target=target_language).translate(protected_text)
+            if not isinstance(candidate, str) or not candidate.strip():
+                translated.append(text)
+                continue
+            translated.append(_restore_placeholders(candidate, replacements))
+        except Exception:
+            translated.append(text)
+
+    return translated
 
 
 @router.get("/users")
@@ -657,7 +735,7 @@ def start_task(payload: TaskStartRequest, db: Session = Depends(get_db)):
             },
         )
 
-    cfg = _VIP_CONFIG.get(user.vip_level, {"tasks_per_set": 60, "rate": 0.025})
+    cfg = _VIP_CONFIG.get(user.vip_level, {"tasks_per_set": 60, "rate": 0.09})
     rate = cfg["rate"]
 
     combo = db.scalar(
@@ -720,13 +798,12 @@ def start_task(payload: TaskStartRequest, db: Session = Depends(get_db)):
             "message": "Combo triggered. Submit this task to continue.",
         }
 
-    price_cap = float(user.balance) * 1.5 if user.balance else 100
-    candidate_products = db.scalars(
-        select(Product).where(Product.price <= price_cap, Product.status == "Active")
-    ).all()
-    product = random.choice(candidate_products) if candidate_products else None
+    product = _pick_random_product_for_balance(db, float(user.balance or 0))
     if not product:
-        raise HTTPException(status_code=404, detail="No active products available")
+        raise HTTPException(
+            status_code=400,
+            detail="No active products are available below your current balance.",
+        )
 
     commission = round(float(product.price) * rate, 2)
     task_code = f"TSK-{secrets.token_hex(4).upper()}"
@@ -1200,10 +1277,10 @@ def client_user_overview(user_id: int, db: Session = Depends(get_db)):
 
 
 _VIP_CONFIG = {
-    1: {"tasks_per_set": 40, "rate": 0.005},
-    2: {"tasks_per_set": 45, "rate": 0.010},
-    3: {"tasks_per_set": 50, "rate": 0.015},
-    4: {"tasks_per_set": 55, "rate": 0.020},
+    1: {"tasks_per_set": 40, "rate": 0.09},
+    2: {"tasks_per_set": 45, "rate": 0.09},
+    3: {"tasks_per_set": 50, "rate": 0.09},
+    4: {"tasks_per_set": 55, "rate": 0.09},
 }
 
 
@@ -1261,7 +1338,7 @@ def client_submit_task(user_id: int, body: SubmitTaskRequest, request: Request, 
     if user_task.status not in ["pending", "pending_debited"]:
         raise HTTPException(status_code=400, detail="Task is not pending")
 
-    cfg = _VIP_CONFIG.get(user.vip_level, {"tasks_per_set": 60, "rate": 0.025})
+    cfg = _VIP_CONFIG.get(user.vip_level, {"tasks_per_set": 60, "rate": 0.09})
     tasks_per_set = cfg["tasks_per_set"]
     support_url = _get_support_chat_url(db)
 
@@ -1345,3 +1422,40 @@ def client_task_records(user_id: int, db: Session = Depends(get_db)):
         combo_products = _load_combo_items(db, [combo_id]).get(combo_id, []) if combo_id else []
         result.append(_format_task_record(record, combo_products))
     return result
+
+
+@router.post("/translate", response_model=TranslateBatchResponse)
+def translate_batch(payload: TranslateBatchRequest):
+    texts = payload.texts or []
+    if len(texts) == 0:
+        return TranslateBatchResponse(translated_texts=[], target_language=payload.target_language)
+    if len(texts) > 200:
+        raise HTTPException(status_code=400, detail="A maximum of 200 texts is allowed")
+    if not payload.target_language or not payload.target_language.strip():
+        raise HTTPException(status_code=400, detail="target_language is required")
+
+    normalized_target = payload.target_language.strip().lower()
+    normalized_source = (payload.source_language or "auto").strip().lower() or "auto"
+
+    if normalized_target != "auto" and not re.fullmatch(r"[a-z]{2,3}(?:-[a-z]{2})?", normalized_target):
+        raise HTTPException(status_code=400, detail="Invalid target_language format")
+    if normalized_source != "auto" and not re.fullmatch(r"[a-z]{2,3}(?:-[a-z]{2})?", normalized_source):
+        raise HTTPException(status_code=400, detail="Invalid source_language format")
+
+    safe_texts: list[str] = []
+    for text in texts:
+        coerced = str(text)
+        if len(coerced) > 1000:
+            raise HTTPException(status_code=400, detail="Each text must be 1000 characters or less")
+        safe_texts.append(coerced)
+
+    translated_texts = _batch_translate_texts(
+        texts=safe_texts,
+        source_language=normalized_source,
+        target_language=normalized_target,
+    )
+
+    return TranslateBatchResponse(
+        translated_texts=translated_texts,
+        target_language=normalized_target,
+    )

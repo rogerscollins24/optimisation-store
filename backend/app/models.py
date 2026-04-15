@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from sqlalchemy import Boolean, DateTime, Enum, Float, ForeignKey, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -18,7 +20,7 @@ class User(Base):
     balance: Mapped[float] = mapped_column(Float, default=0)
     commission: Mapped[float] = mapped_column(Float, default=0)
     commission_today: Mapped[float] = mapped_column(Float, default=0)
-    last_commission_reset: Mapped[DateTime | None] = mapped_column(DateTime, nullable=True)
+    last_commission_reset: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     vip_level: Mapped[int] = mapped_column(Integer, default=1)
     invite_code: Mapped[str | None] = mapped_column(String, nullable=True)
     referred_by: Mapped[str | None] = mapped_column(String, nullable=True)
@@ -45,7 +47,7 @@ class User(Base):
         nullable=True,
         index=True,
     )
-    created_at: Mapped[DateTime] = mapped_column(DateTime, server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
     support_tickets = relationship("SupportTicket", back_populates="user", foreign_keys="SupportTicket.user_id")
     assigned_support_tickets = relationship(
@@ -111,7 +113,7 @@ class Combo(Base):
     task_number: Mapped[int] = mapped_column(Integer)
     product_id: Mapped[int] = mapped_column(Integer, ForeignKey("products.id"))
     status: Mapped[str] = mapped_column(String, default="Pending")
-    assigned_at: Mapped[DateTime] = mapped_column(DateTime, server_default=func.now())
+    assigned_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
 
 class ComboItem(Base):
@@ -133,7 +135,7 @@ class Withdrawal(Base):
     method: Mapped[str] = mapped_column(String)
     address: Mapped[str] = mapped_column(String)
     status: Mapped[str] = mapped_column(String, default="Pending")
-    created_at: Mapped[DateTime] = mapped_column(DateTime, server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
 
 class ActivityLog(Base):
@@ -145,7 +147,7 @@ class ActivityLog(Base):
     target: Mapped[str] = mapped_column(String)
     details: Mapped[str] = mapped_column(Text)
     ip: Mapped[str] = mapped_column(String)
-    created_at: Mapped[DateTime] = mapped_column(DateTime, server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
 
 class Setting(Base):
@@ -163,7 +165,7 @@ class Notification(Base):
     message: Mapped[str] = mapped_column(Text)
     status: Mapped[str] = mapped_column(String, default="Active")
     recipients: Mapped[str] = mapped_column(Text, default="all")
-    created_at: Mapped[DateTime] = mapped_column(DateTime, server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
 
 class UserTask(Base):
@@ -179,7 +181,7 @@ class UserTask(Base):
     commission_rate: Mapped[float] = mapped_column(Float)
     task_code: Mapped[str] = mapped_column(String)
     status: Mapped[str] = mapped_column(String, default="completed")
-    created_at: Mapped[DateTime] = mapped_column(DateTime, server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
 
 class SupportTicket(Base):
@@ -194,8 +196,8 @@ class SupportTicket(Base):
     )
     subject: Mapped[str] = mapped_column(String(255))
     status: Mapped[str] = mapped_column(String(32), default=SupportTicketStatus.OPEN.value, index=True)
-    created_at: Mapped[DateTime] = mapped_column(DateTime, server_default=func.now())
-    updated_at: Mapped[DateTime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
 
     user = relationship("User", back_populates="support_tickets", foreign_keys=[user_id])
     assigned_admin = relationship("User", back_populates="assigned_support_tickets", foreign_keys=[assigned_to_admin_id])
@@ -212,7 +214,7 @@ class SupportMessage(Base):
     is_admin_reply: Mapped[bool] = mapped_column(Boolean, default=False)
     read_by_admin: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
     read_by_user: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
-    created_at: Mapped[DateTime] = mapped_column(DateTime, server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
     ticket = relationship("SupportTicket", back_populates="messages")
     sender = relationship("User", back_populates="support_messages")

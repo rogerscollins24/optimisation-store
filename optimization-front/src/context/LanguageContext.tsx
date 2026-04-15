@@ -1,4 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import i18n from 'i18next';
+import { initReactI18next } from 'react-i18next';
+import { normalizeLanguageCode, translateBatch } from '../lib/translationApi';
 
 export type LanguageCode = 'en' | 'fr' | 'es' | 'it' | 'pl' | 'ru' | 'de' | 'nl' | 'tr' | 'pt';
 
@@ -16,6 +19,7 @@ export const languageOptions = [
 ] as const;
 
 const STORAGE_KEY = 'shopping-optimized-language';
+const LOCALE_AUTOFILL_STORAGE_PREFIX = 'locale-autofill-v1:';
 
 const translations: Record<LanguageCode, Record<string, string>> = {
   en: {
@@ -49,6 +53,12 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     enterPassword: 'Enter password',
     login: 'Login',
     signingIn: 'Signing in...',
+    backToHome: 'Back to home',
+    loading: 'Loading...',
+    submit: 'Submit',
+    supportChat: 'Support Chat',
+    balanceIssueSubject: 'Balance issue',
+    balanceIssueMessage: 'Hello Support, I need help with a pending task and insufficient balance. Required deposit: USDT {amount}. Please advise.',
     profile: 'Profile',
     myFinancial: 'My Financial',
     myDetails: 'My Details',
@@ -175,6 +185,27 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     unableToStartTask: 'Unable to start task',
     submitFailed: 'Submit failed',
     unableToSubmitTask: 'Unable to submit task',
+    ticketNumber: 'Ticket #{{id}}',
+    newConversation: 'New conversation',
+    defaultSupportGreeting: 'Hello, I need help.',
+    statusOpen: 'Open',
+    statusClosed: 'Closed',
+    statusPending: 'Pending',
+    statusResolved: 'Resolved',
+    statusInProgress: 'In progress',
+    statusPendingDebited: 'Pending debited',
+    unableToCreateDepositRequest: 'Unable to create the deposit request',
+    unableToLogin: 'Unable to login',
+    brandName: 'Shopping Optimized',
+    depositSupportMessage: 'Hello Support, I would like to make a deposit of {{amount}} USDT.\nUsername: {{username}}\nCurrent balance: {{balance}} USDT. Please share the payment steps.',
+    withdrawSupportMessage: 'Hello Support, I submitted a withdrawal request for {{amount}} USDT.\nUsername: {{username}}\nExchange: {{exchange}}\nWallet: {{wallet}}. Please follow up if anything else is needed.',
+    clientWithdrawalReason: 'client withdrawal',
+    notSet: 'Not set',
+    exchangePlaceholder: 'e.g. Binance, TRC20, ERC20',
+    vipBadge: 'VIP {{level}}',
+    notAvailable: 'N/A',
+    avatarAlt: 'Avatar',
+    productAlt: 'Product',
     faqP1: 'At the core of our philosophy is a strong commitment to you, our esteemed users. We understand that navigating a dynamic platform like ours can create questions and situations that standard FAQs cannot address. That is why our customer service team is always on standby, eager to provide you with personalised help and trusted insights.',
     faqP2: 'We do not just answer your questions, we provide solutions to ensure that your experience with us is seamless, enjoyable, and fulfilling. If you experience any challenge, please contact one of our customer service specialists, available from 10am to 10pm.',
     faqP3: 'Your satisfaction is not only our top priority, it is our passion. Allow us to guide you, support you, and celebrate every step of this remarkable journey with you.',
@@ -210,6 +241,12 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     enterPassword: 'Entrez le mot de passe',
     login: 'Connexion',
     signingIn: 'Connexion...',
+    backToHome: 'Retour a l\'accueil',
+    loading: 'Chargement...',
+    submit: 'Soumettre',
+    supportChat: 'Chat d\'assistance',
+    balanceIssueSubject: 'Probleme de solde',
+    balanceIssueMessage: 'Bonjour Support, j\'ai besoin d\'aide avec une tache en attente et un solde insuffisant. Depot requis : USDT {amount}. Merci de m\'indiquer la suite.',
     faqP1: 'Au cœur de notre philosophie se trouve un engagement fort envers vous, nos utilisateurs estimés. Nous savons qu’une plateforme dynamique comme la nôtre peut susciter des questions que les FAQ classiques ne couvrent pas. C’est pourquoi notre équipe d’assistance est toujours disponible pour vous accompagner.',
     faqP2: 'Nous ne répondons pas seulement à vos questions, nous vous apportons aussi des solutions pour rendre votre expérience simple, agréable et satisfaisante. En cas de difficulté, contactez l’un de nos spécialistes du service client, disponibles de 10h à 22h.',
     faqP3: 'Votre satisfaction n’est pas seulement notre priorité, c’est notre passion. Laissez-nous vous guider, vous soutenir et célébrer chaque étape de votre parcours.',
@@ -245,6 +282,12 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     enterPassword: 'Ingrese la contraseña',
     login: 'Entrar',
     signingIn: 'Entrando...',
+    backToHome: 'Volver al inicio',
+    loading: 'Cargando...',
+    submit: 'Enviar',
+    supportChat: 'Chat de soporte',
+    balanceIssueSubject: 'Problema de saldo',
+    balanceIssueMessage: 'Hola Soporte, necesito ayuda con una tarea pendiente y saldo insuficiente. Deposito requerido: USDT {amount}. Por favor indiquenme como continuar.',
     faqP1: 'En el centro de nuestra filosofía existe un fuerte compromiso con usted, nuestro estimado usuario. Sabemos que una plataforma dinámica como la nuestra puede generar preguntas que las FAQ estándar no siempre resuelven. Por eso, nuestro equipo de atención al cliente siempre está disponible para ayudarle.',
     faqP2: 'No solo respondemos preguntas, también ofrecemos soluciones para que su experiencia sea fluida, agradable y satisfactoria. Si tiene alguna dificultad, contacte con uno de nuestros especialistas, disponibles de 10:00 a 22:00.',
     faqP3: 'Su satisfacción no es solo nuestra prioridad, es nuestra pasión. Permítanos guiarle, apoyarle y celebrar cada paso de este recorrido con usted.',
@@ -280,6 +323,12 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     enterPassword: 'Inserisci la password',
     login: 'Accedi',
     signingIn: 'Accesso in corso...',
+    backToHome: 'Torna alla home',
+    loading: 'Caricamento...',
+    submit: 'Invia',
+    supportChat: 'Chat di supporto',
+    balanceIssueSubject: 'Problema di saldo',
+    balanceIssueMessage: 'Ciao Supporto, ho bisogno di aiuto con un\'attivita in sospeso e saldo insufficiente. Deposito richiesto: USDT {amount}. Per favore indicatemi come procedere.',
     faqP1: 'Al centro della nostra filosofia c’è un forte impegno verso di voi, i nostri stimati utenti. Sappiamo che una piattaforma dinamica come la nostra può generare domande che le FAQ standard non sempre coprono. Per questo il nostro team di assistenza è sempre pronto ad aiutarti.',
     faqP2: 'Non ci limitiamo a rispondere alle tue domande, ma forniamo soluzioni per rendere la tua esperienza semplice, piacevole e soddisfacente. Se incontri un problema, contatta uno dei nostri specialisti disponibili dalle 10 alle 22.',
     faqP3: 'La tua soddisfazione non è solo la nostra priorità, è la nostra passione. Lascia che ti guidiamo, ti supportiamo e celebriamo ogni passo del tuo percorso.',
@@ -315,6 +364,12 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     enterPassword: 'Wpisz hasło',
     login: 'Zaloguj się',
     signingIn: 'Logowanie...',
+    backToHome: 'Powrot do strony glownej',
+    loading: 'Ladowanie...',
+    submit: 'Wyslij',
+    supportChat: 'Czat wsparcia',
+    balanceIssueSubject: 'Problem z saldem',
+    balanceIssueMessage: 'Witaj Pomoc, potrzebuje pomocy z oczekujacym zadaniem i niewystarczajacym saldem. Wymagany depozyt: USDT {amount}. Prosze o dalsze wskazowki.',
     faqP1: 'W centrum naszej filozofii znajduje się silne zaangażowanie wobec naszych użytkowników. Rozumiemy, że dynamiczna platforma taka jak nasza może rodzić pytania, których standardowe FAQ nie obejmują. Dlatego nasz zespół obsługi klienta jest zawsze gotowy do pomocy.',
     faqP2: 'Nie tylko odpowiadamy na pytania, ale także dostarczamy rozwiązania, aby Twoje doświadczenie było płynne i satysfakcjonujące. Jeśli napotkasz problem, skontaktuj się z jednym z naszych specjalistów dostępnych od 10:00 do 22:00.',
     faqP3: 'Twoja satysfakcja jest nie tylko naszym priorytetem, ale także naszą pasją. Pozwól nam Cię prowadzić i wspierać na każdym etapie tej podróży.',
@@ -350,6 +405,12 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     enterPassword: 'Введите пароль',
     login: 'Войти',
     signingIn: 'Вход...',
+    backToHome: 'Назад на главную',
+    loading: 'Загрузка...',
+    submit: 'Отправить',
+    supportChat: 'Чат поддержки',
+    balanceIssueSubject: 'Проблема с балансом',
+    balanceIssueMessage: 'Здравствуйте, поддержка. Мне нужна помощь: есть ожидающая задача и недостаточный баланс. Требуемый депозит: USDT {amount}. Подскажите, пожалуйста, что делать дальше.',
     faqP1: 'В основе нашей философии лежит сильная приверженность вам, нашим уважаемым пользователям. Мы понимаем, что динамичная платформа, подобная нашей, может вызывать вопросы, на которые не всегда отвечают стандартные FAQ. Поэтому наша служба поддержки всегда готова помочь.',
     faqP2: 'Мы не просто отвечаем на вопросы, мы предлагаем решения, чтобы ваш опыт был удобным и приятным. Если у вас возникли трудности, свяжитесь с нашими специалистами службы поддержки, доступными с 10:00 до 22:00.',
     faqP3: 'Ваше удовлетворение — не только наш приоритет, но и наша страсть. Позвольте нам сопровождать и поддерживать вас на каждом этапе этого пути.',
@@ -385,6 +446,12 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     enterPassword: 'Passwort eingeben',
     login: 'Anmelden',
     signingIn: 'Anmeldung läuft...',
+    backToHome: 'Zuruck zur Startseite',
+    loading: 'Wird geladen...',
+    submit: 'Senden',
+    supportChat: 'Support-Chat',
+    balanceIssueSubject: 'Kontostandproblem',
+    balanceIssueMessage: 'Hallo Support, ich brauche Hilfe bei einer ausstehenden Aufgabe und unzureichendem Guthaben. Erforderliche Einzahlung: USDT {amount}. Bitte teilen Sie mir die nachsten Schritte mit.',
     faqP1: 'Im Mittelpunkt unserer Philosophie steht ein starkes Engagement für Sie, unsere geschätzten Nutzer. Wir wissen, dass eine dynamische Plattform wie unsere Fragen aufwerfen kann, die Standard-FAQ nicht immer beantworten. Deshalb steht unser Kundendienstteam jederzeit bereit.',
     faqP2: 'Wir beantworten nicht nur Fragen, sondern bieten auch Lösungen, damit Ihre Erfahrung reibungslos und angenehm bleibt. Wenn Sie ein Problem haben, wenden Sie sich bitte an einen unserer Kundendienstspezialisten, die von 10 bis 22 Uhr erreichbar sind.',
     faqP3: 'Ihre Zufriedenheit ist nicht nur unsere Priorität, sondern unsere Leidenschaft. Lassen Sie uns Sie begleiten, unterstützen und jeden Schritt Ihrer Reise mit Ihnen feiern.',
@@ -420,6 +487,12 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     enterPassword: 'Voer wachtwoord in',
     login: 'Inloggen',
     signingIn: 'Bezig met inloggen...',
+    backToHome: 'Terug naar home',
+    loading: 'Laden...',
+    submit: 'Verzenden',
+    supportChat: 'Supportchat',
+    balanceIssueSubject: 'Saldo probleem',
+    balanceIssueMessage: 'Hallo Support, ik heb hulp nodig met een openstaande taak en onvoldoende saldo. Vereiste storting: USDT {amount}. Laat me weten wat de volgende stappen zijn.',
     faqP1: 'De kern van onze filosofie is een sterke toewijding aan u, onze gewaardeerde gebruikers. We begrijpen dat een dynamisch platform zoals het onze vragen kan oproepen die standaard FAQ’s niet altijd beantwoorden. Daarom staat ons klantenserviceteam altijd klaar om te helpen.',
     faqP2: 'We beantwoorden niet alleen vragen, maar bieden ook oplossingen zodat uw ervaring soepel en plezierig blijft. Als u een uitdaging ervaart, neem dan contact op met een van onze specialisten, beschikbaar van 10.00 tot 22.00 uur.',
     faqP3: 'Uw tevredenheid is niet alleen onze topprioriteit, maar ook onze passie. Laat ons u begeleiden, ondersteunen en elke stap van uw reis met u vieren.',
@@ -455,6 +528,12 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     enterPassword: 'Şifreyi girin',
     login: 'Giriş yap',
     signingIn: 'Giriş yapılıyor...',
+    backToHome: 'Ana sayfaya don',
+    loading: 'Yukleniyor...',
+    submit: 'Gonder',
+    supportChat: 'Destek sohbeti',
+    balanceIssueSubject: 'Bakiye sorunu',
+    balanceIssueMessage: 'Merhaba Destek, bekleyen bir gorev ve yetersiz bakiye konusunda yardima ihtiyacim var. Gerekli yatirim: USDT {amount}. Lutfen sonraki adimlari paylasin.',
     faqP1: 'Felsefemizin merkezinde size, değerli kullanıcılarımıza, güçlü bir bağlılık yer alır. Bizim gibi dinamik bir platformun standart SSS’lerin cevaplayamadığı sorular doğurabileceğini biliyoruz. Bu nedenle müşteri hizmetleri ekibimiz her zaman yardıma hazırdır.',
     faqP2: 'Sadece sorularınızı yanıtlamakla kalmıyor, aynı zamanda deneyiminizin sorunsuz ve keyifli olması için çözümler sunuyoruz. Bir sorun yaşarsanız, 10:00 ile 22:00 arasında hizmet veren uzmanlarımızla iletişime geçin.',
     faqP3: 'Memnuniyetiniz sadece önceliğimiz değil, aynı zamanda tutkumuzdur. Bu yolculuğun her adımında size rehberlik etmemize ve destek olmamıza izin verin.',
@@ -490,11 +569,100 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     enterPassword: 'Introduza a palavra-passe',
     login: 'Entrar',
     signingIn: 'A entrar...',
+    backToHome: 'Voltar ao inicio',
+    loading: 'A carregar...',
+    submit: 'Enviar',
+    supportChat: 'Chat de suporte',
+    balanceIssueSubject: 'Problema de saldo',
+    balanceIssueMessage: 'Ola Suporte, preciso de ajuda com uma tarefa pendente e saldo insuficiente. Deposito necessario: USDT {amount}. Por favor indiquem os proximos passos.',
     faqP1: 'No centro da nossa filosofia está um forte compromisso consigo, nosso estimado utilizador. Sabemos que uma plataforma dinâmica como a nossa pode gerar perguntas que as FAQs padrão nem sempre resolvem. Por isso, a nossa equipa de apoio ao cliente está sempre pronta para ajudar.',
     faqP2: 'Não respondemos apenas às suas perguntas, também oferecemos soluções para garantir que a sua experiência seja simples, agradável e satisfatória. Se tiver algum desafio, contacte um dos nossos especialistas disponíveis das 10h às 22h.',
     faqP3: 'A sua satisfação não é apenas a nossa prioridade, é a nossa paixão. Permita-nos orientá-lo, apoiá-lo e celebrar cada passo desta jornada consigo.',
   },
 };
+
+if (!i18n.isInitialized) {
+  const resources = Object.fromEntries(
+    Object.entries(translations).map(([code, values]) => [code, { translation: values }]),
+  );
+
+  const savedLanguage = localStorage.getItem(STORAGE_KEY);
+  const fallbackLanguage: LanguageCode = 'en';
+  const initialLanguage =
+    savedLanguage && languageOptions.some((item) => item.code === savedLanguage)
+      ? (savedLanguage as LanguageCode)
+      : fallbackLanguage;
+
+  i18n.use(initReactI18next).init({
+    resources,
+    lng: initialLanguage,
+    fallbackLng: fallbackLanguage,
+    interpolation: {
+      escapeValue: false,
+    },
+  });
+}
+
+function getAutofillStorageKey(language: LanguageCode): string {
+  return `${LOCALE_AUTOFILL_STORAGE_PREFIX}${language}`;
+}
+
+function loadAutofill(language: LanguageCode): Record<string, string> {
+  try {
+    const raw = localStorage.getItem(getAutofillStorageKey(language));
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as Record<string, string>;
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveAutofill(language: LanguageCode, values: Record<string, string>) {
+  try {
+    localStorage.setItem(getAutofillStorageKey(language), JSON.stringify(values));
+  } catch {
+    // Ignore localStorage failures.
+  }
+}
+
+async function ensureLocaleCoverage(language: LanguageCode) {
+  if (language === 'en') return;
+
+  const englishEntries = translations.en;
+  const existingAutofill = loadAutofill(language);
+
+  for (const [key, value] of Object.entries(existingAutofill)) {
+    i18n.addResource(language, 'translation', key, value, { silent: true });
+  }
+
+  const missingKeys = Object.keys(englishEntries).filter((key) => {
+    const localizedValue = i18n.getResource(language, 'translation', key);
+    return typeof localizedValue !== 'string' || !localizedValue.trim();
+  });
+
+  if (missingKeys.length === 0) return;
+
+  const sourceTexts = missingKeys.map((key) => englishEntries[key]);
+  const targetLanguage = normalizeLanguageCode(language);
+
+  try {
+    const translated = await translateBatch(sourceTexts, targetLanguage, 'en');
+    const nextAutofill = { ...existingAutofill };
+
+    missingKeys.forEach((key, index) => {
+      const translatedValue = translated[index] || englishEntries[key];
+      i18n.addResource(language, 'translation', key, translatedValue, { silent: true });
+      nextAutofill[key] = translatedValue;
+    });
+
+    saveAutofill(language, nextAutofill);
+  } catch {
+    missingKeys.forEach((key) => {
+      i18n.addResource(language, 'translation', key, englishEntries[key], { silent: true });
+    });
+  }
+}
 
 type LanguageContextValue = {
   language: LanguageCode;
@@ -506,28 +674,41 @@ type LanguageContextValue = {
 const LanguageContext = createContext<LanguageContextValue | undefined>(undefined);
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
-  const [language, setLanguageState] = useState<LanguageCode>('en');
+  const [language, setLanguageState] = useState<LanguageCode>(() => {
+    const resolved = i18n.resolvedLanguage || i18n.language || 'en';
+    return (languageOptions.some((item) => item.code === resolved) ? resolved : 'en') as LanguageCode;
+  });
 
   useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY) as LanguageCode | null;
-    if (saved && languageOptions.some((item) => item.code === saved)) {
-      setLanguageState(saved);
-    }
+    const onLanguageChanged = (nextLanguage: string) => {
+      if (!languageOptions.some((item) => item.code === nextLanguage)) {
+        return;
+      }
+
+      const typedLanguage = nextLanguage as LanguageCode;
+      setLanguageState(typedLanguage);
+      localStorage.setItem(STORAGE_KEY, typedLanguage);
+    };
+
+    i18n.on('languageChanged', onLanguageChanged);
+    return () => {
+      i18n.off('languageChanged', onLanguageChanged);
+    };
   }, []);
 
+  useEffect(() => {
+    void ensureLocaleCoverage(language);
+  }, [language]);
+
   const setLanguage = (nextLanguage: LanguageCode) => {
-    setLanguageState(nextLanguage);
-    localStorage.setItem(STORAGE_KEY, nextLanguage);
+    if (!languageOptions.some((item) => item.code === nextLanguage)) {
+      return;
+    }
+    void i18n.changeLanguage(nextLanguage);
   };
 
   const t = (key: string, vars?: Record<string, string | number>) => {
-    let value = translations[language][key] ?? translations.en[key] ?? key;
-    if (vars) {
-      Object.entries(vars).forEach(([name, replacement]) => {
-        value = value.replace(new RegExp(`\\{${name}\\}`, 'g'), String(replacement));
-      });
-    }
-    return value;
+    return String(i18n.t(key, vars as Record<string, string> | undefined));
   };
 
   const value = useMemo(

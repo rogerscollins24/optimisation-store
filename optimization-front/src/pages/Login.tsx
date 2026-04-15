@@ -1,13 +1,13 @@
 import { FormEvent, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
-import { useLanguage } from '../context/LanguageContext';
 import { BrandHomeIcon } from '../components/BrandIcons';
 
 export default function Login() {
   const navigate = useNavigate();
   const { login } = useAuth();
-  const { t } = useLanguage();
+  const { t } = useTranslation();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -22,7 +22,7 @@ export default function Login() {
       await login(username, password);
       navigate('/');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unable to login');
+      setError(err instanceof Error ? err.message : t('unableToLogin'));
     } finally {
       setSubmitting(false);
     }
@@ -36,7 +36,7 @@ export default function Login() {
             <div className="mb-6 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-white/20 text-2xl font-bold">
               <BrandHomeIcon size={28} className="text-white" />
             </div>
-            <h1 className="text-4xl font-bold leading-tight">Shopping Optimized</h1>
+            <h1 className="text-4xl font-bold leading-tight">{t('brandName')}</h1>
             <p className="mt-3 text-sm text-blue-100">{t('loginTagline')}</p>
           </div>
           <p className="text-sm text-blue-100">{t('signInContinue')}</p>
@@ -47,7 +47,7 @@ export default function Login() {
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-600 text-2xl font-bold text-white shadow-lg lg:mx-0 lg:hidden">
               <BrandHomeIcon size={30} className="text-white" />
             </div>
-            <h2 className="text-3xl font-bold leading-tight text-slate-900">Shopping Optimized</h2>
+            <h2 className="text-3xl font-bold leading-tight text-slate-900">{t('brandName')}</h2>
             <p className="mt-2 text-sm text-slate-500">{t('loginPrompt')}</p>
           </div>
 

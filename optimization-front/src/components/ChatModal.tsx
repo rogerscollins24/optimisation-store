@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { MessageCircle, Send, X } from 'lucide-react';
 import SupportSocket from '../lib/socket';
-import { useLanguage } from '../context/LanguageContext';
+import { useTranslation } from 'react-i18next';
+import { useDynamicTranslations } from '../hooks/useDynamicTranslations';
 import {
   createSupportTicket,
   listSupportTickets,
@@ -21,7 +22,7 @@ type ChatModalProps = {
 
 export default function ChatModal({ token, presetMessage, presetSubject, openSignal }: ChatModalProps) {
   const { supportUnreadCount, refreshBadges } = useAuth();
-  const { t } = useLanguage();
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [ticket, setTicket] = useState<SupportTicket | null>(null);
   const [messages, setMessages] = useState<SupportMessage[]>([]);
@@ -30,6 +31,19 @@ export default function ChatModal({ token, presetMessage, presetSubject, openSig
   const [loading, setLoading] = useState(false);
   const [showNewTicket, setShowNewTicket] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
+
+  const dynamicTexts = useMemo(() => {
+    const texts: string[] = [];
+    if (ticket?.subject) texts.push(ticket.subject);
+    if (ticket?.status) texts.push(String(ticket.status).replace(/_/g, ' '));
+    messages.forEach((msg) => {
+      const content = String(msg.content || '').trim();
+      if (content) texts.push(content);
+    });
+    return texts;
+  }, [messages, ticket?.status, ticket?.subject]);
+
+  const { translateText } = useDynamicTranslations(dynamicTexts);
 
   const socketRef = useRef<SupportSocket | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
@@ -104,7 +118,7 @@ export default function ChatModal({ token, presetMessage, presetSubject, openSig
     if (!token || !subject.trim()) return;
     setLoading(true);
     try {
-      const nextTicket = await createSupportTicket(token, subject.trim(), draft.trim() || 'Hello, I need help.');
+      const nextTicket = await createSupportTicket(token, subject.trim(), draft.trim() || t('defaultSupportGreeting'));
       setTicket(nextTicket);
       setMessages(nextTicket.messages ?? []);
       setShowNewTicket(false);
@@ -140,8 +154,8 @@ export default function ChatModal({ token, presetMessage, presetSubject, openSig
         <div className="w-[360px] h-[560px] rounded-2xl overflow-hidden shadow-2xl border border-gray-200 bg-white flex flex-col">
           <div className="bg-gradient-to-r from-cyan-500 to-teal-500 text-white px-5 py-4 flex items-center justify-between">
             <div>
-              <p className="text-2xl font-bold leading-none">{t('support')} Chat</p>
-              <p className="text-cyan-100 mt-1 text-sm">{ticket?.status?.replace('_', ' ') || t('newChat')}</p>
+              <p className="text-2xl font-bold leading-none">{t('supportChat')}</p>
+              <p className="text-cyan-100 mt-1 text-sm">{ticket?.status ? translateText(String(ticket.status).replace(/_/g, ' ')) : t('newChat')}</p>
             </div>
             <div className="flex items-center gap-2">
               <button
@@ -187,7 +201,7 @@ export default function ChatModal({ token, presetMessage, presetSubject, openSig
                 {messages.map((msg) => (
                   <div key={msg.id} className={`flex ${msg.is_admin_reply ? 'justify-start' : 'justify-end'}`}>
                     <div className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm ${msg.is_admin_reply ? 'bg-white text-slate-700 border border-slate-200' : 'bg-cyan-500 text-white'}`}>
-                      <p>{msg.content}</p>
+                      <p>{translateText(msg.content)}</p>
                       <p className={`text-[11px] mt-1 ${msg.is_admin_reply ? 'text-slate-400' : 'text-cyan-100'}`}>
                         {new Date(msg.created_at).toLocaleTimeString()}
                       </p>

@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import { ChevronLeft, Loader2, Lock } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
-import { useLanguage } from '../context/LanguageContext';
 import { createSupportTicket } from '../lib/supportApi';
 
 export default function Withdraw() {
   const navigate = useNavigate();
   const { user, refreshUser } = useAuth();
-  const { t } = useLanguage();
+  const { t } = useTranslation();
   const [amount, setAmount] = useState('');
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -39,12 +39,12 @@ export default function Withdraw() {
       const response = await fetch(`/api/users/${user?.id}/balance`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: numAmount, type: 'subtract', reason: 'client withdrawal' }),
+        body: JSON.stringify({ amount: numAmount, type: 'subtract', reason: t('clientWithdrawalReason') }),
       });
 
       if (!response.ok) {
-        const error = await response.json().catch(() => ({ detail: 'Withdrawal failed' }));
-        alert(error.detail || 'Withdrawal failed');
+        const error = await response.json().catch(() => ({ detail: t('withdrawalFailed') }));
+        alert(error.detail || t('withdrawalFailed'));
         return;
       }
 
@@ -55,7 +55,12 @@ export default function Withdraw() {
         const ticket = await createSupportTicket(
           user.access_token,
           t('withdrawalRequestSubject'),
-          `Hello Support, I submitted a withdrawal request for ${numAmount.toFixed(2)} USDT.\nUsername: ${user.username}\nExchange: ${user.exchange || 'Not set'}\nWallet: ${user.wallet_address || 'Not set'}. Please follow up if anything else is needed.`,
+          t('withdrawSupportMessage', {
+            amount: numAmount.toFixed(2),
+            username: user.username,
+            exchange: user.exchange || t('notSet'),
+            wallet: user.wallet_address || t('notSet'),
+          }),
         );
         ticketId = ticket.id;
       }
@@ -66,7 +71,7 @@ export default function Withdraw() {
         navigate('/profile');
       }
     } catch (error) {
-      alert(error instanceof Error ? error.message : 'Withdrawal failed');
+      alert(error instanceof Error ? error.message : t('withdrawalFailed'));
     } finally {
       setSubmitting(false);
     }

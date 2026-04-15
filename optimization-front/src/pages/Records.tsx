@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ChevronLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
-import { useLanguage } from '../context/LanguageContext';
+import { useDynamicTranslations } from '../hooks/useDynamicTranslations';
 import { useUser, Task } from '../store';
 
 export default function Records() {
   const { user } = useAuth();
-  const { t } = useLanguage();
+  const { t } = useTranslation();
   const { records, setRecords } = useUser();
   const [activeTab, setActiveTab] = useState<'all' | 'pending' | 'completed'>('all');
 
@@ -49,6 +50,20 @@ export default function Records() {
       return record.status === 'completed';
     });
   }, [activeTab, records]);
+
+  const dynamicTexts = useMemo(() => {
+    const texts: string[] = [];
+    records.forEach((record) => {
+      if (record.title) texts.push(record.title);
+      record.products?.forEach((item) => {
+        const name = String(item.product_name || '').trim();
+        if (name) texts.push(name);
+      });
+    });
+    return texts;
+  }, [records]);
+
+  const { translateText } = useDynamicTranslations(dynamicTexts);
 
   return (
     <div className="flex min-h-full flex-col bg-gray-50 pb-6">
@@ -94,9 +109,9 @@ export default function Records() {
               </div>
 
               <div className="flex gap-4 mb-4">
-                <img src={record.image} alt={record.title} className="w-16 h-16 object-cover rounded-lg bg-gray-100" />
+                <img src={record.image} alt={translateText(record.title)} className="w-16 h-16 object-cover rounded-lg bg-gray-100" />
                 <div className="flex-1">
-                  <h3 className="text-sm font-medium text-gray-800 line-clamp-2 mb-1">{record.title}</h3>
+                  <h3 className="text-sm font-medium text-gray-800 line-clamp-2 mb-1">{translateText(record.title)}</h3>
                   <p className="text-xs text-gray-500">{new Date(record.createdAt).toLocaleString()}</p>
                   {record.status === 'pending_debited' && (
                     <p className="text-xs text-rose-600 mt-1">{t('balanceNegativeContinue')}</p>
@@ -108,7 +123,7 @@ export default function Records() {
                 <div className="mb-3 space-y-1">
                   {record.products.map((item) => (
                     <div key={`${record.id}-${item.product_id}`} className="flex justify-between text-xs text-gray-600 bg-blue-50 px-2 py-1 rounded">
-                      <span>{item.product_name}</span>
+                      <span>{translateText(item.product_name)}</span>
                       <span>USDT {Number(item.price).toFixed(2)}</span>
                     </div>
                   ))}

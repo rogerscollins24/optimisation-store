@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { ChevronLeft, Loader2 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
-import { useLanguage } from '../context/LanguageContext';
 
 export default function PersonalInformation() {
   const navigate = useNavigate();
   const { user, refreshUser } = useAuth();
-  const { t } = useLanguage();
+  const { t } = useTranslation();
   const [email, setEmail] = useState(user?.email ?? '');
   const [phone, setPhone] = useState(user?.phone ?? '');
   const [gender, setGender] = useState(user?.gender ?? '');

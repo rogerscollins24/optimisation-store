@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { MessageSquarePlus, SendHorizonal, Sparkles } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
-import { useLanguage } from '../context/LanguageContext';
+import { useDynamicTranslations } from '../hooks/useDynamicTranslations';
 import SupportSocket from '../lib/socket';
 import {
   createSupportTicket,
@@ -14,15 +15,19 @@ import {
   type SupportTicket,
 } from '../lib/supportApi';
 
-const getTicketTitle = (ticket?: Partial<SupportTicket> | null) => {
+const getTicketTitle = (
+  ticket: Partial<SupportTicket> | null | undefined,
+  ticketNumberTemplate: string,
+  newConversationTitle: string,
+) => {
   const subject = String(ticket?.subject ?? '').trim();
   if (!subject || /^null+$/i.test(subject)) {
-    return ticket?.id ? `Ticket #${ticket.id}` : 'New conversation';
+    return ticket?.id ? ticketNumberTemplate.replace('{{id}}', String(ticket.id)) : newConversationTitle;
   }
   return subject;
 };
 
-const getStatusLabel = (status?: string) => {
+const normalizeStatus = (status?: string) => {
   const normalized = String(status ?? 'open').replace(/_/g, ' ').trim();
   return normalized.charAt(0).toUpperCase() + normalized.slice(1);
 };
@@ -30,7 +35,7 @@ const getStatusLabel = (status?: string) => {
 export default function Support() {
   const location = useLocation();
   const { user, refreshBadges } = useAuth();
-  const { t } = useLanguage();
+  const { t } = useTranslation();
   const token = user?.access_token ?? null;
 
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
@@ -52,6 +57,53 @@ export default function Support() {
   }, [location.search]);
 
   const activeTicket = useMemo(() => tickets.find((item) => item.id === activeId) ?? null, [tickets, activeId]);
+  const ticketNumberTemplate = t('ticketNumber', { id: '{{id}}' });
+  const unknownConversationTitle = t('newConversation');
+
+  const dynamicTexts = useMemo(() => {
+    const texts: string[] = [];
+
+    tickets.forEach((ticket) => {
+      const subject = String(ticket.subject ?? '').trim();
+      if (subject) texts.push(subject);
+      texts.push(normalizeStatus(ticket.status));
+      ticket.messages?.forEach((msg) => {
+        const content = String(msg.content ?? '').trim();
+        if (content) texts.push(content);
+      });
+    });
+
+    messages.forEach((msg) => {
+      const content = String(msg.content ?? '').trim();
+      if (content) texts.push(content);
+    });
+
+    return texts;
+  }, [messages, tickets]);
+
+  const { translateText } = useDynamicTranslations(dynamicTexts);
+
+  const getStatusLabel = (status?: string) => {
+    const normalized = String(status ?? 'open').toLowerCase().trim();
+    const statusKey =
+      normalized === 'open'
+        ? 'statusOpen'
+        : normalized === 'closed'
+          ? 'statusClosed'
+          : normalized === 'pending'
+            ? 'statusPending'
+            : normalized === 'resolved'
+              ? 'statusResolved'
+              : normalized === 'in_progress'
+                ? 'statusInProgress'
+                : normalized === 'pending_debited'
+                  ? 'statusPendingDebited'
+                  : '';
+    if (statusKey) {
+      return t(statusKey);
+    }
+    return translateText(normalizeStatus(status));
+  };
 
   useEffect(() => {
     if (!token) return;
@@ -138,7 +190,7 @@ export default function Support() {
 
   const handleCreateChat = async () => {
     if (!token || !newSubject.trim()) return;
-    const ticket = await createSupportTicket(token, newSubject.trim(), newMessage.trim() || 'Hello, I need help.');
+    const ticket = await createSupportTicket(token, newSubject.trim(), newMessage.trim() || t('defaultSupportGreeting'));
     setTickets((prev) => [ticket, ...prev]);
     setActiveId(ticket.id);
     setMessages(ticket.messages ?? []);
@@ -194,9 +246,9 @@ export default function Support() {
                       : 'border-slate-200 bg-white/80 hover:border-slate-300 hover:bg-white'
                   }`}
                 >
-                  <p className="truncate text-sm font-semibold text-slate-800">{getTicketTitle(ticket)}</p>
+                  <p className="truncate text-sm font-semibold text-slate-800">{translateText(getTicketTitle(ticket, ticketNumberTemplate, unknownConversationTitle))}</p>
                   <div className="mt-1 flex items-center justify-between text-xs text-slate-500">
-                    <span>Ticket #{ticket.id}</span>
+                    <span>{t('ticketNumber', { id: ticket.id })}</span>
                     <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600">
                       {getStatusLabel(ticket.status)}
                     </span>
@@ -211,7 +263,7 @@ export default function Support() {
           <div className="mb-4 rounded-[24px] bg-gradient-to-r from-[#3f629d] via-[#7090c1] to-[#9fb4d6] px-4 py-3 text-white shadow-lg">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-lg font-bold">{showNewChat ? t('startNewChat') : getTicketTitle(activeTicket)}</p>
+                <p className="text-lg font-bold">{showNewChat ? t('startNewChat') : translateText(getTicketTitle(activeTicket, ticketNumberTemplate, unknownConversationTitle))}</p>
                 <p className="text-xs text-blue-100">{showNewChat ? t('writeIssueAndSupportWillReply') : getStatusLabel(activeTicket?.status)}</p>
               </div>
               <span className="inline-flex items-center gap-1 rounded-full bg-white/15 px-3 py-1 text-[11px] font-semibold tracking-wide text-white/95">
@@ -281,7 +333,7 @@ export default function Support() {
                             : 'bg-[#173f99] text-white'
                         }`}
                       >
-                        <p>{msg.content}</p>
+                        <p>{translateText(msg.content)}</p>
                         <p className={`mt-1 text-[11px] ${msg.is_admin_reply ? 'text-slate-400' : 'text-blue-100'}`}>
                           {new Date(msg.created_at).toLocaleString()}
                         </p>
