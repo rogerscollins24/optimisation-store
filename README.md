@@ -64,6 +64,8 @@ If the default frontend ports are busy, Vite automatically selects the next free
 - Added client signup flow (`email` + `password`) with optional referral code and math captcha.
 - Added authenticated routing and user refresh endpoints.
 - Wired Starting screen to task start + submit lifecycle with pending-task resume behavior.
+- Fixed localized welcome greeting interpolation so signed-in usernames render correctly (no literal `{name}` placeholder).
+- Added a global in-app warning banner for non-activated accounts across authenticated pages: `account not activated contact support`.
 - Reworked the Starting screen for desktop and mobile with a full-width responsive shell.
 - Starting screen now renders a centered fixed 3x3 product grid with the Start action in the middle.
 - Added a short 3–6 second reveal/spin delay before the selected product task appears.

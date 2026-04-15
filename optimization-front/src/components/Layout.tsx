@@ -4,6 +4,7 @@ import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { useTranslation } from 'react-i18next';
 import { BrandHomeIcon, ShipWheelIcon } from './BrandIcons';
+import { useAuth } from '../context/AuthContext';
 
 export function cn(...inputs: (string | undefined | null | false)[]) {
   return twMerge(clsx(inputs));
@@ -11,11 +12,18 @@ export function cn(...inputs: (string | undefined | null | false)[]) {
 
 export default function Layout() {
   const { t } = useTranslation();
+  const { user } = useAuth();
+  const isActivated = user?.status === 'Active';
 
   return (
     <div className="flex min-h-screen flex-col bg-gradient-to-br from-gray-50 to-slate-100">
       <div className="flex-1 overflow-y-auto pb-24">
         <div className="mx-auto w-full max-w-7xl px-4 py-4 md:px-8 md:py-6">
+          {!isActivated && (
+            <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
+              account not activated contact support
+            </div>
+          )}
           <Outlet />
         </div>
       </div>

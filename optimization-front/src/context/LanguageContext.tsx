@@ -24,7 +24,7 @@ const LOCALE_AUTOFILL_STORAGE_PREFIX = 'locale-autofill-v1:';
 const translations: Record<LanguageCode, Record<string, string>> = {
   en: {
     guest: 'Guest',
-    welcomeBack: '👋 Welcome back, {name}!',
+    welcomeBack: '👋 Welcome back, {{name}}!',
     menu: 'Menu',
     list: 'List',
     service: 'Service',
@@ -212,7 +212,7 @@ const translations: Record<LanguageCode, Record<string, string>> = {
   },
   fr: {
     guest: 'Invité',
-    welcomeBack: '👋 Bon retour, {name} !',
+    welcomeBack: '👋 Bon retour, {{name}} !',
     menu: 'Menu',
     list: 'Liste',
     service: 'Service',
@@ -253,7 +253,7 @@ const translations: Record<LanguageCode, Record<string, string>> = {
   },
   es: {
     guest: 'Invitado',
-    welcomeBack: '👋 ¡Bienvenido de nuevo, {name}!',
+    welcomeBack: '👋 ¡Bienvenido de nuevo, {{name}}!',
     menu: 'Menú',
     list: 'Lista',
     service: 'Servicio',
@@ -294,7 +294,7 @@ const translations: Record<LanguageCode, Record<string, string>> = {
   },
   it: {
     guest: 'Ospite',
-    welcomeBack: '👋 Bentornato, {name}!',
+    welcomeBack: '👋 Bentornato, {{name}}!',
     menu: 'Menu',
     list: 'Elenco',
     service: 'Servizio',
@@ -335,7 +335,7 @@ const translations: Record<LanguageCode, Record<string, string>> = {
   },
   pl: {
     guest: 'Gość',
-    welcomeBack: '👋 Witaj ponownie, {name}!',
+    welcomeBack: '👋 Witaj ponownie, {{name}}!',
     menu: 'Menu',
     list: 'Lista',
     service: 'Serwis',
@@ -376,7 +376,7 @@ const translations: Record<LanguageCode, Record<string, string>> = {
   },
   ru: {
     guest: 'Гость',
-    welcomeBack: '👋 С возвращением, {name}!',
+    welcomeBack: '👋 С возвращением, {{name}}!',
     menu: 'Меню',
     list: 'Список',
     service: 'Сервис',
@@ -417,7 +417,7 @@ const translations: Record<LanguageCode, Record<string, string>> = {
   },
   de: {
     guest: 'Gast',
-    welcomeBack: '👋 Willkommen zurück, {name}!',
+    welcomeBack: '👋 Willkommen zurück, {{name}}!',
     menu: 'Menü',
     list: 'Liste',
     service: 'Service',
@@ -458,7 +458,7 @@ const translations: Record<LanguageCode, Record<string, string>> = {
   },
   nl: {
     guest: 'Gast',
-    welcomeBack: '👋 Welkom terug, {name}!',
+    welcomeBack: '👋 Welkom terug, {{name}}!',
     menu: 'Menu',
     list: 'Lijst',
     service: 'Service',
@@ -499,7 +499,7 @@ const translations: Record<LanguageCode, Record<string, string>> = {
   },
   tr: {
     guest: 'Misafir',
-    welcomeBack: '👋 Tekrar hoş geldin, {name}!',
+    welcomeBack: '👋 Tekrar hoş geldin, {{name}}!',
     menu: 'Menü',
     list: 'Liste',
     service: 'Servis',
@@ -540,7 +540,7 @@ const translations: Record<LanguageCode, Record<string, string>> = {
   },
   pt: {
     guest: 'Convidado',
-    welcomeBack: '👋 Bem-vindo de volta, {name}!',
+    welcomeBack: '👋 Bem-vindo de volta, {{name}}!',
     menu: 'Menu',
     list: 'Lista',
     service: 'Serviço',
