@@ -35,6 +35,7 @@ from .schemas import (
     TrainingAccountCreateRequest,
     TranslateBatchRequest,
     TranslateBatchResponse,
+    VIPLevelConfigUpdateRequest,
     UserCreateRequest,
     UserUpdateRequest,
 )
@@ -47,6 +48,13 @@ PRODUCT_UPLOADS_DIR = BASE_DIR / "uploads" / "products"
 MAX_PRODUCT_IMAGE_SIZE = 5 * 1024 * 1024
 ALLOWED_PRODUCT_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".gif"}
 ALLOWED_PRODUCT_IMAGE_MIME_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
+VIP_LEVELS = (1, 2, 3, 4)
+DEFAULT_VIP_CONFIG: dict[int, dict[str, float]] = {
+    1: {"tasks_per_set": 40, "commission_rate": 2.0, "combo_rate": 9.0, "activation_amount": 100.0},
+    2: {"tasks_per_set": 45, "commission_rate": 3.0, "combo_rate": 12.0, "activation_amount": 200.0},
+    3: {"tasks_per_set": 50, "commission_rate": 5.0, "combo_rate": 15.0, "activation_amount": 500.0},
+    4: {"tasks_per_set": 55, "commission_rate": 8.0, "combo_rate": 18.0, "activation_amount": 1000.0},
+}
 
 
 def _normalize_role_value(role: str | UserRole | None) -> str:
@@ -174,9 +182,78 @@ def _reset_daily_metrics_if_due(user: User) -> bool:
     return False
 
 
-def _serialize_user(user: User) -> dict:
+def _vip_setting_key(level: int, field: str) -> str:
+    return f"vip_{level}_{field}"
+
+
+def _parse_float(value: str | None, fallback: float, min_value: float = 0.0) -> float:
+    if value is None:
+        return fallback
+    try:
+        parsed = float(value)
+    except (TypeError, ValueError):
+        return fallback
+    return max(parsed, min_value)
+
+
+def _parse_int(value: str | None, fallback: int, min_value: int = 1) -> int:
+    if value is None:
+        return fallback
+    try:
+        parsed = int(float(value))
+    except (TypeError, ValueError):
+        return fallback
+    return max(parsed, min_value)
+
+
+def _get_vip_config_for_level(db: Session | None, level: int) -> dict[str, float | int]:
+    fallback = DEFAULT_VIP_CONFIG.get(level, DEFAULT_VIP_CONFIG[1])
+    if db is None:
+        return {
+            "tasks_per_set": int(fallback["tasks_per_set"]),
+            "commission_rate": float(fallback["commission_rate"]),
+            "combo_rate": float(fallback["combo_rate"]),
+            "activation_amount": float(fallback["activation_amount"]),
+        }
+
+    tasks_setting = db.get(Setting, _vip_setting_key(level, "tasks_per_set"))
+    commission_setting = db.get(Setting, _vip_setting_key(level, "commission_rate"))
+    combo_setting = db.get(Setting, _vip_setting_key(level, "combo_rate"))
+    amount_setting = db.get(Setting, _vip_setting_key(level, "activation_amount"))
+
+    return {
+        "tasks_per_set": _parse_int(tasks_setting.value if tasks_setting else None, int(fallback["tasks_per_set"])),
+        "commission_rate": _parse_float(commission_setting.value if commission_setting else None, float(fallback["commission_rate"])),
+        "combo_rate": _parse_float(combo_setting.value if combo_setting else None, float(fallback["combo_rate"])),
+        "activation_amount": _parse_float(amount_setting.value if amount_setting else None, float(fallback["activation_amount"])),
+    }
+
+
+def _list_vip_configs(db: Session) -> list[dict]:
+    return [{"level": level, **_get_vip_config_for_level(db, level)} for level in VIP_LEVELS]
+
+
+def _upsert_vip_level_config(db: Session, level: int, payload: VIPLevelConfigUpdateRequest) -> None:
+    fields = {
+        "commission_rate": max(float(payload.commission_rate), 0.0),
+        "combo_rate": max(float(payload.combo_rate), 0.0),
+        "activation_amount": max(float(payload.activation_amount), 0.0),
+        "tasks_per_set": max(int(payload.tasks_per_set), 1),
+    }
+
+    for field, value in fields.items():
+        key = _vip_setting_key(level, field)
+        setting = db.get(Setting, key)
+        if not setting:
+            setting = Setting(key=key, value=str(value))
+            db.add(setting)
+        else:
+            setting.value = str(value)
+
+
+def _serialize_user(user: User, db: Session | None = None) -> dict:
     payload = _to_dict(user)
-    cfg = _VIP_CONFIG.get(user.vip_level, {"tasks_per_set": 60, "rate": 0.09})
+    cfg = _get_vip_config_for_level(db, user.vip_level)
     total_tasks = int(cfg["tasks_per_set"])
     payload["remaining_tasks"] = max(total_tasks - int(user.tasks_completed_in_set or 0), 0)
     payload["tasks_per_set"] = total_tasks
@@ -355,7 +432,7 @@ def get_users(role: str | None = Query(default=None), db: Session = Depends(get_
     if role:
         query = query.where(User.role == role)
     users = db.scalars(query).all()
-    return [_serialize_user(user) for user in users]
+    return [_serialize_user(user, db) for user in users]
 
 
 @router.post("/users")
@@ -525,7 +602,7 @@ def update_client_profile(
 
     _log_action(db, request, "Updated Client Profile", f"User ID: {user_id}", str(updates))
     db.commit()
-    return {"success": True, "user": _serialize_user(db_user)}
+    return {"success": True, "user": _serialize_user(db_user, db)}
 
 
 @router.put("/users/{user_id}/support-assignment")
@@ -554,7 +631,7 @@ def assign_user_support_owner(
     owner_label = f"sub_admin #{managed_by_admin_id}" if managed_by_admin_id else "unassigned"
     _log_action(db, request, "Updated Client Support Owner", f"User ID: {user_id}", owner_label)
     db.commit()
-    return {"success": True, "user": _serialize_user(db_user)}
+    return {"success": True, "user": _serialize_user(db_user, db)}
 
 
 @router.delete("/users/{user_id}")
@@ -757,8 +834,9 @@ def start_task(payload: TaskStartRequest, db: Session = Depends(get_db)):
             },
         )
 
-    cfg = _VIP_CONFIG.get(user.vip_level, {"tasks_per_set": 60, "rate": 0.09})
-    rate = cfg["rate"]
+    cfg = _get_vip_config_for_level(db, user.vip_level)
+    rate = float(cfg["commission_rate"]) / 100.0
+    combo_rate = float(cfg["combo_rate"]) / 100.0
 
     combo = db.scalar(
         select(Combo).where(
@@ -781,9 +859,13 @@ def start_task(payload: TaskStartRequest, db: Session = Depends(get_db)):
                     "product_id": base_product.id,
                     "product_name": base_product.name,
                     "price": float(base_product.price),
-                    "commission": round(float(base_product.price) * rate, 2),
+                    "commission": round(float(base_product.price) * combo_rate, 2),
                 }
             ]
+
+        for item in combo_items:
+            if item.get("commission") is None:
+                item["commission"] = round(float(item["price"]) * combo_rate, 2)
 
         first_product = db.get(Product, combo_items[0]["product_id"])
         total_price = round(sum(float(item["price"]) for item in combo_items), 2)
@@ -1164,6 +1246,28 @@ def update_settings_bulk(payload: SettingsBulkUpdateRequest, db: Session = Depen
     return {"success": True}
 
 
+@router.get("/vip-levels")
+def get_vip_levels(db: Session = Depends(get_db)):
+    return _list_vip_configs(db)
+
+
+@router.put("/vip-levels/{level}")
+def update_vip_level(
+    level: int,
+    payload: VIPLevelConfigUpdateRequest,
+    db: Session = Depends(get_db),
+    current_admin: User | None = Depends(get_optional_current_user),
+):
+    if level not in VIP_LEVELS:
+        raise HTTPException(status_code=400, detail="VIP level must be between 1 and 4")
+    if not current_admin or _normalize_role_value(current_admin.role) != UserRole.SUPER_ADMIN.value:
+        raise HTTPException(status_code=403, detail="Only super admins can edit VIP level details")
+
+    _upsert_vip_level_config(db, level, payload)
+    db.commit()
+    return {"success": True, "level": level, **_get_vip_config_for_level(db, level)}
+
+
 @router.get("/logs")
 def get_logs(db: Session = Depends(get_db)):
     logs = db.scalars(select(ActivityLog).order_by(ActivityLog.created_at.desc())).all()
@@ -1300,7 +1404,7 @@ def client_login(body: LoginRequest, db: Session = Depends(get_db)):
         db.commit()
         db.refresh(user)
 
-    user_payload = _serialize_user(user)
+    user_payload = _serialize_user(user, db)
     user_payload["access_token"] = create_access_token(user.id)
     user_payload["token_type"] = "bearer"
     return user_payload
@@ -1388,15 +1492,7 @@ def client_user_overview(user_id: int, db: Session = Depends(get_db)):
     if _reset_daily_metrics_if_due(user):
         db.commit()
         db.refresh(user)
-    return _serialize_user(user)
-
-
-_VIP_CONFIG = {
-    1: {"tasks_per_set": 40, "rate": 0.09},
-    2: {"tasks_per_set": 45, "rate": 0.09},
-    3: {"tasks_per_set": 50, "rate": 0.09},
-    4: {"tasks_per_set": 55, "rate": 0.09},
-}
+    return _serialize_user(user, db)
 
 
 @router.get("/users/{user_id}/pending-tasks")
@@ -1450,13 +1546,13 @@ def client_submit_task(user_id: int, body: SubmitTaskRequest, request: Request, 
         return {
             "success": True,
             "task_record": _to_dict(user_task),
-            "user": _serialize_user(user),
+            "user": _serialize_user(user, db),
         }
 
     if user_task.status not in ["pending", "pending_debited"]:
         raise HTTPException(status_code=400, detail="Task is not pending")
 
-    cfg = _VIP_CONFIG.get(user.vip_level, {"tasks_per_set": 60, "rate": 0.09})
+    cfg = _get_vip_config_for_level(db, user.vip_level)
     tasks_per_set = cfg["tasks_per_set"]
     support_url = _get_support_chat_url(db)
 
@@ -1522,7 +1618,7 @@ def client_submit_task(user_id: int, body: SubmitTaskRequest, request: Request, 
         "success": True,
         "commission": commission,
         "task_record": _to_dict(user_task),
-        "user": _serialize_user(user),
+        "user": _serialize_user(user, db),
     }
 
 

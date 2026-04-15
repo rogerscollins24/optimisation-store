@@ -1,14 +1,9 @@
+import { useEffect, useState } from 'react';
 import { Bell, ArrowDownToLine, ArrowUpFromLine, User, Link as LinkIcon, HeadphonesIcon, LogOut, ChevronLeft, type LucideIcon } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
-
-const taskTotalsByVip: Record<number, number> = {
-  1: 40,
-  2: 45,
-  3: 50,
-  4: 55,
-};
+import { fetchVipLevels, findVipLevelConfig, getDefaultVipLevels, type VipLevelConfig } from '../lib/vipApi';
 
 type ProfileMenuItem = {
   icon: LucideIcon;
@@ -29,14 +24,30 @@ export default function Profile() {
   const navigate = useNavigate();
   const { user, logout, notificationCount, supportUnreadCount } = useAuth();
   const { t } = useTranslation();
+  const [vipLevels, setVipLevels] = useState<VipLevelConfig[]>(() => getDefaultVipLevels());
 
   const balance = user?.balance ?? 0;
   const commissionToday = user?.commission_today ?? 0;
   const vipLevel = user?.vip_level ?? 1;
+  const vipConfig = findVipLevelConfig(vipLevel, vipLevels);
   const creditScore = user?.credit_score ?? 100;
-  const totalTasks = user?.tasks_per_set ?? taskTotalsByVip[vipLevel] ?? 60;
+  const totalTasks = user?.tasks_per_set ?? vipConfig.tasks_per_set;
   const remainingTasks = user?.remaining_tasks ?? Math.max(totalTasks - (user?.tasks_completed_in_set ?? 0), 0);
   const topBadgeCount = notificationCount + supportUnreadCount;
+
+  useEffect(() => {
+    let mounted = true;
+    const load = async () => {
+      const data = await fetchVipLevels();
+      if (mounted) {
+        setVipLevels(data);
+      }
+    };
+    void load();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const menuSections: ProfileMenuSection[] = [
     {

@@ -38,6 +38,14 @@ export type SupportLoginResult = {
   username: string;
 };
 
+export type VipLevelConfig = {
+  level: number;
+  commission_rate: number;
+  combo_rate: number;
+  activation_amount: number;
+  tasks_per_set: number;
+};
+
 async function parseResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
     const payload = await response.json().catch(() => ({}));
@@ -170,4 +178,24 @@ export async function adminMarkAllSupportMessagesRead(token: string): Promise<nu
   });
   const data = await parseResponse<{ updated?: number }>(response);
   return Number(data?.updated || 0);
+}
+
+export async function adminGetVipLevels(token: string): Promise<VipLevelConfig[]> {
+  const response = await fetch('/api/vip-levels', {
+    headers: authHeader(token),
+  });
+  return parseResponse<VipLevelConfig[]>(response);
+}
+
+export async function adminUpdateVipLevel(
+  token: string,
+  level: number,
+  payload: Omit<VipLevelConfig, 'level'>,
+): Promise<{ success: boolean } & VipLevelConfig> {
+  const response = await fetch(`/api/vip-levels/${level}`, {
+    method: 'PUT',
+    headers: authJsonHeader(token),
+    body: JSON.stringify(payload),
+  });
+  return parseResponse<{ success: boolean } & VipLevelConfig>(response);
 }

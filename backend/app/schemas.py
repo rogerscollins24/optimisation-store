@@ -187,6 +187,21 @@ class SettingsBulkUpdateRequest(BaseModel):
     settings: list[SettingUpdateRequest]
 
 
+class VIPLevelConfigUpdateRequest(BaseModel):
+    commission_rate: float
+    combo_rate: float
+    activation_amount: float
+    tasks_per_set: int
+
+
+class VIPLevelConfigResponse(BaseModel):
+    level: int
+    commission_rate: float
+    combo_rate: float
+    activation_amount: float
+    tasks_per_set: int
+
+
 class NotificationCreateRequest(BaseModel):
     title: str
     message: str

@@ -6,6 +6,7 @@ import { useUser, Task } from '../store';
 import { useAuth } from '../context/AuthContext';
 import ChatModal from '../components/ChatModal';
 import { useDynamicTranslations } from '../hooks/useDynamicTranslations';
+import { fetchVipLevels, findVipLevelConfig, getDefaultVipLevels, type VipLevelConfig } from '../lib/vipApi';
 
 interface Product {
   id: number;
@@ -13,13 +14,6 @@ interface Product {
   price: number;
   image_url?: string | null;
 }
-
-const taskTotalsByVip: Record<number, number> = {
-  1: 40,
-  2: 45,
-  3: 50,
-  4: 55,
-};
 
 const productGridSlots = [0, 1, 2, 3, 5, 6, 7, 8];
 
@@ -60,9 +54,24 @@ export default function Starting() {
   const [requiredDeposit, setRequiredDeposit] = useState<number | null>(null);
   const [depositAmount, setDepositAmount] = useState('');
   const [chatSignal, setChatSignal] = useState(-1);
+  const [vipLevels, setVipLevels] = useState<VipLevelConfig[]>(() => getDefaultVipLevels());
   const isAccountActive = user?.status === 'Active';
+  const currentVip = user ? findVipLevelConfig(user.vip_level, vipLevels) : null;
+  const totalTasks = currentVip ? currentVip.tasks_per_set : 40;
 
-  const totalTasks = user ? taskTotalsByVip[user.vip_level] ?? 60 : 40;
+  useEffect(() => {
+    let mounted = true;
+    const load = async () => {
+      const data = await fetchVipLevels();
+      if (mounted) {
+        setVipLevels(data);
+      }
+    };
+    void load();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     fetch('/api/products')

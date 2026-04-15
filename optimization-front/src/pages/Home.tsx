@@ -5,12 +5,14 @@ import { useAuth } from '../context/AuthContext';
 import { useLanguage, type LanguageCode } from '../context/LanguageContext';
 import { useTranslation } from 'react-i18next';
 import { BrandHomeIcon } from '../components/BrandIcons';
+import { fetchVipLevels, getDefaultVipLevels, type VipLevelConfig } from '../lib/vipApi';
 
 export default function Home() {
   const { user, notificationCount } = useAuth();
   const { language, languages, setLanguage } = useLanguage();
   const { t } = useTranslation();
   const [isLanguageOpen, setIsLanguageOpen] = useState(false);
+  const [vipLevelConfig, setVipLevelConfig] = useState<VipLevelConfig[]>(() => getDefaultVipLevels());
   const languageMenuRef = useRef<HTMLDivElement | null>(null);
 
   const currentLanguage = useMemo(
@@ -32,45 +34,31 @@ export default function Home() {
   );
 
   const vipLevels = useMemo(
-    () => [
-      {
-        level: 1,
-        amount: '100 USDT',
-        commission: '0.5%',
-        comboProfit: '3%',
-        tasks: 40,
-        bg: 'bg-[#426b82]',
-        badge: 'from-amber-300 to-yellow-500',
-      },
-      {
-        level: 2,
-        amount: '500 USDT',
-        commission: '1%',
-        comboProfit: '6%',
-        tasks: 45,
-        bg: 'bg-[#155fd7]',
-        badge: 'from-slate-200 to-indigo-200',
-      },
-      {
-        level: 3,
-        amount: '2000 USDT',
-        commission: '1.5%',
-        comboProfit: '9%',
-        tasks: 50,
-        bg: 'bg-[#f2a622]',
-        badge: 'from-yellow-300 to-orange-500',
-      },
-      {
-        level: 4,
-        amount: '5000 USDT',
-        commission: '2%',
-        comboProfit: '12%',
-        tasks: 55,
-        bg: 'bg-[#7a1fb0]',
-        badge: 'from-fuchsia-300 to-violet-500',
-      },
-    ],
-    [],
+    () =>
+      vipLevelConfig.map((item) => ({
+        level: item.level,
+        amount: `${item.activation_amount} USDT`,
+        commission: `${item.commission_rate}%`,
+        comboProfit: `${item.combo_rate}%`,
+        tasks: item.tasks_per_set,
+        bg:
+          item.level === 1
+            ? 'bg-[#426b82]'
+            : item.level === 2
+              ? 'bg-[#155fd7]'
+              : item.level === 3
+                ? 'bg-[#f2a622]'
+                : 'bg-[#7a1fb0]',
+        badge:
+          item.level === 1
+            ? 'from-amber-300 to-yellow-500'
+            : item.level === 2
+              ? 'from-slate-200 to-indigo-200'
+              : item.level === 3
+                ? 'from-yellow-300 to-orange-500'
+                : 'from-fuchsia-300 to-violet-500',
+      })),
+    [vipLevelConfig],
   );
 
   const toggleLanguageMenu = useCallback(() => {
@@ -97,6 +85,20 @@ export default function Home() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isLanguageOpen]);
+
+  useEffect(() => {
+    let mounted = true;
+    const load = async () => {
+      const data = await fetchVipLevels();
+      if (mounted) {
+        setVipLevelConfig(data);
+      }
+    };
+    void load();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   return (
     <div className="canvas-texture flex min-h-full flex-col overflow-x-hidden pb-6">
