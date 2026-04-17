@@ -25,7 +25,7 @@ services:
     environment:
       DATABASE_URL: postgresql+psycopg://admin:admin@postgres:5432/adminpanel
       APP_PORT: "9000"
-      # Allow both frontends (admin on 3000, client on 4173)
+      # Allow both frontends (admin on 4173, client on 3000)
       CORS_ORIGINS: "http://localhost:3000,http://127.0.0.1:3000,http://localhost:4173,http://127.0.0.1:4173"
       # Change this secret in production
       JWT_SECRET_KEY: "support-chat-secret-key-change-in-prod"
@@ -34,6 +34,30 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+
+  # Client-facing frontend (optimization-front/) served on port 3000
+  client:
+    build:
+      context: ./optimization-front
+      dockerfile: Dockerfile
+    container_name: optimisation-client
+    ports:
+      - "3000:80"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+  # Admin dashboard (src/) served on port 4173
+  admin:
+    build:
+      context: .
+      dockerfile: src/Dockerfile
+    container_name: optimisation-admin
+    ports:
+      - "4173:80"
+    depends_on:
+      - api
+    restart: unless-stopped
 
 volumes:
   postgres_data:

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { BrandHomeIcon } from '../components/BrandIcons';
+import LanguageSwitcher from '../components/LanguageSwitcher';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -67,27 +68,81 @@ export default function Login() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-blue-600 via-blue-500 to-cyan-400 px-4 py-8">
-      <div className="grid w-full max-w-5xl overflow-hidden rounded-3xl border border-white/60 bg-white/95 shadow-2xl lg:grid-cols-2">
-        <div className="hidden flex-col justify-between bg-gradient-to-br from-slate-900 to-blue-900 p-10 text-white lg:flex">
-          <div>
-            <div className="mb-6 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-white/20 text-2xl font-bold">
-              <BrandHomeIcon size={28} className="text-white" />
-            </div>
-            <h1 className="text-4xl font-bold leading-tight">{t('brandName')}</h1>
-            <p className="mt-3 text-sm text-blue-100">{t('loginTagline')}</p>
+    <div className="flex min-h-screen items-stretch" style={{ backgroundColor: '#1e1b18' }}>
+      <LanguageSwitcher className="fixed top-4 right-4 z-50" dropdownDirection="down" />
+      {/* Left panel — brand identity */}
+      <div
+        className="relative hidden flex-col justify-between overflow-hidden p-12 lg:flex lg:w-[46%]"
+        style={{
+          background: 'linear-gradient(155deg, #2d2720 0%, #1a1510 60%, #0f0d0b 100%)',
+        }}
+      >
+        {/* Geometric accent — large amber circle */}
+        <div
+          className="pointer-events-none absolute -right-24 -top-24 h-80 w-80 rounded-full opacity-20"
+          style={{ background: 'radial-gradient(circle, #d97706 0%, transparent 70%)' }}
+        />
+        <div
+          className="pointer-events-none absolute -bottom-16 -left-16 h-56 w-56 rounded-full opacity-10"
+          style={{ background: 'radial-gradient(circle, #b45309 0%, transparent 70%)' }}
+        />
+        {/* Grid pattern overlay */}
+        <div
+          className="pointer-events-none absolute inset-0 opacity-[0.04]"
+          style={{
+            backgroundImage: 'repeating-linear-gradient(0deg, #fff 0px, #fff 1px, transparent 1px, transparent 48px), repeating-linear-gradient(90deg, #fff 0px, #fff 1px, transparent 1px, transparent 48px)',
+          }}
+        />
+
+        <div className="relative z-10">
+          <div className="mb-8 flex h-14 w-14 items-center justify-center rounded-2xl" style={{ background: 'rgba(180,83,9,0.18)', border: '1px solid rgba(180,83,9,0.3)' }}>
+            <BrandHomeIcon size={28} className="text-amber-400" />
           </div>
-          <p className="text-sm text-blue-100">{t('signInContinue')}</p>
+          <h1 className="font-display text-5xl font-800 leading-[1.1] tracking-tight text-white"
+              style={{ fontFamily: '"Syne", ui-sans-serif', fontWeight: 800 }}>
+            {t('brandName')}
+          </h1>
+          <p className="mt-4 text-base leading-relaxed" style={{ color: '#a09585' }}>
+            {t('loginTagline')}
+          </p>
         </div>
 
-        <div className="p-8 md:p-10">
-          <div className="mb-8 text-center lg:text-left">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-600 text-2xl font-bold text-white shadow-lg lg:mx-0 lg:hidden">
-              <BrandHomeIcon size={30} className="text-white" />
+        <div className="relative z-10 space-y-4">
+          {[
+            { icon: '◈', label: 'Smart task optimisation' },
+            { icon: '◈', label: 'Daily USDT commissions' },
+            { icon: '◈', label: 'VIP tier rewards' },
+          ].map((item) => (
+            <div key={item.label} className="flex items-center gap-3">
+              <span className="text-amber-500 text-xs">{item.icon}</span>
+              <span className="text-sm font-medium" style={{ color: '#8a7d70' }}>{item.label}</span>
             </div>
-            <h2 className="text-3xl font-bold leading-tight text-slate-900">{t('brandName')}</h2>
-            <p className="mt-2 text-sm text-slate-500">
-              {isSignupMode ? 'Create your client account. Referral code is optional.' : t('loginPrompt')}
+          ))}
+          <p className="pt-4 text-xs" style={{ color: '#4a4540', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+            {t('signInContinue')}
+          </p>
+        </div>
+      </div>
+
+      {/* Right panel — form */}
+      <div className="flex flex-1 flex-col items-center justify-center px-6 py-12" style={{ backgroundColor: '#faf8f4' }}>
+        <div className="w-full max-w-md">
+          {/* Mobile brand header */}
+          <div className="mb-8 lg:hidden">
+            <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-600 shadow-lg">
+              <BrandHomeIcon size={28} className="text-white" />
+            </div>
+            <h2 className="text-3xl font-bold text-stone-900" style={{ fontFamily: '"Syne", ui-sans-serif', fontWeight: 700 }}>
+              {t('brandName')}
+            </h2>
+          </div>
+
+          <div className="mb-8">
+            <h3 className="text-2xl font-bold text-stone-900" style={{ fontFamily: '"Syne", ui-sans-serif', fontWeight: 700 }}>
+              {isSignupMode ? 'Create account' : t('login')}
+            </h3>
+            <p className="mt-1.5 text-sm text-stone-500">
+              {isSignupMode ? 'Referral code is optional.' : t('loginPrompt')}
             </p>
           </div>
 
@@ -95,81 +150,113 @@ export default function Login() {
             {isSignupMode ? (
               <>
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-slate-700">Email</label>
+                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-stone-500">Email</label>
                   <input
                     type="email"
                     value={email}
                     onChange={(event) => setEmail(event.target.value)}
-                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                    className="w-full rounded-xl border bg-white px-4 py-3 text-stone-900 outline-none transition placeholder:text-stone-400 focus:ring-2"
+                    style={{ borderColor: '#ddd8d0', focusRingColor: '#b45309' }}
+                    onFocus={(e) => { e.currentTarget.style.borderColor = '#b45309'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(180,83,9,0.12)'; }}
+                    onBlur={(e) => { e.currentTarget.style.borderColor = '#ddd8d0'; e.currentTarget.style.boxShadow = 'none'; }}
                     placeholder="Enter your email"
                     required
                   />
                 </div>
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-slate-700">Referral Code (Optional)</label>
+                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-stone-500">Referral Code <span className="normal-case font-normal text-stone-400">(optional)</span></label>
                   <input
                     type="text"
                     value={referralCode}
                     onChange={(event) => setReferralCode(event.target.value)}
-                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                    className="w-full rounded-xl border bg-white px-4 py-3 text-stone-900 outline-none transition placeholder:text-stone-400"
+                    style={{ borderColor: '#ddd8d0' }}
+                    onFocus={(e) => { e.currentTarget.style.borderColor = '#b45309'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(180,83,9,0.12)'; }}
+                    onBlur={(e) => { e.currentTarget.style.borderColor = '#ddd8d0'; e.currentTarget.style.boxShadow = 'none'; }}
                     placeholder="Enter referral code"
                   />
                 </div>
               </>
             ) : (
               <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700">Username or Email</label>
+                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-stone-500">Username or Email</label>
                 <input
                   type="text"
                   value={username}
                   onChange={(event) => setUsername(event.target.value)}
-                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                  className="w-full rounded-xl border bg-white px-4 py-3 text-stone-900 outline-none transition placeholder:text-stone-400"
+                  style={{ borderColor: '#ddd8d0' }}
+                  onFocus={(e) => { e.currentTarget.style.borderColor = '#b45309'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(180,83,9,0.12)'; }}
+                  onBlur={(e) => { e.currentTarget.style.borderColor = '#ddd8d0'; e.currentTarget.style.boxShadow = 'none'; }}
                   placeholder="Enter username or email"
                   required
                 />
               </div>
             )}
+
             <div>
-              <label className="mb-2 block text-sm font-medium text-slate-700">{t('password')}</label>
+              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-stone-500">{t('password')}</label>
               <input
                 type="password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                className="w-full rounded-xl border bg-white px-4 py-3 text-stone-900 outline-none transition placeholder:text-stone-400"
+                style={{ borderColor: '#ddd8d0' }}
+                onFocus={(e) => { e.currentTarget.style.borderColor = '#b45309'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(180,83,9,0.12)'; }}
+                onBlur={(e) => { e.currentTarget.style.borderColor = '#ddd8d0'; e.currentTarget.style.boxShadow = 'none'; }}
                 placeholder={t('enterPassword')}
                 required
               />
             </div>
 
             <div>
-              <label className="mb-2 block text-sm font-medium text-slate-700">Captcha: {captchaNumA} + {captchaNumB} = ?</label>
+              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-stone-500">
+                Verification: {captchaNumA} + {captchaNumB} = ?
+              </label>
               <input
                 type="number"
                 value={captchaAnswer}
                 onChange={(event) => setCaptchaAnswer(event.target.value)}
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-                placeholder="Enter answer"
+                className="w-full rounded-xl border bg-white px-4 py-3 text-stone-900 outline-none transition placeholder:text-stone-400"
+                style={{ borderColor: '#ddd8d0' }}
+                onFocus={(e) => { e.currentTarget.style.borderColor = '#b45309'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(180,83,9,0.12)'; }}
+                onBlur={(e) => { e.currentTarget.style.borderColor = '#ddd8d0'; e.currentTarget.style.boxShadow = 'none'; }}
+                placeholder="Enter the sum"
                 required
               />
             </div>
 
-            {error ? <p className="text-sm text-red-600">{error}</p> : null}
-            {success ? <p className="text-sm text-emerald-600">{success}</p> : null}
+            {error ? (
+              <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+                {error}
+              </div>
+            ) : null}
+            {success ? (
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
+                {success}
+              </div>
+            ) : null}
 
             <button
               type="submit"
               disabled={submitting}
-              className="w-full rounded-2xl bg-blue-600 py-3 font-semibold text-white shadow-lg transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-300"
+              className="w-full rounded-xl py-3.5 text-sm font-bold tracking-wide text-white transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-50"
+              style={{ background: submitting ? '#d4a76a' : 'linear-gradient(135deg, #b45309 0%, #92400e 100%)', fontFamily: '"Syne", ui-sans-serif', letterSpacing: '0.06em' }}
+              onMouseEnter={(e) => { if (!submitting) e.currentTarget.style.background = 'linear-gradient(135deg, #c45a0d 0%, #a04510 100%)'; }}
+              onMouseLeave={(e) => { if (!submitting) e.currentTarget.style.background = 'linear-gradient(135deg, #b45309 0%, #92400e 100%)'; }}
             >
-              {submitting ? (isSignupMode ? 'Submitting...' : t('signingIn')) : (isSignupMode ? 'Sign Up' : t('login'))}
+              {submitting
+                ? (isSignupMode ? 'Submitting…' : t('signingIn'))
+                : (isSignupMode ? 'CREATE ACCOUNT' : t('login').toUpperCase())}
             </button>
 
             <button
               type="button"
               onClick={toggleMode}
-              className="w-full rounded-2xl border border-slate-300 py-3 font-semibold text-slate-700 transition hover:bg-slate-50"
+              className="w-full rounded-xl border py-3.5 text-sm font-semibold text-stone-600 transition-colors hover:bg-stone-100"
+              style={{ borderColor: '#ddd8d0' }}
             >
-              {isSignupMode ? 'Back to Login' : 'Create Client Account'}
+              {isSignupMode ? '← Back to Login' : 'Create Client Account'}
             </button>
           </form>
         </div>

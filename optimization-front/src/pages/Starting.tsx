@@ -343,15 +343,15 @@ export default function Starting() {
         </div>
 
         <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-          <div className="rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 p-4 text-white shadow-md">
+          <div className="rounded-xl bg-linear-to-br from-blue-500 to-blue-600 p-4 text-white shadow-md">
             <p className="mb-1 text-sm opacity-80">{t('totalBalance')}</p>
             <p className="text-xl font-bold">{(user?.balance ?? 0).toFixed(2)} <span className="text-sm font-normal">USDT</span></p>
           </div>
-          <div className="rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-600 p-4 text-white shadow-md">
+          <div className="rounded-xl bg-linear-to-br from-indigo-500 to-indigo-600 p-4 text-white shadow-md">
             <p className="mb-1 text-sm opacity-80">{t('commissionToday')}</p>
             <p className="text-xl font-bold">{(user?.commission_today ?? 0).toFixed(2)} <span className="text-sm font-normal">USDT</span></p>
           </div>
-          <div className="flex min-h-[132px] flex-col justify-center rounded-xl border border-slate-200 bg-white p-4 shadow-sm md:p-5">
+          <div className="flex min-h-33 flex-col justify-center rounded-xl border border-slate-200 bg-white p-4 shadow-sm md:p-5">
             <p className="text-sm font-semibold text-slate-700">{t('taskProgress')}</p>
             <p className="mt-3 text-4xl font-bold leading-none text-blue-600">{user?.tasks_completed_in_set ?? 0}<span className="text-2xl text-slate-500">/{totalTasks}</span></p>
           </div>
@@ -364,19 +364,19 @@ export default function Starting() {
           </span>
         </div>
 
-        <div className="mx-auto max-w-[1040px] rounded-2xl p-2 md:p-4">
+        <div className="mx-auto max-w-260 rounded-2xl p-2 md:p-4">
           <div className="grid grid-cols-3 justify-items-center gap-3 sm:gap-4 md:gap-5">
             {productCells.map((product, cellIndex) => {
               if (cellIndex === 4) {
                 return (
-                  <div key="start-cell" className="aspect-square w-full max-w-[180px]">
+                  <div key="start-cell" className="aspect-square w-full max-w-45">
                     <button
                       onClick={handleStart}
                       disabled={isOptimizing || pendingTaskBlocked || (user?.tasks_completed_in_set ?? 0) >= totalTasks || !isAccountActive}
                       className={`mx-auto flex h-full w-full flex-col items-center justify-center rounded-full text-center text-white font-bold text-lg shadow-2xl transition-transform active:scale-95 ${
                         (isOptimizing || pendingTaskBlocked || (user?.tasks_completed_in_set ?? 0) >= totalTasks || !isAccountActive)
                           ? 'bg-gray-400 cursor-not-allowed'
-                          : 'bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700'
+                          : 'bg-linear-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700'
                       }`}
                     >
                       {isOptimizing ? (
@@ -391,7 +391,7 @@ export default function Starting() {
               }
 
               return (
-                <div key={`product-cell-${cellIndex}`} className="aspect-square w-full max-w-[180px] overflow-hidden rounded-2xl border border-slate-100 bg-slate-50 shadow-sm">
+                <div key={`product-cell-${cellIndex}`} className="aspect-square w-full max-w-45 overflow-hidden rounded-2xl border border-slate-100 bg-slate-50 shadow-sm">
                   {product ? (
                     <img
                       src={product.image_url || 'https://picsum.photos/seed/default/300/300'}
@@ -491,7 +491,7 @@ export default function Starting() {
     </div>
 
       {currentTask && (
-        <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 bg-black/60 z-100 flex items-center justify-center p-4 backdrop-blur-sm">
           <div className="w-full max-w-3xl overflow-hidden rounded-2xl bg-white shadow-2xl">
             <div className="bg-blue-600 p-4 text-white flex justify-between items-center">
               <h3 className="font-bold text-lg">{t('taskSubmission')}</h3>

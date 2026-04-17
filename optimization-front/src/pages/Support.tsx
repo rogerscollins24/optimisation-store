@@ -219,7 +219,7 @@ export default function Support() {
                 setActiveId(null);
                 setMessages([]);
               }}
-              className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-sky-600 to-cyan-500 px-4 py-2 text-sm font-semibold text-white shadow-md transition-transform hover:-translate-y-0.5"
+              className="inline-flex items-center gap-2 rounded-2xl bg-linear-to-r from-sky-600 to-cyan-500 px-4 py-2 text-sm font-semibold text-white shadow-md transition-transform hover:-translate-y-0.5"
             >
               <MessageSquarePlus size={16} />
               {t('newChat')}
@@ -260,7 +260,7 @@ export default function Support() {
         </section>
 
         <section className="flex min-h-[68vh] flex-col rounded-[30px] border border-white/40 bg-white/14 p-4 shadow-[0_14px_32px_rgba(37,99,235,0.14)] backdrop-blur-[2px]">
-          <div className="mb-4 rounded-[24px] bg-gradient-to-r from-[#3f629d] via-[#7090c1] to-[#9fb4d6] px-4 py-3 text-white shadow-lg">
+          <div className="mb-4 rounded-3xl bg-linear-to-r from-[#3f629d] via-[#7090c1] to-[#9fb4d6] px-4 py-3 text-white shadow-lg">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-lg font-bold">{showNewChat ? t('startNewChat') : translateText(getTicketTitle(activeTicket, ticketNumberTemplate, unknownConversationTitle))}</p>
@@ -275,7 +275,7 @@ export default function Support() {
 
           {showNewChat ? (
             <div className="grid flex-1 gap-4 lg:grid-cols-[1.2fr_0.8fr]">
-              <div className="rounded-[24px] border border-white/35 bg-[#9fb4d6]/70 p-5 shadow-sm backdrop-blur-sm">
+              <div className="rounded-3xl border border-white/35 bg-[#9fb4d6]/70 p-5 shadow-sm backdrop-blur-sm">
                 <h3 className="mb-4 text-lg font-bold text-slate-800">{t('createTicket')}</h3>
                 <div className="space-y-3">
                   <input
@@ -288,13 +288,13 @@ export default function Support() {
                     value={newMessage}
                     onChange={(event) => setNewMessage(event.target.value)}
                     placeholder={t('describeYourIssue')}
-                    className="min-h-[180px] w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-cyan-400 focus:bg-white"
+                    className="min-h-45 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-cyan-400 focus:bg-white"
                   />
                   <div className="flex gap-3">
                     <button
                       onClick={() => void handleCreateChat()}
                       disabled={!newSubject.trim()}
-                      className="rounded-2xl bg-gradient-to-r from-cyan-600 to-sky-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md transition disabled:cursor-not-allowed disabled:opacity-60"
+                      className="rounded-2xl bg-linear-to-r from-cyan-600 to-sky-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md transition disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {t('createTicket')}
                     </button>
@@ -308,7 +308,7 @@ export default function Support() {
                 </div>
               </div>
 
-              <div className="rounded-[24px] border border-white/30 bg-[#6f8fbe]/72 p-5 text-white shadow-sm">
+              <div className="rounded-3xl border border-white/30 bg-[#6f8fbe]/72 p-5 text-white shadow-sm">
                 <h3 className="text-lg font-bold">{t('needHelpFast')}</h3>
                 <p className="mt-3 text-sm text-blue-100">{t('supportConversationHint')}</p>
                 <div className="mt-5 rounded-2xl bg-white/10 p-4 text-sm text-blue-50">
@@ -318,7 +318,7 @@ export default function Support() {
             </div>
           ) : activeTicket ? (
             <>
-              <div className="flex-1 space-y-3 overflow-y-auto rounded-[24px] bg-[#a9bddf]/72 p-4 backdrop-blur-[2px] md:p-6">
+              <div className="flex-1 space-y-3 overflow-y-auto rounded-3xl bg-[#a9bddf]/72 p-4 backdrop-blur-[2px] md:p-6">
                 {messages.length === 0 ? (
                   <div className="rounded-2xl bg-white/70 px-4 py-6 text-sm text-slate-600 shadow-sm">
                     {t('noMessagesYet')}
@@ -344,7 +344,7 @@ export default function Support() {
                 <div ref={bottomRef} />
               </div>
 
-              <div className="mt-4 flex gap-2 rounded-[24px] bg-[#6f8fbe]/78 p-3 shadow-inner">
+              <div className="mt-4 flex gap-2 rounded-3xl bg-[#6f8fbe]/78 p-3 shadow-inner">
                 <input
                   value={draft}
                   onChange={(event) => setDraft(event.target.value)}
@@ -359,7 +359,7 @@ export default function Support() {
                 />
                 <button
                   onClick={() => void handleSend()}
-                  className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-cyan-500 to-sky-500 px-4 py-3 font-semibold text-white shadow-md transition hover:brightness-105"
+                  className="inline-flex items-center gap-2 rounded-2xl bg-linear-to-r from-cyan-500 to-sky-500 px-4 py-3 font-semibold text-white shadow-md transition hover:brightness-105"
                 >
                   <SendHorizonal size={16} />
                   {t('send')}
@@ -367,7 +367,7 @@ export default function Support() {
               </div>
             </>
           ) : (
-            <div className="flex flex-1 items-center justify-center rounded-[24px] bg-[#a9bddf]/72 p-6 text-center text-slate-700">
+            <div className="flex flex-1 items-center justify-center rounded-3xl bg-[#a9bddf]/72 p-6 text-center text-slate-700">
               <div>
                 <p className="text-lg font-bold">{t('noTicketSelected')}</p>
                 <p className="mt-2 text-sm text-slate-600">{t('chooseTicketOrStartChat')}</p>

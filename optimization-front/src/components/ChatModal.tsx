@@ -149,10 +149,10 @@ export default function ChatModal({ token, presetMessage, presetSubject, openSig
   if (!token) return null;
 
   return (
-    <div className="fixed bottom-6 right-6 z-[110]">
+    <div className="fixed bottom-6 right-6 z-110">
       {isOpen ? (
-        <div className="w-[360px] h-[560px] rounded-2xl overflow-hidden shadow-2xl border border-gray-200 bg-white flex flex-col">
-          <div className="bg-gradient-to-r from-cyan-500 to-teal-500 text-white px-5 py-4 flex items-center justify-between">
+        <div className="w-90 h-140 rounded-2xl overflow-hidden shadow-2xl border border-gray-200 bg-white flex flex-col">
+          <div className="bg-linear-to-r from-cyan-500 to-teal-500 text-white px-5 py-4 flex items-center justify-between">
             <div>
               <p className="text-2xl font-bold leading-none">{t('supportChat')}</p>
               <p className="text-cyan-100 mt-1 text-sm">{ticket?.status ? translateText(String(ticket.status).replace(/_/g, ' ')) : t('newChat')}</p>
@@ -189,7 +189,7 @@ export default function ChatModal({ token, presetMessage, presetSubject, openSig
                 value={draft}
                 onChange={(event) => setDraft(event.target.value)}
                 placeholder={t('enterYourMessage')}
-                className="rounded-lg border border-slate-300 px-3 py-2 min-h-[120px]"
+                className="rounded-lg border border-slate-300 px-3 py-2 min-h-30"
               />
               <button onClick={handleCreateTicket} className="bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg py-2 font-semibold">
                 {t('createTicket')}
@@ -237,10 +237,10 @@ export default function ChatModal({ token, presetMessage, presetSubject, openSig
       ) : (
         <button
           onClick={() => setIsOpen(true)}
-          className="relative flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-r from-cyan-500 to-teal-500 text-white shadow-lg"
+          className="relative flex h-14 w-14 items-center justify-center rounded-full bg-linear-to-r from-cyan-500 to-teal-500 text-white shadow-lg"
         >
           {supportUnreadCount > 0 ? (
-            <span className="absolute -right-1 -top-1 min-w-[20px] rounded-full bg-rose-500 px-1.5 py-0.5 text-[10px] font-bold text-white">
+            <span className="absolute -right-1 -top-1 min-w-5 rounded-full bg-rose-500 px-1.5 py-0.5 text-[10px] font-bold text-white">
               {supportUnreadCount > 99 ? '99+' : supportUnreadCount}
             </span>
           ) : null}

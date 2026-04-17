@@ -1,8 +1,16 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Syne", ui-sans-serif, system-ui, sans-serif;
+  --color-canvas: #ece7dd;
+  --color-ink: #1c1a17;
+  --color-ink-muted: #6b6560;
+  --color-accent: #b45309;
+  --color-accent-hover: #92400e;
+  --color-surface: #faf8f4;
+  --color-border-warm: #ddd8d0;
 }
 
 html,
@@ -14,15 +22,16 @@ body,
 }
 
 body {
-  font-family: "Inter", sans-serif;
+  font-family: "Plus Jakarta Sans", sans-serif;
   background-color: #ece7dd;
 }
 
 .canvas-texture {
   background-color: #ece7dd;
   background-image:
-    radial-gradient(circle at top left, rgba(255, 255, 255, 0.24), transparent 42%),
-    linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.02));
+    radial-gradient(ellipse at 15% 10%, rgba(255, 255, 255, 0.32) 0%, transparent 48%),
+    radial-gradient(ellipse at 85% 85%, rgba(180, 83, 9, 0.06) 0%, transparent 40%),
+    linear-gradient(160deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.02));
 }
 
 .support-texture {
@@ -33,4 +42,24 @@ body {
     linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0));
   background-size: 5px 5px, 7px 7px, 100% 100%;
   background-position: 0 0, 1px 1px, 0 0;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.shimmer {
+  background: linear-gradient(90deg, #e8e3d8 25%, #f0ebe0 50%, #e8e3d8 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.fade-up {
+  animation: fadeUp 0.4s ease-out both;
 }

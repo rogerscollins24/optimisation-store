@@ -1,34 +1,25 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Bell, Check, HeadphonesIcon, Gift, ArrowDownToLine, ArrowUpFromLine, FileText, Award, HelpCircle, ChevronDown, ChevronRight } from 'lucide-react';
+import { Bell, HeadphonesIcon, Gift, ArrowDownToLine, ArrowUpFromLine, FileText, Award, HelpCircle, ChevronRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { useLanguage, type LanguageCode } from '../context/LanguageContext';
 import { useTranslation } from 'react-i18next';
 import { BrandHomeIcon } from '../components/BrandIcons';
 import { fetchVipLevels, getDefaultVipLevels, type VipLevelConfig } from '../lib/vipApi';
 
 export default function Home() {
   const { user, notificationCount } = useAuth();
-  const { language, languages, setLanguage } = useLanguage();
   const { t } = useTranslation();
-  const [isLanguageOpen, setIsLanguageOpen] = useState(false);
   const [vipLevelConfig, setVipLevelConfig] = useState<VipLevelConfig[]>(() => getDefaultVipLevels());
-  const languageMenuRef = useRef<HTMLDivElement | null>(null);
-
-  const currentLanguage = useMemo(
-    () => languages.find((item) => item.code === language) ?? languages[0],
-    [language, languages],
-  );
 
   const menuItems = useMemo(
     () => [
-      { icon: HeadphonesIcon, labelKey: 'service', color: 'text-blue-500', bg: 'bg-blue-100', to: '/support' },
-      { icon: Gift, labelKey: 'event', color: 'text-pink-500', bg: 'bg-pink-100' },
-      { icon: ArrowUpFromLine, labelKey: 'withdrawal', color: 'text-orange-500', bg: 'bg-orange-100', to: '/withdraw' },
-      { icon: ArrowDownToLine, labelKey: 'deposit', color: 'text-green-500', bg: 'bg-green-100', to: '/deposit' },
-      { icon: FileText, labelKey: 'terms', color: 'text-purple-500', bg: 'bg-purple-100' },
-      { icon: Award, labelKey: 'certificate', color: 'text-yellow-500', bg: 'bg-yellow-100' },
-      { icon: HelpCircle, labelKey: 'faqs', color: 'text-teal-500', bg: 'bg-teal-100', to: '/faqs' },
+      { icon: HeadphonesIcon, labelKey: 'service', to: '/support',   color: '#22d3ee', glow: 'rgba(34,211,238,0.18)'  },
+      { icon: Gift,           labelKey: 'event',                      color: '#f472b6', glow: 'rgba(244,114,182,0.18)' },
+      { icon: ArrowUpFromLine,labelKey: 'withdrawal', to: '/withdraw',color: '#fb923c', glow: 'rgba(251,146,60,0.18)'  },
+      { icon: ArrowDownToLine,labelKey: 'deposit', to: '/deposit',    color: '#4ade80', glow: 'rgba(74,222,128,0.18)'  },
+      { icon: FileText,       labelKey: 'terms',                      color: '#818cf8', glow: 'rgba(129,140,248,0.18)' },
+      { icon: Award,          labelKey: 'certificate',                color: '#fbbf24', glow: 'rgba(251,191,36,0.18)'  },
+      { icon: HelpCircle,     labelKey: 'faqs', to: '/faqs',          color: '#c084fc', glow: 'rgba(192,132,252,0.18)' },
     ],
     [],
   );
@@ -41,50 +32,17 @@ export default function Home() {
         commission: `${item.commission_rate}%`,
         comboProfit: `${item.combo_rate}%`,
         tasks: item.tasks_per_set,
-        bg:
+        style:
           item.level === 1
-            ? 'bg-[#426b82]'
+            ? { bg: 'linear-gradient(160deg,#1a2a3d 0%,#0e1c2e 100%)', accent: '#60a5d4', blob: '#3b82f6', activationBg: 'rgba(96,165,212,0.12)', activationBorder: 'rgba(96,165,212,0.28)', label: 'Steel' }
             : item.level === 2
-              ? 'bg-[#155fd7]'
-              : item.level === 3
-                ? 'bg-[#f2a622]'
-                : 'bg-[#7a1fb0]',
-        badge:
-          item.level === 1
-            ? 'from-amber-300 to-yellow-500'
-            : item.level === 2
-              ? 'from-slate-200 to-indigo-200'
-              : item.level === 3
-                ? 'from-yellow-300 to-orange-500'
-                : 'from-fuchsia-300 to-violet-500',
+            ? { bg: 'linear-gradient(160deg,#0c1f50 0%,#071336 100%)', accent: '#5b8ef0', blob: '#6366f1', activationBg: 'rgba(91,142,240,0.12)', activationBorder: 'rgba(91,142,240,0.28)', label: 'Sapphire' }
+            : item.level === 3
+            ? { bg: 'linear-gradient(160deg,#2c1800 0%,#1a0e00 100%)', accent: '#f0a020', blob: '#d97706', activationBg: 'rgba(240,160,32,0.12)', activationBorder: 'rgba(240,160,32,0.28)', label: 'Gold' }
+            : { bg: 'linear-gradient(160deg,#1e0b3e 0%,#110523 100%)', accent: '#b07ef5', blob: '#9333ea', activationBg: 'rgba(176,126,245,0.12)', activationBorder: 'rgba(176,126,245,0.28)', label: 'Diamond' },
       })),
     [vipLevelConfig],
   );
-
-  const toggleLanguageMenu = useCallback(() => {
-    setIsLanguageOpen((current) => !current);
-  }, []);
-
-  const handleLanguageSelect = useCallback(
-    (code: LanguageCode) => {
-      setLanguage(code);
-      setIsLanguageOpen(false);
-    },
-    [setLanguage],
-  );
-
-  useEffect(() => {
-    if (!isLanguageOpen) return;
-
-    const handleClickOutside = (event: MouseEvent) => {
-      if (languageMenuRef.current && !languageMenuRef.current.contains(event.target as Node)) {
-        setIsLanguageOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isLanguageOpen]);
 
   useEffect(() => {
     let mounted = true;
@@ -103,68 +61,51 @@ export default function Home() {
   return (
     <div className="canvas-texture flex min-h-full flex-col overflow-x-hidden pb-6">
       <div className="px-4 pt-5 md:px-8 md:pt-6">
-        <div className="relative z-20 mb-5 flex items-center justify-between overflow-visible rounded-2xl border border-white/70 bg-white/90 px-4 py-4 shadow-sm">
+
+        {/* Header card */}
+        <div className="relative z-20 mb-5 flex items-center justify-between overflow-visible rounded-2xl px-4 py-4"
+             style={{ background: '#faf8f4', border: '1px solid #ddd8d0', boxShadow: '0 2px 16px rgba(28,26,23,0.08)' }}>
           <div>
-            <div className="flex items-center gap-2">
-              <BrandHomeIcon size={24} className="text-slate-900" />
-              <h1 className="text-xl font-bold leading-tight text-slate-900 md:text-2xl">{t('brandName')}</h1>
+            <div className="flex items-center gap-2.5">
+              <BrandHomeIcon size={22} style={{ color: '#b45309' }} />
+              <h1 className="text-xl font-bold leading-tight text-stone-900 md:text-2xl"
+                  style={{ fontFamily: '"Syne", ui-sans-serif', fontWeight: 700 }}>
+                {t('brandName')}
+              </h1>
             </div>
-            <p className="mt-1 text-sm font-medium text-slate-600">{t('welcomeBack', { name: user?.username ?? t('guest') })}</p>
+            <p className="mt-1 text-sm font-medium text-stone-500">
+              {t('welcomeBack', { name: user?.username ?? t('guest') })}
+            </p>
           </div>
 
-          <div className="relative flex items-center gap-3">
-            <Link to="/notifications" className="relative flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-sky-500 md:h-14 md:w-14">
+          <div className="relative flex items-center gap-2.5">
+            <Link
+              to="/notifications"
+              className="relative flex h-11 w-11 items-center justify-center rounded-full transition-colors hover:bg-stone-100"
+              style={{ color: '#b45309', background: 'rgba(180,83,9,0.08)' }}
+            >
               {notificationCount > 0 ? (
-                <span className="absolute -right-1 -top-1 min-w-[18px] rounded-full bg-rose-500 px-1.5 py-0.5 text-[10px] font-bold text-white">
+                <span className="absolute -right-0.5 -top-0.5 min-w-4.5 rounded-full bg-rose-500 px-1.5 py-0.5 text-[10px] font-bold text-white">
                   {notificationCount > 99 ? '99+' : notificationCount}
                 </span>
               ) : null}
-              <Bell size={22} />
+              <Bell size={20} />
             </Link>
 
-            <div ref={languageMenuRef} className="relative">
-              <button
-                type="button"
-                onClick={toggleLanguageMenu}
-                aria-expanded={isLanguageOpen}
-                className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-3 text-slate-800 shadow-sm"
-              >
-                <span className="text-xl leading-none">{currentLanguage.flag}</span>
-                <span className="text-lg font-bold">{currentLanguage.short}</span>
-                <ChevronDown size={18} className={`transition-transform ${isLanguageOpen ? 'rotate-180' : ''}`} />
-              </button>
-
-              {isLanguageOpen ? (
-                <div className="absolute right-0 top-full z-[140] mt-2 max-h-[70vh] w-72 overflow-y-auto rounded-[24px] border border-slate-200 bg-white p-3 shadow-2xl">
-                  <div className="space-y-1">
-                    {languages.map((option) => (
-                      <button
-                        key={option.code}
-                        type="button"
-                        onClick={() => handleLanguageSelect(option.code)}
-                        className={`flex w-full items-center justify-between rounded-xl px-4 py-3 text-left text-slate-900 transition-colors ${language === option.code ? 'bg-slate-100' : 'hover:bg-slate-50'}`}
-                      >
-                        <span className="flex items-center gap-3 text-lg font-semibold">
-                          <span>{option.flag}</span>
-                          <span>{option.label}</span>
-                        </span>
-                        {language === option.code ? <Check size={18} className="text-sky-500" /> : null}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
-            </div>
-
             <Link to="/profile">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 md:h-14 md:w-14">
-                <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.username ?? 'ShoppingOptimized'}`} alt={t('avatarAlt')} className="h-10 w-10 rounded-full md:h-12 md:w-12" />
+              <div className="flex h-11 w-11 items-center justify-center rounded-full" style={{ background: 'rgba(180,83,9,0.08)', border: '1.5px solid rgba(180,83,9,0.2)' }}>
+                <img
+                  src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.username ?? 'ShoppingOptimized'}`}
+                  alt={t('avatarAlt')}
+                  className="h-9 w-9 rounded-full"
+                />
               </div>
             </Link>
           </div>
         </div>
 
-        <div className="overflow-hidden rounded-[28px] shadow-lg">
+        {/* Banner video */}
+        <div className="overflow-hidden rounded-3xl shadow-lg">
           <video
             autoPlay
             muted
@@ -178,28 +119,48 @@ export default function Home() {
           </video>
         </div>
 
-        <div className="mt-4 rounded-[26px] bg-[#2f2f31] px-3 py-4 text-white shadow-md md:px-4 md:py-5">
-          <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-white/90">
-            <span>{t('menu')}</span>
-            <span className="text-cyan-400">{t('list')}</span>
+        {/* Menu grid */}
+        <div className="mt-4 rounded-3xl px-3 py-4 md:px-4 md:py-5"
+             style={{ background: 'linear-gradient(160deg, #28241e 0%, #1e1b16 100%)', boxShadow: '0 4px 24px rgba(0,0,0,0.22)' }}>
+          <div className="mb-3 flex items-center gap-2">
+            <span className="text-xs font-bold uppercase tracking-widest text-stone-500"
+                  style={{ fontFamily: '"Syne", ui-sans-serif' }}>{t('menu')}</span>
+            <span className="text-xs font-bold uppercase tracking-widest" style={{ color: '#b45309', fontFamily: '"Syne", ui-sans-serif' }}>{t('list')}</span>
           </div>
-          <div className="grid grid-cols-4 gap-3 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7">
+          <div className="grid grid-cols-4 gap-2.5 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7">
             {menuItems.map((item, index) => {
               const content = (
                 <>
-                  <div className={`mx-auto mb-2 flex h-11 w-11 items-center justify-center rounded-xl bg-[#3d3d40] shadow-inner ${item.bg}`}>
-                    <item.icon className={item.color} size={20} strokeWidth={1.8} />
+                  <div
+                    className="mx-auto mb-2.5 flex h-12 w-12 items-center justify-center rounded-full transition-transform duration-200"
+                    style={{
+                      background: item.glow,
+                      boxShadow: `0 0 16px ${item.glow}`,
+                      border: `1px solid ${item.color}28`,
+                    }}
+                  >
+                    <item.icon size={20} strokeWidth={1.7} style={{ color: item.color }} />
                   </div>
-                  <span className="block text-center text-[11px] font-semibold text-cyan-400 md:text-xs">{t(item.labelKey)}</span>
+                  <span className="block text-center text-[10px] font-semibold uppercase tracking-wider"
+                        style={{ color: '#7a6f64', fontFamily: '"Syne", ui-sans-serif' }}>
+                    {t(item.labelKey)}
+                  </span>
                 </>
               );
 
               return item.to ? (
-                <Link key={index} to={item.to} className="rounded-xl bg-[#38383b] p-3 transition-transform duration-200 hover:-translate-y-0.5">
+                <Link
+                  key={index}
+                  to={item.to}
+                  className="rounded-xl p-2.5 transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/5"
+                >
                   {content}
                 </Link>
               ) : (
-                <div key={index} className="cursor-pointer rounded-xl bg-[#38383b] p-3 transition-transform duration-200 hover:-translate-y-0.5">
+                <div
+                  key={index}
+                  className="cursor-pointer rounded-xl p-2.5 transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/5"
+                >
                   {content}
                 </div>
               );
@@ -208,30 +169,92 @@ export default function Home() {
         </div>
       </div>
 
-      <div className="px-4 pt-5 md:px-8">
+      {/* VIP cards */}
+      <div className="px-4 pt-6 md:px-8">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-slate-800 md:text-2xl">{t('vipLevels')}</h2>
-          <button type="button" className="inline-flex items-center gap-1 text-sm font-semibold text-sky-500">
-            {t('viewMore')} <ChevronRight size={16} />
+          <h2 className="text-lg font-bold text-stone-800 md:text-xl"
+              style={{ fontFamily: '"Syne", ui-sans-serif', fontWeight: 700 }}>
+            {t('vipLevels')}
+          </h2>
+          <button type="button" className="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wider transition-colors hover:opacity-70"
+                  style={{ color: '#b45309', fontFamily: '"Syne", ui-sans-serif' }}>
+            {t('viewMore')} <ChevronRight size={14} />
           </button>
         </div>
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
           {vipLevels.map((vip) => (
-            <div key={vip.level} className={`min-h-[330px] rounded-[24px] px-5 py-6 text-white shadow-md ${vip.bg}`}>
-              <div className="mb-5 flex flex-col items-center text-center">
-                <div className={`mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br ${vip.badge} shadow-inner ring-4 ring-white/20`}>
-                  <Award size={28} className="text-white" />
+            <div
+              key={vip.level}
+              className="relative flex flex-col overflow-hidden rounded-2xl text-white"
+              style={{ background: vip.style.bg, boxShadow: '0 8px 32px rgba(0,0,0,0.35)', minHeight: 300 }}
+            >
+              {/* Decorative blob */}
+              <div
+                className="pointer-events-none absolute -right-10 -top-10 h-36 w-36 rounded-full opacity-15"
+                style={{ background: `radial-gradient(circle, ${vip.style.blob} 0%, transparent 70%)` }}
+              />
+
+              {/* Header */}
+              <div className="relative z-10 flex items-start justify-between px-5 pt-5">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: vip.style.accent, fontFamily: '"Syne", ui-sans-serif' }}>
+                    {vip.style.label}
+                  </p>
+                  <h3 className="mt-0.5 text-3xl font-extrabold tracking-tight" style={{ fontFamily: '"Syne", ui-sans-serif', fontWeight: 800 }}>
+                    VIP {vip.level}
+                  </h3>
                 </div>
-                <h3 className="text-3xl font-bold tracking-tight">VIP{vip.level}</h3>
+                {/* Level badge */}
+                <div
+                  className="flex h-9 w-9 items-center justify-center rounded-xl text-lg font-bold"
+                  style={{ background: 'rgba(255,255,255,0.08)', border: `1px solid ${vip.style.accent}40`, color: vip.style.accent, fontFamily: '"Syne", ui-sans-serif' }}
+                >
+                  {vip.level}
+                </div>
               </div>
-              <ul className="space-y-2 text-base leading-8 text-white/95">
-                <li>• {t('vipReceive', { tasks: vip.tasks })}</li>
-                <li>• {t('vipEach', { commission: vip.commission })}</li>
-                <li>• {t('vipCombined', { comboProfit: vip.comboProfit })}</li>
-                <li>• {t('vipActivate', { amount: vip.amount })}</li>
-                <li>• {t('vipDaily')}</li>
-              </ul>
+
+              {/* Stat chips */}
+              <div className="relative z-10 mt-4 grid grid-cols-3 gap-2 px-5">
+                {[
+                  { value: String(vip.tasks), label: 'Tasks/set' },
+                  { value: vip.commission, label: 'Profit' },
+                  { value: vip.comboProfit, label: 'Combo' },
+                ].map((stat) => (
+                  <div
+                    key={stat.label}
+                    className="rounded-xl px-2 py-2.5 text-center"
+                    style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.06)' }}
+                  >
+                    <p className="text-lg font-bold leading-none" style={{ color: vip.style.accent, fontFamily: '"Syne", ui-sans-serif' }}>
+                      {stat.value}
+                    </p>
+                    <p className="mt-1 text-[9px] uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.38)', fontFamily: '"Syne", ui-sans-serif' }}>
+                      {stat.label}
+                    </p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Daily sets note */}
+              <p className="relative z-10 mt-3 px-5 text-[11px]" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                Up to 3 sets completable per day
+              </p>
+
+              {/* Activation CTA */}
+              <div className="relative z-10 mt-auto px-5 pb-5 pt-4">
+                <div
+                  className="flex items-center justify-between rounded-xl px-4 py-3"
+                  style={{ background: vip.style.activationBg, border: `1px solid ${vip.style.activationBorder}` }}
+                >
+                  <span className="text-xs font-semibold" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                    Activate with
+                  </span>
+                  <span className="text-base font-bold" style={{ color: vip.style.accent, fontFamily: '"Syne", ui-sans-serif' }}>
+                    {vip.amount}
+                  </span>
+                </div>
+              </div>
             </div>
           ))}
         </div>

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Bell, ArrowDownToLine, ArrowUpFromLine, User, Link as LinkIcon, HeadphonesIcon, LogOut, ChevronLeft, type LucideIcon } from 'lucide-react';
+import { Bell, ArrowDownToLine, ArrowUpFromLine, User, Link as LinkIcon, HeadphonesIcon, LogOut, ChevronRight, type LucideIcon } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
@@ -8,8 +8,7 @@ import { fetchVipLevels, findVipLevelConfig, getDefaultVipLevels, type VipLevelC
 type ProfileMenuItem = {
   icon: LucideIcon;
   label: string;
-  color: string;
-  bg: string;
+  iconColor: string;
   to?: string;
   action?: () => void;
   badge?: string | null;
@@ -53,123 +52,191 @@ export default function Profile() {
     {
       title: t('myFinancial'),
       items: [
-        { icon: ArrowDownToLine, label: t('deposit'), to: '/deposit', color: 'text-green-500', bg: 'bg-green-100' },
-        { icon: ArrowUpFromLine, label: t('withdrawal'), to: '/withdraw', color: 'text-orange-500', bg: 'bg-orange-100' },
+        { icon: ArrowDownToLine, label: t('deposit'), to: '/deposit', iconColor: '#16a34a' },
+        { icon: ArrowUpFromLine, label: t('withdrawal'), to: '/withdraw', iconColor: '#ea580c' },
       ],
     },
     {
       title: t('myDetails'),
       items: [
-        { icon: User, label: t('personalInformation'), to: '/profile/personal', color: 'text-blue-500', bg: 'bg-blue-100' },
-        { icon: LinkIcon, label: t('bindWalletAddress'), to: '/profile/wallet', color: 'text-purple-500', bg: 'bg-purple-100' },
+        { icon: User, label: t('personalInformation'), to: '/profile/personal', iconColor: '#b45309' },
+        { icon: LinkIcon, label: t('bindWalletAddress'), to: '/profile/wallet', iconColor: '#7c3aed' },
       ],
     },
     {
       title: t('otherSection'),
       items: [
-        { icon: HeadphonesIcon, label: t('contactUs'), to: '/support', color: 'text-teal-500', bg: 'bg-teal-100', badge: supportUnreadCount > 0 ? `${supportUnreadCount}` : null },
-        { icon: Bell, label: t('notificationsTitle'), to: '/notifications', color: 'text-yellow-500', bg: 'bg-yellow-100', badge: notificationCount > 0 ? `${notificationCount}` : null },
-        { icon: LogOut, label: t('logout'), color: 'text-red-500', bg: 'bg-red-100', action: () => { logout(); navigate('/login'); } },
+        {
+          icon: HeadphonesIcon,
+          label: t('contactUs'),
+          to: '/support',
+          iconColor: '#0d9488',
+          badge: supportUnreadCount > 0 ? `${supportUnreadCount}` : null,
+        },
+        {
+          icon: Bell,
+          label: t('notificationsTitle'),
+          to: '/notifications',
+          iconColor: '#ca8a04',
+          badge: notificationCount > 0 ? `${notificationCount}` : null,
+        },
+        {
+          icon: LogOut,
+          label: t('logout'),
+          iconColor: '#dc2626',
+          action: () => {
+            logout();
+            navigate('/login');
+          },
+        },
       ],
     },
   ];
 
   return (
-    <div className="flex min-h-full flex-col bg-gray-50 pb-6">
-      <div className="sticky top-0 z-10 flex items-center justify-between rounded-xl bg-white p-4 shadow-sm md:p-5">
-        <Link to="/" className="text-gray-600 hover:text-gray-900">
-          <ChevronLeft size={24} />
+    <div className="flex min-h-full flex-col pb-6" style={{ backgroundColor: '#ece7dd' }}>
+      {/* Top bar */}
+      <div
+        className="sticky top-0 z-10 flex items-center justify-between px-4 py-4 md:px-6"
+        style={{ background: 'rgba(236,231,221,0.92)', backdropFilter: 'blur(12px)', borderBottom: '1px solid rgba(180,83,9,0.1)' }}
+      >
+        <Link to="/" className="flex h-9 w-9 items-center justify-center rounded-full transition-colors hover:bg-stone-200/70" style={{ color: '#6b6560' }}>
+          ←
         </Link>
-        <h1 className="text-lg font-bold text-gray-800">{t('profile')}</h1>
-        <Link to="/notifications" className="relative text-gray-600 hover:text-gray-900">
+        <h1 className="text-base font-bold text-stone-800" style={{ fontFamily: '"Syne", ui-sans-serif' }}>
+          {t('profile')}
+        </h1>
+        <Link to="/notifications" className="relative flex h-9 w-9 items-center justify-center rounded-full transition-colors hover:bg-stone-200/70" style={{ color: '#6b6560' }}>
           {topBadgeCount > 0 ? (
-            <span className="absolute -right-2 -top-2 min-w-[18px] rounded-full bg-rose-500 px-1.5 py-0.5 text-[10px] font-bold text-white">
+            <span className="absolute -right-0.5 -top-0.5 min-w-4 rounded-full bg-rose-500 px-1 py-0.5 text-[9px] font-bold text-white">
               {topBadgeCount > 99 ? '99+' : topBadgeCount}
             </span>
           ) : null}
-          <Bell size={24} />
+          <Bell size={20} />
         </Link>
       </div>
 
-      <div className="grid gap-6 p-4 md:p-6 lg:grid-cols-[1fr_1.2fr]">
-        <div className="relative mb-0 overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 p-6 text-white shadow-lg">
-          <div className="absolute right-0 top-0 h-32 w-32 -mr-16 -mt-16 rounded-full bg-white/10 blur-2xl"></div>
-          <div className="absolute bottom-0 left-0 h-24 w-24 -mb-12 -ml-12 rounded-full bg-white/10 blur-xl"></div>
+      <div className="grid gap-5 p-4 md:p-6 lg:grid-cols-[1fr_1.2fr]">
+        {/* Hero card */}
+        <div
+          className="relative overflow-hidden rounded-2xl p-6 text-white"
+          style={{
+            background: 'linear-gradient(150deg, #2d2720 0%, #1a1410 60%, #0f0c08 100%)',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.32)',
+          }}
+        >
+          {/* Decorative circles */}
+          <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full opacity-25"
+               style={{ background: 'radial-gradient(circle, #d97706 0%, transparent 70%)' }} />
+          <div className="pointer-events-none absolute -bottom-8 -left-8 h-28 w-28 rounded-full opacity-15"
+               style={{ background: 'radial-gradient(circle, #b45309 0%, transparent 70%)' }} />
 
-          <div className="relative z-10 mb-6 flex items-center gap-4">
-            <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-full border border-white/30 bg-white/20 backdrop-blur-sm">
-              <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.username ?? 'ShoppingOptimized'}`} alt={t('avatarAlt')} className="h-14 w-14 rounded-full" />
+          {/* Avatar + username */}
+          <div className="relative z-10 mb-5 flex items-center gap-4">
+            <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-full"
+                 style={{ border: '2px solid rgba(180,83,9,0.4)', background: 'rgba(180,83,9,0.12)' }}>
+              <img
+                src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.username ?? 'ShoppingOptimized'}`}
+                alt={t('avatarAlt')}
+                className="h-14 w-14 rounded-full"
+              />
             </div>
             <div>
-              <h2 className="mb-1 text-xl font-bold">{user?.username ?? t('guest')}</h2>
+              <h2 className="mb-1.5 text-xl font-bold" style={{ fontFamily: '"Syne", ui-sans-serif' }}>
+                {user?.username ?? t('guest')}
+              </h2>
               <div className="flex flex-wrap items-center gap-2 text-sm">
-                <span className="rounded-full bg-yellow-400 px-2 py-0.5 text-xs font-bold text-yellow-900">{t('vipBadge', { level: vipLevel })}</span>
-                <span className="opacity-80">{t('invitationCode')}: {user?.invite_code || t('notAvailable')}</span>
+                <span className="rounded-full px-2.5 py-0.5 text-xs font-bold"
+                      style={{ background: 'linear-gradient(135deg, #d97706, #b45309)', color: '#fff' }}>
+                  {t('vipBadge', { level: vipLevel })}
+                </span>
+                <span className="text-xs" style={{ color: '#8a7d70' }}>
+                  {t('invitationCode')}: {user?.invite_code || t('notAvailable')}
+                </span>
               </div>
             </div>
           </div>
 
-          <div className="relative z-10 mb-6 text-sm text-blue-50">
+          {/* Contact info */}
+          <div className="relative z-10 mb-5 space-y-1 text-sm" style={{ color: '#8a7d70' }}>
             <p>{user?.email || t('noEmailAddedYet')}</p>
-            <p className="mt-1">{user?.phone || t('noPhoneAddedYet')}</p>
-            <p className="mt-1">{t('wallet')}: {user?.wallet_address || t('notBoundYet')}</p>
+            <p>{user?.phone || t('noPhoneAddedYet')}</p>
+            <p>{t('wallet')}: {user?.wallet_address || t('notBoundYet')}</p>
           </div>
 
-          <div className="relative z-10 mb-6">
-            <div className="mb-2 flex justify-between text-sm">
-              <span className="opacity-80">{t('creditScore')}</span>
-              <span className="font-bold">{creditScore}%</span>
+          {/* Credit score */}
+          <div className="relative z-10 mb-5">
+            <div className="mb-2 flex justify-between text-xs font-semibold">
+              <span style={{ color: '#8a7d70' }}>{t('creditScore')}</span>
+              <span style={{ color: '#d97706' }}>{creditScore}%</span>
             </div>
-            <div className="h-2 w-full overflow-hidden rounded-full bg-white/20">
-              <div className="h-2 rounded-full bg-green-400 transition-all duration-500" style={{ width: `${creditScore}%` }}></div>
+            <div className="h-1.5 w-full overflow-hidden rounded-full" style={{ background: 'rgba(255,255,255,0.08)' }}>
+              <div
+                className="h-1.5 rounded-full transition-all duration-700"
+                style={{ width: `${creditScore}%`, background: 'linear-gradient(90deg, #d97706, #f59e0b)' }}
+              />
             </div>
           </div>
 
-          <div className="relative z-10 grid gap-3 md:grid-cols-3">
-            <div className={`rounded-xl border p-3 backdrop-blur-sm ${balance >= 0 ? 'border-emerald-200/30 bg-emerald-500/20' : 'border-rose-200/30 bg-rose-500/20'}`}>
-              <p className="mb-1 text-xs opacity-80">{t('totalBalance')}</p>
-              <p className={`text-lg font-bold ${balance >= 0 ? 'text-emerald-100' : 'text-rose-100'}`}>{balance.toFixed(2)} <span className="text-xs font-normal">USDT</span></p>
+          {/* Stats row */}
+          <div className="relative z-10 grid grid-cols-3 gap-2.5">
+            <div className="rounded-xl p-3"
+                 style={{ background: balance >= 0 ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)', border: `1px solid ${balance >= 0 ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'}` }}>
+              <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#8a7d70', fontFamily: '"Syne", ui-sans-serif' }}>{t('totalBalance')}</p>
+              <p className="text-base font-bold" style={{ color: balance >= 0 ? '#6ee7b7' : '#fca5a5' }}>
+                {balance.toFixed(2)} <span className="text-[10px] font-normal opacity-70">USDT</span>
+              </p>
             </div>
-            <div className="rounded-xl border border-violet-200/30 bg-violet-500/20 p-3 backdrop-blur-sm">
-              <p className="mb-1 text-xs opacity-80">{t('commissionToday')}</p>
-              <p className="text-lg font-bold text-violet-50">{commissionToday.toFixed(2)} <span className="text-xs font-normal">USDT</span></p>
+            <div className="rounded-xl p-3"
+                 style={{ background: 'rgba(167,139,250,0.1)', border: '1px solid rgba(167,139,250,0.18)' }}>
+              <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#8a7d70', fontFamily: '"Syne", ui-sans-serif' }}>{t('commissionToday')}</p>
+              <p className="text-base font-bold text-violet-300">
+                {commissionToday.toFixed(2)} <span className="text-[10px] font-normal opacity-70">USDT</span>
+              </p>
             </div>
-            <div className="rounded-xl border border-cyan-200/30 bg-cyan-500/20 p-3 backdrop-blur-sm">
-              <p className="mb-1 text-xs opacity-80">{t('remainingTasks')}</p>
-              <p className="text-lg font-bold text-cyan-50">{remainingTasks} <span className="text-xs font-normal">/ {totalTasks}</span></p>
+            <div className="rounded-xl p-3"
+                 style={{ background: 'rgba(180,83,9,0.1)', border: '1px solid rgba(180,83,9,0.2)' }}>
+              <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#8a7d70', fontFamily: '"Syne", ui-sans-serif' }}>{t('remainingTasks')}</p>
+              <p className="text-base font-bold" style={{ color: '#fbbf24' }}>
+                {remainingTasks} <span className="text-[10px] font-normal opacity-70">/ {totalTasks}</span>
+              </p>
             </div>
           </div>
         </div>
 
-        <div className="space-y-6">
+        {/* Menu sections */}
+        <div className="space-y-5">
           {menuSections.map((section, idx) => (
             <div key={idx}>
-              <h3 className="ml-2 mb-3 text-sm font-bold uppercase tracking-wider text-gray-500">{section.title}</h3>
-              <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+              <h3 className="ml-1 mb-2.5 text-[10px] font-bold uppercase tracking-widest text-stone-500"
+                  style={{ fontFamily: '"Syne", ui-sans-serif' }}>
+                {section.title}
+              </h3>
+              <div className="overflow-hidden rounded-2xl" style={{ background: '#faf8f4', border: '1px solid #ddd8d0', boxShadow: '0 1px 8px rgba(28,26,23,0.06)' }}>
                 {section.items.map((item, itemIdx) => {
                   const content = (
-                    <div className="flex items-center gap-3 p-4 transition-colors hover:bg-gray-50">
-                      <div className={`flex h-10 w-10 items-center justify-center rounded-full ${item.bg}`}>
-                        <item.icon className={item.color} size={20} />
+                    <div className="flex items-center gap-3.5 px-4 py-3.5 transition-colors hover:bg-stone-50/80">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl"
+                           style={{ background: `${item.iconColor}14` }}>
+                        <item.icon size={17} style={{ color: item.iconColor }} />
                       </div>
-                      <span className="flex-1 font-medium text-gray-700">{item.label}</span>
+                      <span className="flex-1 text-sm font-semibold text-stone-700">{item.label}</span>
                       {item.badge ? (
-                        <span className="rounded-full bg-rose-50 px-2.5 py-1 text-[11px] font-semibold text-rose-600">{item.badge}</span>
+                        <span className="rounded-full px-2 py-0.5 text-[11px] font-bold text-white"
+                              style={{ background: '#ef4444' }}>
+                          {item.badge}
+                        </span>
                       ) : null}
-                      <ChevronLeft className="rotate-180 text-gray-400" size={20} />
+                      <ChevronRight size={16} className="text-stone-300 shrink-0" />
                     </div>
                   );
 
                   return (
-                    <div key={itemIdx} className={itemIdx !== section.items.length - 1 ? 'border-b border-gray-50' : ''}>
+                    <div key={itemIdx} style={itemIdx !== section.items.length - 1 ? { borderBottom: '1px solid #f0ece5' } : {}}>
                       {item.to ? (
-                        <Link to={item.to} className="block">
-                          {content}
-                        </Link>
+                        <Link to={item.to} className="block">{content}</Link>
                       ) : (
-                        <button type="button" onClick={item.action} className="block w-full cursor-pointer text-left">
-                          {content}
-                        </button>
+                        <button type="button" onClick={item.action} className="block w-full cursor-pointer text-left">{content}</button>
                       )}
                     </div>
                   );
