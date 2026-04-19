@@ -305,14 +305,14 @@ def _load_combo_items(db: Session, combo_ids: list[int]) -> dict[int, list[dict]
         return {}
 
     rows = db.execute(
-        select(ComboItem, Product.name)
+        select(ComboItem, Product.name, Product.image_url)
         .join(Product, ComboItem.product_id == Product.id)
         .where(ComboItem.combo_id.in_(combo_ids))
         .order_by(ComboItem.combo_id, ComboItem.id)
     ).all()
 
     grouped: dict[int, list[dict]] = {}
-    for combo_item, product_name in rows:
+    for combo_item, product_name, image_url in rows:
         grouped.setdefault(combo_item.combo_id, []).append(
             {
                 "id": combo_item.id,
@@ -320,6 +320,7 @@ def _load_combo_items(db: Session, combo_ids: list[int]) -> dict[int, list[dict]
                 "product_name": product_name,
                 "price": combo_item.custom_price,
                 "commission": combo_item.custom_commission,
+                "image_url": image_url,
             }
         )
     return grouped
@@ -958,6 +959,7 @@ def get_combos(db: Session = Depends(get_db)):
                     "product_name": product_name,
                     "price": price,
                     "commission": float(base_product.commission_rate) if base_product else 0.0,
+                    "image_url": base_product.image_url if base_product else None,
                 }
             ]
 
@@ -976,11 +978,11 @@ def get_combos(db: Session = Depends(get_db)):
 
 @router.post("/combos")
 def create_combo(payload: ComboCreateRequest, request: Request, db: Session = Depends(get_db)):
-    if len(payload.products) != 2:
-        raise HTTPException(status_code=400, detail="Combo must contain exactly 2 products")
+    if len(payload.products) < 2:
+        raise HTTPException(status_code=400, detail="Combo must contain at least 2 products")
 
     product_ids = [item.productId for item in payload.products]
-    if len(set(product_ids)) != 2:
+    if len(set(product_ids)) != len(product_ids):
         raise HTTPException(status_code=400, detail="Combo products must be different")
 
     for product_id in product_ids:
@@ -1006,7 +1008,7 @@ def create_combo(payload: ComboCreateRequest, request: Request, db: Session = De
         request,
         "Assigned Combo",
         f"User ID: {payload.userId}",
-        f"Assigned 2 products on Task {payload.taskNumber}",
+        f"Assigned {len(payload.products)} products on Task {payload.taskNumber}",
     )
     db.commit()
     return {"success": True}
@@ -1028,11 +1030,11 @@ def update_combo(combo_id: int, payload: ComboUpdateRequest, request: Request, d
         setattr(combo, key, value)
 
     if combo_products is not None:
-        if len(combo_products) != 2:
-            raise HTTPException(status_code=400, detail="Combo must contain exactly 2 products")
+        if len(combo_products) < 2:
+            raise HTTPException(status_code=400, detail="Combo must contain at least 2 products")
 
         product_ids = [item.productId for item in combo_products]
-        if len(set(product_ids)) != 2:
+        if len(set(product_ids)) != len(product_ids):
             raise HTTPException(status_code=400, detail="Combo products must be different")
 
         for product_id in product_ids:
@@ -1555,11 +1557,14 @@ def client_submit_task(user_id: int, body: SubmitTaskRequest, request: Request, 
     cfg = _get_vip_config_for_level(db, user.vip_level)
     tasks_per_set = cfg["tasks_per_set"]
     support_url = _get_support_chat_url(db)
+    combo_id = _extract_combo_id(user_task.task_code)
+    combo_products = _load_combo_items(db, [combo_id]).get(combo_id, []) if combo_id else []
 
     if user_task.status == "pending" and float(user.balance) < float(user_task.amount):
         user.balance = round(float(user.balance) - float(user_task.amount), 2)
         user_task.status = "pending_debited"
         db.commit()
+        db.refresh(user_task)
         raise HTTPException(
             status_code=400,
             detail={
@@ -1567,7 +1572,7 @@ def client_submit_task(user_id: int, body: SubmitTaskRequest, request: Request, 
                 "message": "Task amount is higher than your balance. Please deposit and contact support.",
                 "requiredDeposit": round(abs(float(user.balance)), 2),
                 "supportUrl": support_url,
-                "task": _to_dict(user_task),
+                "task": _format_task_record(user_task, combo_products),
             },
         )
 
@@ -1580,7 +1585,7 @@ def client_submit_task(user_id: int, body: SubmitTaskRequest, request: Request, 
                     "message": "Your balance is negative. Please deposit and contact support.",
                     "requiredDeposit": round(abs(float(user.balance)), 2),
                     "supportUrl": support_url,
-                    "task": _to_dict(user_task),
+                    "task": _format_task_record(user_task, combo_products),
                 },
             )
         user.balance = round(float(user.balance) + float(user_task.amount) + float(user_task.commission), 2)
@@ -1589,7 +1594,6 @@ def client_submit_task(user_id: int, body: SubmitTaskRequest, request: Request, 
 
     user_task.status = "completed"
     commission = float(user_task.commission)
-    combo_id = _extract_combo_id(user_task.task_code)
     if combo_id:
         combo = db.get(Combo, combo_id)
         if combo and combo.status != "Completed":
@@ -1617,7 +1621,7 @@ def client_submit_task(user_id: int, body: SubmitTaskRequest, request: Request, 
     return {
         "success": True,
         "commission": commission,
-        "task_record": _to_dict(user_task),
+        "task_record": _format_task_record(user_task, combo_products),
         "user": _serialize_user(user, db),
     }
 

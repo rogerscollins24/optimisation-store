@@ -16,6 +16,7 @@ export interface Task {
     product_name: string;
     price: number;
     commission: number;
+    image_url?: string | null;
   }>;
 }
 

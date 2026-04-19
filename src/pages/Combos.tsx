@@ -7,10 +7,12 @@ type ComboSlot = {
   commission: string;
 };
 
-const emptySlots: ComboSlot[] = [
-  { productId: '', price: '', commission: '' },
-  { productId: '', price: '', commission: '' },
-];
+const MIN_COMBO_PRODUCTS = 2;
+
+const createEmptySlot = (): ComboSlot => ({ productId: '', price: '', commission: '' });
+
+const createDefaultSlots = (count = MIN_COMBO_PRODUCTS): ComboSlot[] =>
+  Array.from({ length: Math.max(count, MIN_COMBO_PRODUCTS) }, () => createEmptySlot());
 
 export default function Combos() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -21,7 +23,7 @@ export default function Combos() {
   const [editingCombo, setEditingCombo] = useState<any | null>(null);
   const [userId, setUserId] = useState('');
   const [taskNumber, setTaskNumber] = useState('');
-  const [slots, setSlots] = useState<ComboSlot[]>(emptySlots);
+  const [slots, setSlots] = useState<ComboSlot[]>(createDefaultSlots());
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -65,21 +67,22 @@ export default function Combos() {
     setEditingCombo(null);
     setUserId('');
     setTaskNumber('');
-    setSlots(emptySlots);
+    setSlots(createDefaultSlots());
     setError('');
     setShowForm(true);
   };
 
   const openEdit = (combo: any) => {
-    const sourceProducts = Array.isArray(combo.products) ? combo.products.slice(0, 2) : [];
-    const nextSlots = [0, 1].map((index) => {
-      const item = sourceProducts[index];
-      return {
-        productId: item ? String(item.product_id) : '',
-        price: item ? String(item.price) : '',
-        commission: item ? String(item.commission) : '',
-      };
-    });
+    const sourceProducts = Array.isArray(combo.products) ? combo.products : [];
+    const nextSlots = sourceProducts.map((item) => ({
+      productId: item ? String(item.product_id) : '',
+      price: item ? String(item.price) : '',
+      commission: item ? String(item.commission) : '',
+    }));
+
+    while (nextSlots.length < MIN_COMBO_PRODUCTS) {
+      nextSlots.push(createEmptySlot());
+    }
 
     setEditingCombo(combo);
     setUserId(String(combo.user_id));
@@ -89,20 +92,39 @@ export default function Combos() {
     setShowForm(true);
   };
 
+  const updateSlot = (index: number, patch: Partial<ComboSlot>) => {
+    setSlots((prev) => {
+      const next = [...prev];
+      next[index] = { ...next[index], ...patch };
+      return next;
+    });
+  };
+
+  const addSlot = () => {
+    setSlots((prev) => [...prev, createEmptySlot()]);
+  };
+
+  const removeSlot = (index: number) => {
+    setSlots((prev) => {
+      if (prev.length <= MIN_COMBO_PRODUCTS) return prev;
+      return prev.filter((_, slotIndex) => slotIndex !== index);
+    });
+  };
+
   const handleSave = async () => {
     if (!userId || !taskNumber) {
       setError('Username and trigger task number are required.');
       return;
     }
 
-    if (slots.length !== 2 || slots.some((slot) => !slot.productId || !slot.price || !slot.commission)) {
-      setError('Combo must contain exactly 2 configured products with price and commission.');
+    if (slots.length < MIN_COMBO_PRODUCTS || slots.some((slot) => !slot.productId || !slot.price || !slot.commission)) {
+      setError('Combo must contain at least 2 configured products with price and commission.');
       return;
     }
 
     const productIds = slots.map((slot) => slot.productId);
-    if (new Set(productIds).size !== 2) {
-      setError('Please select two different products in the combo.');
+    if (new Set(productIds).size !== slots.length) {
+      setError('Please select different products in the combo.');
       return;
     }
 
@@ -177,7 +199,7 @@ export default function Combos() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-100">Combo Engine</h1>
-          <p className="text-sm text-slate-400 mt-1">Each combo now requires exactly two products with editable price and commission.</p>
+          <p className="text-sm text-slate-400 mt-1">Each combo starts with 2 products and can include more with editable price and commission.</p>
         </div>
         <div className="flex items-center gap-2">
           <button onClick={exportCSV} className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm font-medium">Export CSV</button>
@@ -214,10 +236,20 @@ export default function Combos() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3">
               {slots.map((slot, index) => (
                 <div key={index} className="rounded-lg border border-slate-700/70 bg-slate-950/70 p-4 space-y-3">
-                  <h3 className="text-sm font-semibold text-slate-200">Combo Item {index + 1}</h3>
+                  <div className="flex items-center justify-between gap-2">
+                    <h3 className="text-sm font-semibold text-slate-200">Combo Item {index + 1}</h3>
+                    {slots.length > MIN_COMBO_PRODUCTS && (
+                      <button
+                        onClick={() => removeSlot(index)}
+                        className="rounded-lg px-2 py-1 text-xs font-medium text-rose-300 hover:bg-rose-500/10 hover:text-rose-200"
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
                   <select
                     value={slot.productId}
                     onChange={(e) => fillSlotFromProduct(index, e.target.value)}
@@ -233,22 +265,14 @@ export default function Combos() {
                       type="number"
                       placeholder="Price"
                       value={slot.price}
-                      onChange={(e) => {
-                        const next = [...slots];
-                        next[index] = { ...next[index], price: e.target.value };
-                        setSlots(next);
-                      }}
+                      onChange={(e) => updateSlot(index, { price: e.target.value })}
                       className="w-full bg-slate-950 border border-slate-700/70 text-slate-200 text-sm rounded-lg p-2.5 outline-none"
                     />
                     <input
                       type="number"
                       placeholder="Commission"
                       value={slot.commission}
-                      onChange={(e) => {
-                        const next = [...slots];
-                        next[index] = { ...next[index], commission: e.target.value };
-                        setSlots(next);
-                      }}
+                      onChange={(e) => updateSlot(index, { commission: e.target.value })}
                       className="w-full bg-slate-950 border border-slate-700/70 text-slate-200 text-sm rounded-lg p-2.5 outline-none"
                     />
                   </div>
@@ -256,11 +280,21 @@ export default function Combos() {
               ))}
             </div>
 
+            <div>
+              <button
+                onClick={addSlot}
+                className="inline-flex items-center gap-2 rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-sm font-medium text-slate-200 hover:bg-slate-700"
+              >
+                <Plus size={16} />
+                Add Product
+              </button>
+            </div>
+
             {error && <p className="text-sm text-rose-400">{error}</p>}
 
             <div className="mt-1 flex items-start gap-2 text-sm text-amber-400 bg-amber-400/10 p-3 rounded-lg border border-amber-400/20">
               <AlertCircle size={18} className="shrink-0 mt-0.5" />
-              <p>Combo rules require exactly two products. You can edit each product price and commission before saving.</p>
+              <p>Combo rules require at least two products. You can add more products and edit each price and commission before saving.</p>
             </div>
 
             <div className="flex items-center gap-2 justify-end">

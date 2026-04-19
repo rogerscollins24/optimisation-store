@@ -149,7 +149,7 @@ export default function ChatModal({ token, presetMessage, presetSubject, openSig
   if (!token) return null;
 
   return (
-    <div className="fixed bottom-4 right-3 z-[110] sm:bottom-6 sm:right-6">
+    <div className="fixed bottom-[4.75rem] right-3 z-[110] sm:bottom-24 sm:right-6">
       {isOpen ? (
         <div className="flex h-[72vh] max-h-[560px] w-[calc(100vw-1.5rem)] max-w-[360px] flex-col overflow-hidden rounded-2xl border border-[#67563f]/45 bg-[#efe5d6] shadow-2xl sm:h-[560px]">
           <div className="flex items-center justify-between bg-[linear-gradient(120deg,#2b2824_0%,#1b1917_58%,#3a2a18_100%)] px-3.5 py-3 text-white sm:px-5 sm:py-4">

@@ -230,7 +230,7 @@ export default function Home() {
             <span>{t('menu')}</span>
             <span className="text-orange-300">{t('list')}</span>
           </div>
-          <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:grid sm:grid-cols-5 sm:gap-3 md:grid-cols-6 lg:grid-cols-7">
+          <div className="flex gap-2 overflow-x-auto pb-2 [scrollbar-width:thin] [scrollbar-color:#71717a_transparent] [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-zinc-500/80 sm:grid sm:grid-cols-5 sm:gap-3 md:grid-cols-6 lg:grid-cols-7">
             {menuItems.map((item, index) => {
               const content = (
                 <>

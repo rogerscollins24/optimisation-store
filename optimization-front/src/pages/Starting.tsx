@@ -38,6 +38,17 @@ const getVisibleProducts = (items: Product[], count = 8) => {
 
 const wait = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
 
+const getInitials = (name: string) => {
+  const tokens = name
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2);
+
+  if (tokens.length === 0) return 'PR';
+  return tokens.map((token) => token.charAt(0).toUpperCase()).join('');
+};
+
 export default function Starting() {
   const { user, refreshUser, setUser } = useAuth();
   const { t } = useTranslation();
@@ -147,7 +158,15 @@ export default function Starting() {
     taskCode: taskRecord.task_code,
     isCombo: !!taskRecord.is_combo,
     comboId: taskRecord.combo_id ?? null,
-    products: Array.isArray(taskRecord.products) ? taskRecord.products : [],
+    products: Array.isArray(taskRecord.products)
+      ? taskRecord.products.map((item: any) => ({
+          product_id: Number(item.product_id),
+          product_name: String(item.product_name ?? ''),
+          price: Number(item.price ?? 0),
+          commission: Number(item.commission ?? 0),
+          image_url: item.image_url ?? null,
+        }))
+      : [],
   });
 
   const parseError = async (response: Response) => {
@@ -515,11 +534,24 @@ export default function Starting() {
 
                 <div>
                   {currentTask.isCombo && currentTask.products && currentTask.products.length > 0 && (
-                    <div className="mb-4 space-y-2">
+                    <div className="mb-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
                       {currentTask.products.map((item) => (
-                        <div key={item.product_id} className="flex items-center justify-between rounded-lg border border-[#dbc9b0] bg-[#f3e8d8] px-3 py-2 text-sm">
-                          <span className="text-[#5a4b3c]">{translateText(item.product_name)}</span>
-                          <span className="font-semibold text-amber-700">USDT {Number(item.price).toFixed(2)}</span>
+                        <div key={item.product_id} className="flex items-center gap-3 rounded-lg border border-[#dbc9b0] bg-[#f3e8d8] px-3 py-2 text-sm">
+                          {item.image_url ? (
+                            <img
+                              src={item.image_url}
+                              alt={translateText(item.product_name)}
+                              className="h-12 w-12 rounded-lg object-cover border border-[#d9c7ae] bg-[#efe2cf]"
+                            />
+                          ) : (
+                            <div className="flex h-12 w-12 items-center justify-center rounded-lg border border-[#d9c7ae] bg-gradient-to-br from-[#d7b78b] to-[#b38553] text-xs font-bold tracking-wide text-white">
+                              {getInitials(item.product_name)}
+                            </div>
+                          )}
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-[#5a4b3c]">{translateText(item.product_name)}</p>
+                            <p className="font-semibold text-amber-700">USDT {Number(item.price).toFixed(2)}</p>
+                          </div>
                         </div>
                       ))}
                     </div>
