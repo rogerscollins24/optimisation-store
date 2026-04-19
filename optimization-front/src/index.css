@@ -34,3 +34,71 @@ body {
   background-size: 5px 5px, 7px 7px, 100% 100%;
   background-position: 0 0, 1px 1px, 0 0;
 }
+
+.client-page {
+  background:
+    radial-gradient(circle at 18% 0%, rgba(204, 148, 62, 0.16), transparent 38%),
+    radial-gradient(circle at 92% 0%, rgba(73, 95, 162, 0.18), transparent 42%),
+    linear-gradient(180deg, #efe8dc 0%, #e7dece 60%, #dfd5c4 100%);
+}
+
+.client-header {
+  border: 1px solid rgba(95, 82, 63, 0.18);
+  background: linear-gradient(120deg, #252321 0%, #2a2825 55%, #1b1a19 100%);
+  box-shadow: 0 14px 28px rgba(16, 15, 13, 0.28);
+  color: #f2ecdf;
+}
+
+.client-card {
+  border: 1px solid rgba(91, 78, 60, 0.2);
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.64) 0%, rgba(244, 237, 226, 0.84) 100%);
+  box-shadow: 0 14px 30px rgba(49, 40, 28, 0.12);
+}
+
+.client-card-dark {
+  border: 1px solid rgba(114, 96, 76, 0.45);
+  background: linear-gradient(135deg, #2a2722 0%, #1d1a17 100%);
+  box-shadow: 0 14px 32px rgba(10, 10, 10, 0.3);
+  color: #f6f0e6;
+}
+
+.client-input {
+  border: 1px solid rgba(116, 98, 77, 0.28);
+  background: rgba(255, 255, 255, 0.78);
+  color: #2a241d;
+}
+
+.client-input:focus {
+  outline: none;
+  border-color: rgba(53, 93, 173, 0.72);
+  box-shadow: 0 0 0 2px rgba(60, 106, 193, 0.2);
+}
+
+.client-btn-primary {
+  border: 1px solid rgba(89, 71, 49, 0.4);
+  background: linear-gradient(100deg, #9a6526 0%, #be873d 52%, #986226 100%);
+  color: #fff8eb;
+  box-shadow: 0 10px 20px rgba(96, 67, 30, 0.28);
+}
+
+.client-btn-primary:hover {
+  filter: brightness(1.05);
+}
+
+.client-btn-secondary {
+  border: 1px solid rgba(94, 81, 63, 0.28);
+  background: rgba(255, 255, 255, 0.72);
+  color: #332a21;
+}
+
+.client-tab {
+  border: 1px solid rgba(97, 80, 57, 0.18);
+  background: rgba(255, 255, 255, 0.74);
+  color: #6a5a47;
+}
+
+.client-tab-active {
+  border-color: rgba(160, 110, 41, 0.5);
+  background: linear-gradient(180deg, rgba(212, 163, 94, 0.22), rgba(255, 248, 235, 0.8));
+  color: #7a4d18;
+}

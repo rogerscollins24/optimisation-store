@@ -67,26 +67,26 @@ export default function Login() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-blue-600 via-blue-500 to-cyan-400 px-4 py-8">
-      <div className="grid w-full max-w-5xl overflow-hidden rounded-3xl border border-white/60 bg-white/95 shadow-2xl lg:grid-cols-2">
-        <div className="hidden flex-col justify-between bg-gradient-to-br from-slate-900 to-blue-900 p-10 text-white lg:flex">
+    <div className="client-page flex min-h-screen items-center justify-center px-3 py-5 sm:px-4 sm:py-8">
+      <div className="grid w-full max-w-5xl overflow-hidden rounded-3xl border border-[#79684f]/25 bg-[#f8f1e4]/90 shadow-2xl lg:grid-cols-2">
+        <div className="hidden flex-col justify-between bg-[linear-gradient(130deg,#2f2b25_0%,#1d1b18_45%,#342615_100%)] p-10 text-[#f6f0e6] lg:flex">
           <div>
             <div className="mb-6 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-white/20 text-2xl font-bold">
-              <BrandHomeIcon size={28} className="text-white" />
+              <BrandHomeIcon size={36} className="text-white" />
             </div>
             <h1 className="text-4xl font-bold leading-tight">{t('brandName')}</h1>
-            <p className="mt-3 text-sm text-blue-100">{t('loginTagline')}</p>
+            <p className="mt-3 text-sm text-amber-100/90">{t('loginTagline')}</p>
           </div>
-          <p className="text-sm text-blue-100">{t('signInContinue')}</p>
+          <p className="text-sm text-amber-100/80">{t('signInContinue')}</p>
         </div>
 
-        <div className="p-8 md:p-10">
+        <div className="p-5 sm:p-8 md:p-10">
           <div className="mb-8 text-center lg:text-left">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-600 text-2xl font-bold text-white shadow-lg lg:mx-0 lg:hidden">
-              <BrandHomeIcon size={30} className="text-white" />
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-[linear-gradient(120deg,#a46a29_0%,#be8d47_100%)] text-2xl font-bold text-white shadow-lg lg:mx-0 lg:hidden">
+              <BrandHomeIcon size={38} className="text-white" />
             </div>
-            <h2 className="text-3xl font-bold leading-tight text-slate-900">{t('brandName')}</h2>
-            <p className="mt-2 text-sm text-slate-500">
+            <h2 className="text-2xl font-bold leading-tight text-[#2e261e] sm:text-3xl">{t('brandName')}</h2>
+            <p className="mt-2 text-sm text-[#74624d]">
               {isSignupMode ? 'Create your client account. Referral code is optional.' : t('loginPrompt')}
             </p>
           </div>
@@ -95,59 +95,59 @@ export default function Login() {
             {isSignupMode ? (
               <>
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-slate-700">Email</label>
+                  <label className="mb-2 block text-sm font-medium text-[#4f4235]">Email</label>
                   <input
                     type="email"
                     value={email}
                     onChange={(event) => setEmail(event.target.value)}
-                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                    className="client-input w-full rounded-2xl px-4 py-3"
                     placeholder="Enter your email"
                     required
                   />
                 </div>
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-slate-700">Referral Code (Optional)</label>
+                  <label className="mb-2 block text-sm font-medium text-[#4f4235]">Referral Code (Optional)</label>
                   <input
                     type="text"
                     value={referralCode}
                     onChange={(event) => setReferralCode(event.target.value)}
-                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                    className="client-input w-full rounded-2xl px-4 py-3"
                     placeholder="Enter referral code"
                   />
                 </div>
               </>
             ) : (
               <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700">Username or Email</label>
+                <label className="mb-2 block text-sm font-medium text-[#4f4235]">Username or Email</label>
                 <input
                   type="text"
                   value={username}
                   onChange={(event) => setUsername(event.target.value)}
-                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                  className="client-input w-full rounded-2xl px-4 py-3"
                   placeholder="Enter username or email"
                   required
                 />
               </div>
             )}
             <div>
-              <label className="mb-2 block text-sm font-medium text-slate-700">{t('password')}</label>
+              <label className="mb-2 block text-sm font-medium text-[#4f4235]">{t('password')}</label>
               <input
                 type="password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                className="client-input w-full rounded-2xl px-4 py-3"
                 placeholder={t('enterPassword')}
                 required
               />
             </div>
 
             <div>
-              <label className="mb-2 block text-sm font-medium text-slate-700">Captcha: {captchaNumA} + {captchaNumB} = ?</label>
+              <label className="mb-2 block text-sm font-medium text-[#4f4235]">Captcha: {captchaNumA} + {captchaNumB} = ?</label>
               <input
                 type="number"
                 value={captchaAnswer}
                 onChange={(event) => setCaptchaAnswer(event.target.value)}
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                className="client-input w-full rounded-2xl px-4 py-3"
                 placeholder="Enter answer"
                 required
               />
@@ -159,7 +159,7 @@ export default function Login() {
             <button
               type="submit"
               disabled={submitting}
-              className="w-full rounded-2xl bg-blue-600 py-3 font-semibold text-white shadow-lg transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-300"
+              className="client-btn-primary w-full rounded-2xl py-3 font-semibold transition disabled:cursor-not-allowed disabled:opacity-60"
             >
               {submitting ? (isSignupMode ? 'Submitting...' : t('signingIn')) : (isSignupMode ? 'Sign Up' : t('login'))}
             </button>
@@ -167,7 +167,7 @@ export default function Login() {
             <button
               type="button"
               onClick={toggleMode}
-              className="w-full rounded-2xl border border-slate-300 py-3 font-semibold text-slate-700 transition hover:bg-slate-50"
+              className="client-btn-secondary w-full rounded-2xl py-3 font-semibold transition hover:bg-white/90"
             >
               {isSignupMode ? 'Back to Login' : 'Create Client Account'}
             </button>

@@ -41,35 +41,35 @@ export default function PersonalInformation() {
   };
 
   return (
-    <div className="flex min-h-full flex-col bg-gray-50 pb-6">
-      <div className="sticky top-0 z-10 flex items-center rounded-xl bg-white p-4 shadow-sm md:p-5">
-        <Link to="/profile" className="mr-4 text-gray-600 hover:text-gray-900">
+    <div className="client-page flex min-h-full flex-col pb-6">
+      <div className="client-header sticky top-0 z-10 flex items-center rounded-xl p-4 md:p-5">
+        <Link to="/profile" className="mr-4 text-zinc-300 hover:text-white">
           <ChevronLeft size={24} />
         </Link>
-        <h1 className="text-lg font-bold text-gray-800">{t('personalInformation')}</h1>
+        <h1 className="text-lg font-bold text-[#f6efe5]">{t('personalInformation')}</h1>
       </div>
 
       <div className="p-4 md:p-6">
-        <div className="mx-auto max-w-2xl rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+        <div className="client-card mx-auto max-w-2xl rounded-2xl p-6">
           <div className="grid gap-4">
             <div>
-              <label className="mb-2 block text-sm font-medium text-gray-700">{t('usernameLabel')}</label>
-              <input value={user?.username ?? ''} readOnly className="w-full rounded-xl border border-gray-200 bg-gray-100 px-4 py-3 text-gray-500" />
+              <label className="mb-2 block text-sm font-medium text-[#4e4033]">{t('usernameLabel')}</label>
+              <input value={user?.username ?? ''} readOnly className="client-input w-full rounded-xl px-4 py-3 text-[#766652]" />
             </div>
 
             <div>
-              <label className="mb-2 block text-sm font-medium text-gray-700">{t('email')}</label>
-              <input value={email} onChange={(event) => setEmail(event.target.value)} placeholder={t('enterYourEmail')} className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-800 outline-none focus:border-blue-500" />
+              <label className="mb-2 block text-sm font-medium text-[#4e4033]">{t('email')}</label>
+              <input value={email} onChange={(event) => setEmail(event.target.value)} placeholder={t('enterYourEmail')} className="client-input w-full rounded-xl px-4 py-3" />
             </div>
 
             <div>
-              <label className="mb-2 block text-sm font-medium text-gray-700">{t('phone')}</label>
-              <input value={phone} onChange={(event) => setPhone(event.target.value)} placeholder={t('enterYourPhoneNumber')} className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-800 outline-none focus:border-blue-500" />
+              <label className="mb-2 block text-sm font-medium text-[#4e4033]">{t('phone')}</label>
+              <input value={phone} onChange={(event) => setPhone(event.target.value)} placeholder={t('enterYourPhoneNumber')} className="client-input w-full rounded-xl px-4 py-3" />
             </div>
 
             <div>
-              <label className="mb-2 block text-sm font-medium text-gray-700">{t('gender')}</label>
-              <select value={gender} onChange={(event) => setGender(event.target.value)} className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-800 outline-none focus:border-blue-500">
+              <label className="mb-2 block text-sm font-medium text-[#4e4033]">{t('gender')}</label>
+              <select value={gender} onChange={(event) => setGender(event.target.value)} className="client-input w-full rounded-xl px-4 py-3">
                 <option value="">{t('selectGender')}</option>
                 <option value="Male">{t('male')}</option>
                 <option value="Female">{t('female')}</option>
@@ -82,7 +82,7 @@ export default function PersonalInformation() {
             type="button"
             onClick={() => void handleSave()}
             disabled={saving}
-            className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 py-3 font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-70"
+            className="client-btn-primary mt-6 flex w-full items-center justify-center gap-2 rounded-xl py-3 font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-70"
           >
             {saving ? <Loader2 size={18} className="animate-spin" /> : null}
             {saving ? t('saving') : t('savePersonalInformation')}

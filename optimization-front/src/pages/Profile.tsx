@@ -75,13 +75,13 @@ export default function Profile() {
   ];
 
   return (
-    <div className="flex min-h-full flex-col bg-gray-50 pb-6">
-      <div className="sticky top-0 z-10 flex items-center justify-between rounded-xl bg-white p-4 shadow-sm md:p-5">
-        <Link to="/" className="text-gray-600 hover:text-gray-900">
+    <div className="client-page flex min-h-full flex-col pb-6">
+      <div className="client-header sticky top-0 z-10 flex items-center justify-between rounded-xl p-3 sm:p-4 md:p-5">
+        <Link to="/" className="text-zinc-300 hover:text-white">
           <ChevronLeft size={24} />
         </Link>
-        <h1 className="text-lg font-bold text-gray-800">{t('profile')}</h1>
-        <Link to="/notifications" className="relative text-gray-600 hover:text-gray-900">
+        <h1 className="text-base font-bold text-[#f7efe4] sm:text-lg">{t('profile')}</h1>
+        <Link to="/notifications" className="relative text-zinc-300 hover:text-white">
           {topBadgeCount > 0 ? (
             <span className="absolute -right-2 -top-2 min-w-[18px] rounded-full bg-rose-500 px-1.5 py-0.5 text-[10px] font-bold text-white">
               {topBadgeCount > 99 ? '99+' : topBadgeCount}
@@ -91,8 +91,8 @@ export default function Profile() {
         </Link>
       </div>
 
-      <div className="grid gap-6 p-4 md:p-6 lg:grid-cols-[1fr_1.2fr]">
-        <div className="relative mb-0 overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 p-6 text-white shadow-lg">
+      <div className="grid gap-4 p-3 sm:gap-6 sm:p-4 md:p-6 lg:grid-cols-[1fr_1.2fr]">
+        <div className="client-card-dark relative mb-0 overflow-hidden rounded-2xl p-6 shadow-lg">
           <div className="absolute right-0 top-0 h-32 w-32 -mr-16 -mt-16 rounded-full bg-white/10 blur-2xl"></div>
           <div className="absolute bottom-0 left-0 h-24 w-24 -mb-12 -ml-12 rounded-full bg-white/10 blur-xl"></div>
 
@@ -101,15 +101,15 @@ export default function Profile() {
               <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.username ?? 'ShoppingOptimized'}`} alt={t('avatarAlt')} className="h-14 w-14 rounded-full" />
             </div>
             <div>
-              <h2 className="mb-1 text-xl font-bold">{user?.username ?? t('guest')}</h2>
+              <h2 className="mb-1 text-lg font-bold sm:text-xl">{user?.username ?? t('guest')}</h2>
               <div className="flex flex-wrap items-center gap-2 text-sm">
-                <span className="rounded-full bg-yellow-400 px-2 py-0.5 text-xs font-bold text-yellow-900">{t('vipBadge', { level: vipLevel })}</span>
-                <span className="opacity-80">{t('invitationCode')}: {user?.invite_code || t('notAvailable')}</span>
+                <span className="rounded-full bg-amber-300 px-2 py-0.5 text-xs font-bold text-amber-900">{t('vipBadge', { level: vipLevel })}</span>
+                <span className="opacity-80 text-amber-50/85">{t('invitationCode')}: {user?.invite_code || t('notAvailable')}</span>
               </div>
             </div>
           </div>
 
-          <div className="relative z-10 mb-6 text-sm text-blue-50">
+          <div className="relative z-10 mb-6 text-sm text-amber-50/85">
             <p>{user?.email || t('noEmailAddedYet')}</p>
             <p className="mt-1">{user?.phone || t('noPhoneAddedYet')}</p>
             <p className="mt-1">{t('wallet')}: {user?.wallet_address || t('notBoundYet')}</p>
@@ -125,7 +125,7 @@ export default function Profile() {
             </div>
           </div>
 
-          <div className="relative z-10 grid gap-3 md:grid-cols-3">
+          <div className="relative z-10 grid gap-3 sm:grid-cols-2 md:grid-cols-3">
             <div className={`rounded-xl border p-3 backdrop-blur-sm ${balance >= 0 ? 'border-emerald-200/30 bg-emerald-500/20' : 'border-rose-200/30 bg-rose-500/20'}`}>
               <p className="mb-1 text-xs opacity-80">{t('totalBalance')}</p>
               <p className={`text-lg font-bold ${balance >= 0 ? 'text-emerald-100' : 'text-rose-100'}`}>{balance.toFixed(2)} <span className="text-xs font-normal">USDT</span></p>
@@ -144,24 +144,24 @@ export default function Profile() {
         <div className="space-y-6">
           {menuSections.map((section, idx) => (
             <div key={idx}>
-              <h3 className="ml-2 mb-3 text-sm font-bold uppercase tracking-wider text-gray-500">{section.title}</h3>
-              <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+              <h3 className="ml-2 mb-3 text-sm font-bold uppercase tracking-wider text-[#6e5f4c]">{section.title}</h3>
+              <div className="client-card overflow-hidden rounded-2xl">
                 {section.items.map((item, itemIdx) => {
                   const content = (
-                    <div className="flex items-center gap-3 p-4 transition-colors hover:bg-gray-50">
+                    <div className="flex items-center gap-3 p-4 transition-colors hover:bg-white/70">
                       <div className={`flex h-10 w-10 items-center justify-center rounded-full ${item.bg}`}>
                         <item.icon className={item.color} size={20} />
                       </div>
-                      <span className="flex-1 font-medium text-gray-700">{item.label}</span>
+                      <span className="flex-1 font-medium text-[#382f26]">{item.label}</span>
                       {item.badge ? (
                         <span className="rounded-full bg-rose-50 px-2.5 py-1 text-[11px] font-semibold text-rose-600">{item.badge}</span>
                       ) : null}
-                      <ChevronLeft className="rotate-180 text-gray-400" size={20} />
+                      <ChevronLeft className="rotate-180 text-[#85735f]" size={20} />
                     </div>
                   );
 
                   return (
-                    <div key={itemIdx} className={itemIdx !== section.items.length - 1 ? 'border-b border-gray-50' : ''}>
+                    <div key={itemIdx} className={itemIdx !== section.items.length - 1 ? 'border-b border-[#d9cdbd]' : ''}>
                       {item.to ? (
                         <Link to={item.to} className="block">
                           {content}

@@ -317,25 +317,25 @@ export default function Starting() {
   const { translateText } = useDynamicTranslations(dynamicTexts);
 
   return (
-    <div className="canvas-texture relative flex min-h-full flex-col pb-6">
-      <div className="flex items-center justify-between rounded-xl bg-white p-4 shadow-sm md:p-5">
-        <h1 className="text-xl font-bold text-blue-600">{t('brandName')}</h1>
-        <div className="flex items-center gap-4">
-          <Bell className="text-gray-600" size={24} />
+    <div className="client-page relative flex min-h-full flex-col pb-6">
+      <div className="client-header flex items-center justify-between rounded-xl p-3 sm:p-4 shadow-sm md:p-5">
+        <h1 className="text-lg font-bold text-[#f5eee2] sm:text-xl">{t('brandName')}</h1>
+        <div className="flex items-center gap-3 sm:gap-4">
+          <Bell className="text-zinc-300" size={24} />
           <Link to="/profile">
-            <UserCircle className="text-gray-600" size={28} />
+            <UserCircle className="text-zinc-300" size={28} />
           </Link>
         </div>
       </div>
 
-      <div className="p-4 md:p-6">
+      <div className="p-3 sm:p-4 md:p-6">
         <div className="mx-auto w-full max-w-6xl">
-        <div className="mb-6 flex items-center gap-3">
+        <div className="mb-5 flex items-center gap-2.5 sm:mb-6 sm:gap-3">
           <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100">
             <span className="text-2xl">👋</span>
           </div>
           <div>
-            <h2 className="text-xl font-bold text-gray-800">{t('welcomeBack', { name: user?.username ?? t('guest') })}</h2>
+            <h2 className="text-lg font-bold text-[#3a2f24] sm:text-xl">{t('welcomeBack', { name: user?.username ?? t('guest') })}</h2>
             <div className="flex items-center gap-2">
               <span className="rounded-full bg-yellow-100 px-2 py-1 text-xs font-bold text-yellow-800">{t('vipBadge', { level: user?.vip_level ?? 1 })}</span>
             </div>
@@ -343,46 +343,46 @@ export default function Starting() {
         </div>
 
         <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-          <div className="rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 p-4 text-white shadow-md">
+          <div className="client-card-dark rounded-xl p-4 shadow-md">
             <p className="mb-1 text-sm opacity-80">{t('totalBalance')}</p>
             <p className="text-xl font-bold">{(user?.balance ?? 0).toFixed(2)} <span className="text-sm font-normal">USDT</span></p>
           </div>
-          <div className="rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-600 p-4 text-white shadow-md">
+          <div className="client-card-dark rounded-xl p-4 shadow-md">
             <p className="mb-1 text-sm opacity-80">{t('commissionToday')}</p>
             <p className="text-xl font-bold">{(user?.commission_today ?? 0).toFixed(2)} <span className="text-sm font-normal">USDT</span></p>
           </div>
-          <div className="flex min-h-[132px] flex-col justify-center rounded-xl border border-slate-200 bg-white p-4 shadow-sm md:p-5">
-            <p className="text-sm font-semibold text-slate-700">{t('taskProgress')}</p>
-            <p className="mt-3 text-4xl font-bold leading-none text-blue-600">{user?.tasks_completed_in_set ?? 0}<span className="text-2xl text-slate-500">/{totalTasks}</span></p>
+          <div className="client-card hidden min-h-[132px] flex-col justify-center rounded-xl p-4 sm:flex md:p-5">
+            <p className="text-sm font-semibold text-[#645342]">{t('taskProgress')}</p>
+            <p className="mt-3 text-3xl font-bold leading-none text-amber-700 sm:text-4xl">{user?.tasks_completed_in_set ?? 0}<span className="text-xl text-[#6f5e4c] sm:text-2xl">/{totalTasks}</span></p>
           </div>
         </div>
 
         <div className="mb-4 flex justify-between items-center">
-          <h3 className="font-bold text-gray-800">{t('startOptimization')}</h3>
-          <span className="text-sm text-gray-500 bg-gray-200 px-3 py-1 rounded-full">
+          <h3 className="font-bold text-[#3c3025]">{t('startOptimization')}</h3>
+          <span className="rounded-full bg-[#e6d4bb] px-3 py-1 text-sm text-[#6e5d4b]">
             {user?.tasks_completed_in_set ?? 0}/{totalTasks}
           </span>
         </div>
 
-        <div className="mx-auto max-w-[1040px] rounded-2xl p-2 md:p-4">
-          <div className="grid grid-cols-3 justify-items-center gap-3 sm:gap-4 md:gap-5">
+        <div className="mx-auto max-w-[1200px] rounded-2xl p-1.5 sm:p-2 md:p-4">
+          <div className="grid grid-cols-3 justify-items-center gap-2 sm:gap-4 md:gap-5">
             {productCells.map((product, cellIndex) => {
               if (cellIndex === 4) {
                 return (
-                  <div key="start-cell" className="aspect-square w-full max-w-[180px]">
+                  <div key="start-cell" className="aspect-square w-full max-w-[112px] min-[420px]:max-w-[140px] sm:max-w-[180px] md:max-w-[205px] lg:max-w-[225px]">
                     <button
                       onClick={handleStart}
                       disabled={isOptimizing || pendingTaskBlocked || (user?.tasks_completed_in_set ?? 0) >= totalTasks || !isAccountActive}
-                      className={`mx-auto flex h-full w-full flex-col items-center justify-center rounded-full text-center text-white font-bold text-lg shadow-2xl transition-transform active:scale-95 ${
+                      className={`mx-auto flex h-full w-full flex-col items-center justify-center rounded-full text-center text-white font-bold text-sm shadow-2xl transition-transform active:scale-95 sm:text-lg ${
                         (isOptimizing || pendingTaskBlocked || (user?.tasks_completed_in_set ?? 0) >= totalTasks || !isAccountActive)
                           ? 'bg-gray-400 cursor-not-allowed'
-                          : 'bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700'
+                          : 'bg-[linear-gradient(100deg,#9f6a2a_0%,#be8a43_52%,#986225_100%)] hover:brightness-105'
                       }`}
                     >
                       {isOptimizing ? (
                         <div className="mb-2 h-8 w-8 animate-spin rounded-full border-b-2 border-white"></div>
                       ) : (
-                        <span className="mb-2 text-4xl">🚀</span>
+                        <span className="mb-1 text-3xl sm:mb-2 sm:text-4xl">🚀</span>
                       )}
                       <span>{isOptimizing ? t('optimizing') : pendingTaskBlocked ? t('pending') : t('start')}</span>
                     </button>
@@ -391,7 +391,7 @@ export default function Starting() {
               }
 
               return (
-                <div key={`product-cell-${cellIndex}`} className="aspect-square w-full max-w-[180px] overflow-hidden rounded-2xl border border-slate-100 bg-slate-50 shadow-sm">
+                <div key={`product-cell-${cellIndex}`} className="aspect-square w-full max-w-[112px] min-[420px]:max-w-[140px] sm:max-w-[180px] md:max-w-[205px] lg:max-w-[225px] overflow-hidden rounded-2xl border border-[#d9c8b0] bg-[#f6ede0] shadow-sm">
                   {product ? (
                     <img
                       src={product.image_url || 'https://picsum.photos/seed/default/300/300'}
@@ -399,7 +399,7 @@ export default function Starting() {
                       className="h-full w-full object-cover transition-transform duration-500"
                     />
                   ) : (
-                    <div className="flex h-full w-full items-center justify-center bg-slate-100 text-xs font-medium uppercase tracking-[0.2em] text-slate-400">
+                    <div className="flex h-full w-full items-center justify-center bg-[#efe2cf] text-[10px] font-medium uppercase tracking-[0.12em] text-[#8d7c68] sm:text-xs sm:tracking-[0.2em]">
                       {t('waiting')}
                     </div>
                   )}
@@ -418,29 +418,29 @@ export default function Starting() {
           </div>
         )}
 
-        <div className="mt-6 rounded-xl border border-slate-200 bg-white p-4 shadow-sm md:p-5">
+        <div className="client-card mt-6 rounded-xl p-4 md:p-5">
           <div className="flex items-center justify-between">
-            <h3 className="text-base font-bold text-slate-800">{t('pendingSection')}</h3>
-            <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700">
+            <h3 className="text-base font-bold text-[#3b3025]">{t('pendingSection')}</h3>
+            <span className="rounded-full bg-[#ead8bc] px-3 py-1 text-xs font-semibold text-[#6f542e]">
               {pendingTasks.length} {t('activeLabel')}
             </span>
           </div>
 
           {pendingTasks.length === 0 ? (
-            <div className="mt-4 rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-sm text-slate-500">
+            <div className="mt-4 rounded-xl border border-dashed border-[#d8c8b2] bg-[#f5ebdd] px-4 py-6 text-sm text-[#7a6855]">
               {t('noPendingTasks')}
             </div>
           ) : (
             <div className="mt-4 space-y-4">
               {pendingTasks.map((task) => (
-                <div key={task.taskCode} className="rounded-xl border border-slate-200 p-4">
+                <div key={task.taskCode} className="rounded-xl border border-[#d8c8b2] bg-white/65 p-3 sm:p-4">
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
-                    <img src={task.image} alt={task.title} className="h-20 w-20 rounded-xl object-cover bg-slate-100" />
+                    <img src={task.image} alt={task.title} className="h-20 w-20 rounded-xl object-cover bg-[#f1e6d5]" />
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                         <div>
-                          <h4 className="line-clamp-2 font-semibold text-slate-800">{translateText(task.title)}</h4>
-                          <p className="mt-1 text-xs text-slate-500">{new Date(task.createdAt).toLocaleString()}</p>
+                          <h4 className="line-clamp-2 font-semibold text-[#3a2f24]">{translateText(task.title)}</h4>
+                          <p className="mt-1 text-xs text-[#7a6955]">{new Date(task.createdAt).toLocaleString()}</p>
                         </div>
                         <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
                           task.status === 'pending_debited' ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700'
@@ -450,17 +450,17 @@ export default function Starting() {
                       </div>
 
                       <div className="mt-3 grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
-                        <div className="rounded-lg bg-slate-50 px-3 py-2">
-                          <p className="text-xs text-slate-500">{t('amountLabel')}</p>
-                          <p className="font-semibold text-slate-800">USDT {task.price.toFixed(2)}</p>
+                        <div className="rounded-lg bg-[#f3e8d9] px-3 py-2">
+                          <p className="text-xs text-[#7a6955]">{t('amountLabel')}</p>
+                          <p className="font-semibold text-[#3a2f24]">USDT {task.price.toFixed(2)}</p>
                         </div>
-                        <div className="rounded-lg bg-slate-50 px-3 py-2">
-                          <p className="text-xs text-slate-500">{t('commissionLabel')}</p>
+                        <div className="rounded-lg bg-[#f3e8d9] px-3 py-2">
+                          <p className="text-xs text-[#7a6955]">{t('commissionLabel')}</p>
                           <p className="font-semibold text-emerald-600">USDT {task.commission.toFixed(2)}</p>
                         </div>
-                        <div className="rounded-lg bg-slate-50 px-3 py-2 col-span-2 sm:col-span-1">
-                          <p className="text-xs text-slate-500">{t('taskCode')}</p>
-                          <p className="font-mono text-xs font-semibold text-slate-800">{task.taskCode}</p>
+                        <div className="col-span-2 rounded-lg bg-[#f3e8d9] px-3 py-2 sm:col-span-1">
+                          <p className="text-xs text-[#7a6955]">{t('taskCode')}</p>
+                          <p className="font-mono text-xs font-semibold text-[#3a2f24]">{task.taskCode}</p>
                         </div>
                       </div>
 
@@ -470,7 +470,7 @@ export default function Starting() {
                             setCurrentTask(task);
                             setPendingTaskBlocked(true);
                           }}
-                          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+                          className="client-btn-primary rounded-lg px-4 py-2 text-sm font-semibold"
                         >
                           {t('resumeTask')}
                         </button>
@@ -491,22 +491,22 @@ export default function Starting() {
     </div>
 
       {currentTask && (
-        <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="w-full max-w-3xl overflow-hidden rounded-2xl bg-white shadow-2xl">
-            <div className="bg-blue-600 p-4 text-white flex justify-between items-center">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-3 sm:p-4 backdrop-blur-sm">
+          <div className="w-full max-w-3xl overflow-hidden rounded-2xl bg-[#f0e5d6] shadow-2xl">
+            <div className="client-header flex items-center justify-between p-4 text-white">
               <h3 className="font-bold text-lg">{t('taskSubmission')}</h3>
               <button onClick={handleCloseModal} className="text-white/80 hover:text-white">
                 <X size={24} />
               </button>
             </div>
 
-            <div className="p-6 md:p-8">
+            <div className="p-4 sm:p-6 md:p-8">
               <div className="mb-6 grid gap-6 md:grid-cols-2">
-                <div className="flex gap-4">
-                <img src={currentTask.image} alt={t('productAlt')} className="w-24 h-24 object-cover rounded-lg shadow-sm" />
+                <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
+                <img src={currentTask.image} alt={t('productAlt')} className="h-20 w-20 rounded-lg object-cover shadow-sm sm:h-24 sm:w-24" />
                 <div>
-                  <h4 className="font-medium text-gray-800 line-clamp-2 mb-2">{translateText(currentTask.title)}</h4>
-                  <p className="text-blue-600 font-bold">USDT {currentTask.price.toFixed(2)}</p>
+                  <h4 className="mb-2 line-clamp-2 font-medium text-[#3a2f24]">{translateText(currentTask.title)}</h4>
+                  <p className="font-bold text-amber-700">USDT {currentTask.price.toFixed(2)}</p>
                   <div className="flex text-yellow-400 mt-1">
                     {[...Array(5)].map((_, i) => <Star key={i} size={14} fill="currentColor" />)}
                   </div>
@@ -517,30 +517,30 @@ export default function Starting() {
                   {currentTask.isCombo && currentTask.products && currentTask.products.length > 0 && (
                     <div className="mb-4 space-y-2">
                       {currentTask.products.map((item) => (
-                        <div key={item.product_id} className="flex items-center justify-between text-sm rounded-lg bg-blue-50 px-3 py-2 border border-blue-100">
-                          <span className="text-gray-700">{translateText(item.product_name)}</span>
-                          <span className="font-semibold text-blue-700">USDT {Number(item.price).toFixed(2)}</span>
+                        <div key={item.product_id} className="flex items-center justify-between rounded-lg border border-[#dbc9b0] bg-[#f3e8d8] px-3 py-2 text-sm">
+                          <span className="text-[#5a4b3c]">{translateText(item.product_name)}</span>
+                          <span className="font-semibold text-amber-700">USDT {Number(item.price).toFixed(2)}</span>
                         </div>
                       ))}
                     </div>
                   )}
 
-                  <div className="space-y-3 bg-gray-50 p-4 rounded-xl border border-gray-100">
+                  <div className="space-y-3 rounded-xl border border-[#dbc9b0] bg-[#f6ede0] p-4">
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">{t('totalAmount')}</span>
-                      <span className="font-bold text-gray-800">USDT {currentTask.price.toFixed(2)}</span>
+                      <span className="text-[#786754]">{t('totalAmount')}</span>
+                      <span className="font-bold text-[#3a2f24]">USDT {currentTask.price.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">{t('commissionLabel')}</span>
+                      <span className="text-[#786754]">{t('commissionLabel')}</span>
                       <span className="font-bold text-green-600">USDT {currentTask.commission.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">{t('createdAt')}</span>
-                      <span className="text-gray-800">{new Date(currentTask.createdAt).toLocaleString()}</span>
+                      <span className="text-[#786754]">{t('createdAt')}</span>
+                      <span className="text-[#3a2f24]">{new Date(currentTask.createdAt).toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">{t('taskCode')}</span>
-                      <span className="text-gray-800 font-mono">{currentTask.taskCode}</span>
+                      <span className="text-[#786754]">{t('taskCode')}</span>
+                      <span className="font-mono text-[#3a2f24]">{currentTask.taskCode}</span>
                     </div>
                   </div>
                 </div>
@@ -561,11 +561,11 @@ export default function Starting() {
                       className="w-full rounded-lg border border-rose-200 bg-white px-3 py-2 text-sm text-gray-800"
                     />
                   </div>
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between">
                     <Link to="/deposit" className="text-blue-600 underline font-medium">{t('goToDeposit')}</Link>
                     <button
                       onClick={() => setChatSignal((prev) => prev + 1)}
-                      className="text-blue-600 underline font-medium"
+                      className="text-amber-700 underline font-medium"
                     >
                       {t('contactSupportChat')}
                     </button>
@@ -576,7 +576,7 @@ export default function Starting() {
               <button
                 onClick={handleSubmitTask}
                 disabled={isSubmitting || !isAccountActive}
-                className="w-full bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 transition-colors shadow-md disabled:opacity-60 disabled:cursor-not-allowed"
+                className="client-btn-primary w-full rounded-xl py-3 font-bold transition-colors shadow-md disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isSubmitting ? t('submitting') : t('submit')}
               </button>

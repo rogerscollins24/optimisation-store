@@ -16,9 +16,9 @@ export default function Layout() {
   const isActivated = user?.status === 'Active';
 
   return (
-    <div className="flex min-h-screen flex-col bg-gradient-to-br from-gray-50 to-slate-100">
-      <div className="flex-1 overflow-y-auto pb-24">
-        <div className="mx-auto w-full max-w-7xl px-4 py-4 md:px-8 md:py-6">
+    <div className="flex min-h-screen flex-col bg-gradient-to-br from-[#f4f0e8] via-[#ece7dd] to-[#e7e1d6]">
+      <div className="flex-1 overflow-y-auto pb-20 sm:pb-24">
+        <div className="mx-auto w-full max-w-7xl px-3 py-3 sm:px-4 sm:py-4 md:px-8 md:py-6">
           {!isActivated && (
             <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
               account not activated contact support
@@ -28,38 +28,38 @@ export default function Layout() {
         </div>
       </div>
 
-      <nav className="fixed bottom-0 left-0 z-50 w-full border-t border-gray-200 bg-white/95 backdrop-blur">
-        <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-around px-2">
+      <nav className="fixed bottom-0 left-0 z-50 w-full border-t border-zinc-700/80 bg-[linear-gradient(90deg,#161616_0%,#1f1d1b_48%,#151515_100%)] shadow-[0_-10px_24px_rgba(0,0,0,0.35)] backdrop-blur">
+        <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-around px-1 sm:h-20 sm:px-2">
           <NavLink
             to="/"
             className={({ isActive }) =>
-              cn('flex w-16 flex-col items-center justify-center gap-1 text-xs', isActive ? 'text-sky-600' : 'text-gray-500')
+              cn('flex w-16 flex-col items-center justify-center gap-1 text-[10px] uppercase tracking-[0.08em] sm:w-20 sm:text-[11px] sm:tracking-[0.1em]', isActive ? 'text-amber-300' : 'text-zinc-400')
             }
           >
             <BrandHomeIcon size={24} />
-            <span>{t('home')}</span>
+            <span className="font-semibold">{t('home')}</span>
           </NavLink>
 
           <NavLink
             to="/starting"
             className={({ isActive }) =>
-              cn('relative -top-5 flex w-24 flex-col items-center justify-center gap-1 text-xs', isActive ? 'text-blue-600' : 'text-gray-500')
+              cn('relative -top-5 flex w-20 flex-col items-center justify-center gap-1 text-[10px] uppercase tracking-[0.08em] sm:-top-7 sm:w-24 sm:text-[11px] sm:tracking-[0.1em]', isActive ? 'text-zinc-100' : 'text-zinc-300')
             }
           >
-            <div className="mb-1 rounded-full bg-white p-2.5 shadow-[0_12px_24px_rgba(59,130,246,0.24)] ring-4 ring-sky-100">
-              <ShipWheelIcon size={42} />
+            <div className="mb-1 rounded-full border border-amber-500/35 bg-[radial-gradient(circle_at_30%_25%,#74512a_0%,#362515_75%)] p-1.5 shadow-[0_14px_30px_rgba(35,27,20,0.55)] ring-2 ring-black/20 sm:p-2.5 sm:ring-4">
+              <ShipWheelIcon size={34} />
             </div>
-            <span className="font-medium">{t('starting')}</span>
+            <span className="font-semibold">{t('starting')}</span>
           </NavLink>
 
           <NavLink
             to="/records"
             className={({ isActive }) =>
-              cn('flex w-16 flex-col items-center justify-center gap-1 text-xs', isActive ? 'text-blue-600' : 'text-gray-500')
+              cn('flex w-16 flex-col items-center justify-center gap-1 text-[10px] uppercase tracking-[0.08em] sm:w-20 sm:text-[11px] sm:tracking-[0.1em]', isActive ? 'text-amber-300' : 'text-zinc-400')
             }
           >
-            <FileText size={24} />
-            <span>{t('records')}</span>
+            <FileText size={20} />
+            <span className="font-semibold">{t('records')}</span>
           </NavLink>
         </div>
       </nav>
