@@ -1,4 +1,4 @@
-import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { Outlet, NavLink } from 'react-router-dom';
 import { FileText } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -13,41 +13,10 @@ export function cn(...inputs: (string | undefined | null | false)[]) {
 export default function Layout() {
   const { t } = useTranslation();
   const { user } = useAuth();
-  const location = useLocation();
-  const navigate = useNavigate();
   const isActivated = user?.status === 'Active';
-  const isBalanceNegative = (user?.balance ?? 0) < 0;
-  const isSupportOrDepositPage = location.pathname.startsWith('/deposit') || location.pathname.startsWith('/support');
-  const shouldShowNegativeBalancePopup = isActivated && isBalanceNegative && !isSupportOrDepositPage;
-  const requiredDeposit = Math.abs(user?.balance ?? 0);
 
   return (
     <div className="flex min-h-screen flex-col bg-gradient-to-br from-[#f4f0e8] via-[#ece7dd] to-[#e7e1d6]">
-      {shouldShowNegativeBalancePopup && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/55 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-2xl border border-rose-200 bg-[#f8efe4] p-5 shadow-2xl sm:p-6">
-            <h2 className="text-lg font-bold text-[#3a2f24]">{t('insufficientBalanceDeposit')}</h2>
-            <p className="mt-2 text-sm text-[#6f5e4b]">{t('requiredDeposit')}: USDT {requiredDeposit.toFixed(2)}</p>
-            <p className="mt-1 text-sm text-[#6f5e4b]">Deposit funds to continue, or contact support for assistance.</p>
-
-            <div className="mt-5 flex flex-col gap-2.5">
-              <button
-                onClick={() => navigate('/deposit')}
-                className="client-btn-primary w-full rounded-xl py-2.5 text-sm font-semibold"
-              >
-                {t('goToDeposit')}
-              </button>
-              <button
-                onClick={() => navigate('/support')}
-                className="w-full rounded-xl border border-amber-300 bg-amber-50 py-2.5 text-sm font-semibold text-amber-800 transition hover:bg-amber-100"
-              >
-                {t('contactSupportChat')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       <div className="flex-1 overflow-y-auto pb-20 sm:pb-24">
         <div className="mx-auto w-full max-w-7xl px-3 py-3 sm:px-4 sm:py-4 md:px-8 md:py-6">
           {!isActivated && (
