@@ -203,6 +203,12 @@ export default function Starting() {
       ]);
       if (!response.ok) {
         const error = await parseError(response);
+        if (error.code === 'PENDING_TASK_EXISTS' && error.task?.status === 'pending_debited') {
+          const needed = Math.abs(user.balance ?? 0);
+          setRequiredDeposit(needed > 0 ? needed : Number(error.requiredDeposit || 0));
+          setDepositAmount(needed > 0 ? needed.toFixed(2) : '');
+          setSupportUrl(typeof error.supportUrl === 'string' && error.supportUrl ? error.supportUrl : 'https://t.me/');
+        }
         if (error.task) {
           setCurrentTask(mapTaskRecord(error.task));
           setPendingTaskBlocked(true);
@@ -582,43 +588,6 @@ export default function Starting() {
                 </div>
               </div>
 
-              {hasDepositWarning && (
-                <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700 space-y-2">
-                  <div className="flex items-start justify-between gap-2">
-                    <p className="font-semibold">{t('insufficientBalanceDeposit')}</p>
-                    <button
-                      onClick={handleCloseDepositWarning}
-                      type="button"
-                      className="rounded p-1 text-rose-500 transition hover:bg-rose-100 hover:text-rose-700"
-                      aria-label="Close insufficient balance warning"
-                    >
-                      <X size={16} />
-                    </button>
-                  </div>
-                  <p>{t('requiredDeposit')}: USDT {computedRequiredDeposit.toFixed(2)}</p>
-                  <div>
-                    <label className="block text-xs text-rose-600 mb-1">{t('depositAmount')}</label>
-                    <input
-                      value={depositAmount}
-                      onChange={(e) => setDepositAmount(e.target.value)}
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      className="w-full rounded-lg border border-rose-200 bg-white px-3 py-2 text-sm text-gray-800"
-                    />
-                  </div>
-                  <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between">
-                    <Link to="/deposit" className="text-blue-600 underline font-medium">{t('goToDeposit')}</Link>
-                    <button
-                      onClick={() => setChatSignal((prev) => prev + 1)}
-                      className="text-amber-700 underline font-medium"
-                    >
-                      {t('contactSupportChat')}
-                    </button>
-                  </div>
-                </div>
-              )}
-
               <button
                 onClick={handleSubmitTask}
                 disabled={isSubmitting || !isAccountActive}
@@ -641,6 +610,57 @@ export default function Starting() {
             : null
         }
       />
+
+      {hasDepositWarning && (
+        <div className="fixed inset-0 z-[130] flex items-center justify-center bg-black/55 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl border border-rose-200 bg-[#f8efe4] p-5 shadow-2xl sm:p-6">
+            <div className="flex items-start justify-between gap-2">
+              <h3 className="text-lg font-bold text-[#3a2f24]">{t('insufficientBalanceDeposit')}</h3>
+              <button
+                onClick={handleCloseDepositWarning}
+                type="button"
+                className="rounded p-1 text-[#8a7560] transition hover:bg-[#efe1cf] hover:text-[#5f4d3a]"
+                aria-label="Close deposit popup"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <p className="mt-2 text-sm text-[#6f5e4b]">{t('requiredDeposit')}: USDT {computedRequiredDeposit.toFixed(2)}</p>
+
+            <div className="mt-4">
+              <label className="mb-1 block text-xs text-[#7a6551]">{t('depositAmount')}</label>
+              <input
+                value={depositAmount}
+                onChange={(e) => setDepositAmount(e.target.value)}
+                type="number"
+                min="0"
+                step="0.01"
+                className="w-full rounded-lg border border-[#d8c4ab] bg-white px-3 py-2 text-sm text-gray-800"
+              />
+            </div>
+
+            <div className="mt-5 flex flex-col gap-2.5">
+              <Link
+                to="/deposit"
+                onClick={handleCloseDepositWarning}
+                className="client-btn-primary block w-full rounded-xl py-2.5 text-center text-sm font-semibold"
+              >
+                {t('goToDeposit')}
+              </Link>
+              <button
+                onClick={() => {
+                  setChatSignal((prev) => prev + 1);
+                  handleCloseDepositWarning();
+                }}
+                className="w-full rounded-xl border border-amber-300 bg-amber-50 py-2.5 text-sm font-semibold text-amber-800 transition hover:bg-amber-100"
+              >
+                {t('contactSupportChat')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
