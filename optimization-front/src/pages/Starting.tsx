@@ -182,6 +182,14 @@ export default function Starting() {
       setChatSignal((prev) => prev + 1);
       return;
     }
+
+    if ((user.balance ?? 0) < 0) {
+      const needed = Math.abs(user.balance ?? 0);
+      setRequiredDeposit(needed);
+      setDepositAmount(needed.toFixed(2));
+      return;
+    }
+
     if (user.tasks_completed_in_set >= totalTasks) {
       alert(t('completedAllTasks'));
       return;
@@ -239,6 +247,13 @@ export default function Starting() {
     if (!isAccountActive) {
       alert('Account not active. Contact support.');
       setChatSignal((prev) => prev + 1);
+      return;
+    }
+
+    if ((user.balance ?? 0) < 0) {
+      const needed = Math.abs(user.balance ?? 0);
+      setRequiredDeposit(needed);
+      setDepositAmount(needed.toFixed(2));
       return;
     }
 
