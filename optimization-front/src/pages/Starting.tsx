@@ -126,11 +126,6 @@ export default function Starting() {
           const task = mappedTasks[0];
           setCurrentTask(task);
           setPendingTaskBlocked(true);
-          if (task.status === 'pending_debited' && user.balance < 0) {
-            const needed = Math.abs(user.balance);
-            setRequiredDeposit(needed);
-            setDepositAmount(needed.toFixed(2));
-          }
         } else {
           setPendingTasks([]);
           setPendingTaskBlocked(false);
@@ -292,6 +287,13 @@ export default function Starting() {
   const handleCloseModal = () => {
     setCurrentTask(null);
     setPendingTaskBlocked(true);
+    setRequiredDeposit(null);
+    setDepositAmount('');
+  };
+
+  const handleCloseDepositWarning = () => {
+    setRequiredDeposit(null);
+    setDepositAmount('');
   };
 
   const productCells = useMemo(() => {
@@ -304,8 +306,8 @@ export default function Starting() {
     return cells;
   }, [visibleProducts]);
 
-  const hasDepositWarning = requiredDeposit !== null || ((currentTask?.status === 'pending_debited') && (user?.balance ?? 0) < 0);
-  const computedRequiredDeposit = requiredDeposit ?? (user && user.balance < 0 ? Math.abs(user.balance) : 0);
+  const hasDepositWarning = requiredDeposit !== null;
+  const computedRequiredDeposit = requiredDeposit ?? 0;
 
   const dynamicTexts = useMemo(() => {
     const texts: string[] = [];
@@ -488,6 +490,8 @@ export default function Starting() {
                           onClick={() => {
                             setCurrentTask(task);
                             setPendingTaskBlocked(true);
+                            setRequiredDeposit(null);
+                            setDepositAmount('');
                           }}
                           className="client-btn-primary rounded-lg px-4 py-2 text-sm font-semibold"
                         >
@@ -580,7 +584,17 @@ export default function Starting() {
 
               {hasDepositWarning && (
                 <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700 space-y-2">
-                  <p className="font-semibold">{t('insufficientBalanceDeposit')}</p>
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="font-semibold">{t('insufficientBalanceDeposit')}</p>
+                    <button
+                      onClick={handleCloseDepositWarning}
+                      type="button"
+                      className="rounded p-1 text-rose-500 transition hover:bg-rose-100 hover:text-rose-700"
+                      aria-label="Close insufficient balance warning"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
                   <p>{t('requiredDeposit')}: USDT {computedRequiredDeposit.toFixed(2)}</p>
                   <div>
                     <label className="block text-xs text-rose-600 mb-1">{t('depositAmount')}</label>
