@@ -37,6 +37,12 @@ const getVisibleProducts = (items: Product[], count = 8) => {
 };
 
 const wait = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
+const MIN_TIER_1_BALANCE = 500;
+
+const getRequiredDepositForActivation = (balance: number, backendRequired = 0) => {
+  const requiredToReachTier1 = Math.max(0, MIN_TIER_1_BALANCE - balance);
+  return Math.max(requiredToReachTier1, backendRequired);
+};
 
 const getInitials = (name: string) => {
   const tokens = name
@@ -183,8 +189,8 @@ export default function Starting() {
       return;
     }
 
-    if ((user.balance ?? 0) < 0) {
-      const needed = Math.abs(user.balance ?? 0);
+    if ((user.balance ?? 0) <= 0) {
+      const needed = getRequiredDepositForActivation(user.balance ?? 0);
       setRequiredDeposit(needed);
       setDepositAmount(needed.toFixed(2));
       return;
@@ -212,8 +218,8 @@ export default function Starting() {
       if (!response.ok) {
         const error = await parseError(response);
         if (error.code === 'PENDING_TASK_EXISTS' && error.task?.status === 'pending_debited') {
-          const needed = Math.abs(user.balance ?? 0);
-          setRequiredDeposit(needed > 0 ? needed : Number(error.requiredDeposit || 0));
+          const needed = getRequiredDepositForActivation(user.balance ?? 0, Number(error.requiredDeposit || 0));
+          setRequiredDeposit(needed);
           setDepositAmount(needed > 0 ? needed.toFixed(2) : '');
           setSupportUrl(typeof error.supportUrl === 'string' && error.supportUrl ? error.supportUrl : 'https://t.me/');
         }
@@ -250,8 +256,8 @@ export default function Starting() {
       return;
     }
 
-    if ((user.balance ?? 0) < 0) {
-      const needed = Math.abs(user.balance ?? 0);
+    if ((user.balance ?? 0) <= 0) {
+      const needed = getRequiredDepositForActivation(user.balance ?? 0);
       setRequiredDeposit(needed);
       setDepositAmount(needed.toFixed(2));
       return;
@@ -268,7 +274,7 @@ export default function Starting() {
       if (!response.ok) {
         const error = await parseError(response);
         if (error.code === 'INSUFFICIENT_BALANCE') {
-          const needed = Number(error.requiredDeposit || 0);
+          const needed = getRequiredDepositForActivation(user.balance ?? 0, Number(error.requiredDeposit || 0));
           setRequiredDeposit(needed);
           setDepositAmount(needed > 0 ? needed.toFixed(2) : '');
           setSupportUrl(typeof error.supportUrl === 'string' && error.supportUrl ? error.supportUrl : supportUrl);
