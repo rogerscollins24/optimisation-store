@@ -4,11 +4,14 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { BrandHomeIcon } from '../components/BrandIcons';
 import LanguageSwitcher from '../components/LanguageSwitcher';
+import DarkModeToggle from '../components/DarkModeToggle';
+import { useTheme } from '../context/ThemeContext';
 
 export default function Login() {
   const navigate = useNavigate();
   const { login, signup } = useAuth();
   const { t } = useTranslation();
+  const { theme } = useTheme();
   const [isSignupMode, setIsSignupMode] = useState(false);
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
@@ -20,6 +23,7 @@ export default function Login() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const isDark = theme === 'dark';
 
   const refreshCaptcha = () => {
     setCaptchaNumA(Math.floor(Math.random() * 9) + 1);
@@ -45,7 +49,7 @@ export default function Login() {
     try {
       const parsedAnswer = Number(captchaAnswer);
       if (!Number.isFinite(parsedAnswer)) {
-        throw new Error('Please enter a valid captcha answer');
+        throw new Error(t('invalidCaptchaAnswer'));
       }
 
       if (isSignupMode) {
@@ -68,13 +72,17 @@ export default function Login() {
   };
 
   return (
-    <div className="flex min-h-screen items-stretch" style={{ backgroundColor: '#1e1b18' }}>
+    <div className="flex min-h-screen items-stretch" style={{ backgroundColor: 'transparent' }}>
       <LanguageSwitcher className="fixed top-4 right-4 z-50" dropdownDirection="down" />
+      <DarkModeToggle className="fixed top-16 right-4 z-50" />
       {/* Left panel — brand identity */}
       <div
         className="relative hidden flex-col justify-between overflow-hidden p-12 lg:flex lg:w-[46%]"
         style={{
-          background: 'linear-gradient(155deg, #2d2720 0%, #1a1510 60%, #0f0d0b 100%)',
+          background: isDark
+            ? 'linear-gradient(155deg, rgba(34,29,23,0.84) 0%, rgba(22,18,14,0.88) 60%, rgba(12,10,8,0.92) 100%)'
+            : 'linear-gradient(155deg, rgba(45,39,32,0.78) 0%, rgba(26,21,16,0.82) 60%, rgba(15,13,11,0.88) 100%)',
+          backdropFilter: 'blur(18px)',
         }}
       >
         {/* Geometric accent — large amber circle */}
@@ -99,7 +107,7 @@ export default function Login() {
             <BrandHomeIcon size={28} className="text-amber-400" />
           </div>
           <h1 className="font-display text-5xl font-800 leading-[1.1] tracking-tight text-white"
-              style={{ fontFamily: '"Syne", ui-sans-serif', fontWeight: 800 }}>
+              style={{ fontFamily: '"Bricolage Grotesque", ui-sans-serif', fontWeight: 800 }}>
             {t('brandName')}
           </h1>
           <p className="mt-4 text-base leading-relaxed" style={{ color: '#a09585' }}>
@@ -109,9 +117,9 @@ export default function Login() {
 
         <div className="relative z-10 space-y-4">
           {[
-            { icon: '◈', label: 'Smart task optimisation' },
-            { icon: '◈', label: 'Daily USDT commissions' },
-            { icon: '◈', label: 'VIP tier rewards' },
+            { icon: '◈', label: t('featureSmartOptimisation') },
+            { icon: '◈', label: t('featureDailyCommissions') },
+            { icon: '◈', label: t('featureVipRewards') },
           ].map((item) => (
             <div key={item.label} className="flex items-center gap-3">
               <span className="text-amber-500 text-xs">{item.icon}</span>
@@ -125,24 +133,24 @@ export default function Login() {
       </div>
 
       {/* Right panel — form */}
-      <div className="flex flex-1 flex-col items-center justify-center px-6 py-12" style={{ backgroundColor: '#faf8f4' }}>
+      <div className="flex flex-1 flex-col items-center justify-center px-6 py-12" style={{ background: isDark ? 'rgba(24,21,17,0.68)' : 'rgba(250,248,244,0.72)', backdropFilter: 'blur(18px)' }}>
         <div className="w-full max-w-md">
           {/* Mobile brand header */}
           <div className="mb-8 lg:hidden">
             <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-600 shadow-lg">
               <BrandHomeIcon size={28} className="text-white" />
             </div>
-            <h2 className="text-3xl font-bold text-stone-900" style={{ fontFamily: '"Syne", ui-sans-serif', fontWeight: 700 }}>
+            <h2 className="text-3xl font-bold text-stone-900" style={{ fontFamily: '"Bricolage Grotesque", ui-sans-serif', fontWeight: 700 }}>
               {t('brandName')}
             </h2>
           </div>
 
           <div className="mb-8">
-            <h3 className="text-2xl font-bold text-stone-900" style={{ fontFamily: '"Syne", ui-sans-serif', fontWeight: 700 }}>
-              {isSignupMode ? 'Create account' : t('login')}
+            <h3 className="text-2xl font-bold text-stone-900" style={{ fontFamily: '"Bricolage Grotesque", ui-sans-serif', fontWeight: 700 }}>
+              {isSignupMode ? t('createAccount') : t('login')}
             </h3>
             <p className="mt-1.5 text-sm text-stone-500">
-              {isSignupMode ? 'Referral code is optional.' : t('loginPrompt')}
+              {isSignupMode ? t('signupSubtitle') : t('loginPrompt')}
             </p>
           </div>
 
@@ -150,7 +158,7 @@ export default function Login() {
             {isSignupMode ? (
               <>
                 <div>
-                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-stone-500">Email</label>
+                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-stone-500">{t('email')}</label>
                   <input
                     type="email"
                     value={email}
@@ -159,12 +167,12 @@ export default function Login() {
                     style={{ borderColor: '#ddd8d0', focusRingColor: '#b45309' }}
                     onFocus={(e) => { e.currentTarget.style.borderColor = '#b45309'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(180,83,9,0.12)'; }}
                     onBlur={(e) => { e.currentTarget.style.borderColor = '#ddd8d0'; e.currentTarget.style.boxShadow = 'none'; }}
-                    placeholder="Enter your email"
+                    placeholder={t('enterYourEmail')}
                     required
                   />
                 </div>
                 <div>
-                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-stone-500">Referral Code <span className="normal-case font-normal text-stone-400">(optional)</span></label>
+                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-stone-500">{t('referralCode')} <span className="normal-case font-normal text-stone-400">({t('optional')})</span></label>
                   <input
                     type="text"
                     value={referralCode}
@@ -173,13 +181,13 @@ export default function Login() {
                     style={{ borderColor: '#ddd8d0' }}
                     onFocus={(e) => { e.currentTarget.style.borderColor = '#b45309'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(180,83,9,0.12)'; }}
                     onBlur={(e) => { e.currentTarget.style.borderColor = '#ddd8d0'; e.currentTarget.style.boxShadow = 'none'; }}
-                    placeholder="Enter referral code"
+                    placeholder={t('enterReferralCode')}
                   />
                 </div>
               </>
             ) : (
               <div>
-                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-stone-500">Username or Email</label>
+                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-stone-500">{t('usernameOrEmail')}</label>
                 <input
                   type="text"
                   value={username}
@@ -188,7 +196,7 @@ export default function Login() {
                   style={{ borderColor: '#ddd8d0' }}
                   onFocus={(e) => { e.currentTarget.style.borderColor = '#b45309'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(180,83,9,0.12)'; }}
                   onBlur={(e) => { e.currentTarget.style.borderColor = '#ddd8d0'; e.currentTarget.style.boxShadow = 'none'; }}
-                  placeholder="Enter username or email"
+                  placeholder={t('enterUsernameOrEmail')}
                   required
                 />
               </div>
@@ -211,7 +219,7 @@ export default function Login() {
 
             <div>
               <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-stone-500">
-                Verification: {captchaNumA} + {captchaNumB} = ?
+                {t('captchaLabel', { a: captchaNumA, b: captchaNumB })}
               </label>
               <input
                 type="number"
@@ -221,7 +229,7 @@ export default function Login() {
                 style={{ borderColor: '#ddd8d0' }}
                 onFocus={(e) => { e.currentTarget.style.borderColor = '#b45309'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(180,83,9,0.12)'; }}
                 onBlur={(e) => { e.currentTarget.style.borderColor = '#ddd8d0'; e.currentTarget.style.boxShadow = 'none'; }}
-                placeholder="Enter the sum"
+                placeholder={t('enterTheSum')}
                 required
               />
             </div>
@@ -241,13 +249,13 @@ export default function Login() {
               type="submit"
               disabled={submitting}
               className="w-full rounded-xl py-3.5 text-sm font-bold tracking-wide text-white transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-50"
-              style={{ background: submitting ? '#d4a76a' : 'linear-gradient(135deg, #b45309 0%, #92400e 100%)', fontFamily: '"Syne", ui-sans-serif', letterSpacing: '0.06em' }}
+              style={{ background: submitting ? '#d4a76a' : 'linear-gradient(135deg, #b45309 0%, #92400e 100%)', fontFamily: '"Bricolage Grotesque", ui-sans-serif', letterSpacing: '0.06em' }}
               onMouseEnter={(e) => { if (!submitting) e.currentTarget.style.background = 'linear-gradient(135deg, #c45a0d 0%, #a04510 100%)'; }}
               onMouseLeave={(e) => { if (!submitting) e.currentTarget.style.background = 'linear-gradient(135deg, #b45309 0%, #92400e 100%)'; }}
             >
               {submitting
-                ? (isSignupMode ? 'Submitting…' : t('signingIn'))
-                : (isSignupMode ? 'CREATE ACCOUNT' : t('login').toUpperCase())}
+                ? (isSignupMode ? t('submitting') : t('signingIn'))
+                : (isSignupMode ? t('createAccount').toUpperCase() : t('login').toUpperCase())}
             </button>
 
             <button
@@ -256,7 +264,7 @@ export default function Login() {
               className="w-full rounded-xl border py-3.5 text-sm font-semibold text-stone-600 transition-colors hover:bg-stone-100"
               style={{ borderColor: '#ddd8d0' }}
             >
-              {isSignupMode ? '← Back to Login' : 'Create Client Account'}
+              {isSignupMode ? t('backToLogin') : t('createClientAccount')}
             </button>
           </form>
         </div>

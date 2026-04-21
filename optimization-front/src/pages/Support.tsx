@@ -5,6 +5,8 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { useDynamicTranslations } from '../hooks/useDynamicTranslations';
 import SupportSocket from '../lib/socket';
+import { formatLocalizedDateTime } from '../lib/dateFormatting';
+import { getStatusTranslationKey, humanizeStatus } from '../lib/statusLabels';
 import {
   createSupportTicket,
   getSupportTicket,
@@ -27,15 +29,10 @@ const getTicketTitle = (
   return subject;
 };
 
-const normalizeStatus = (status?: string) => {
-  const normalized = String(status ?? 'open').replace(/_/g, ' ').trim();
-  return normalized.charAt(0).toUpperCase() + normalized.slice(1);
-};
-
 export default function Support() {
   const location = useLocation();
   const { user, refreshBadges } = useAuth();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const token = user?.access_token ?? null;
 
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
@@ -66,7 +63,9 @@ export default function Support() {
     tickets.forEach((ticket) => {
       const subject = String(ticket.subject ?? '').trim();
       if (subject) texts.push(subject);
-      texts.push(normalizeStatus(ticket.status));
+      if (ticket.status && !getStatusTranslationKey(ticket.status)) {
+        texts.push(humanizeStatus(ticket.status));
+      }
       ticket.messages?.forEach((msg) => {
         const content = String(msg.content ?? '').trim();
         if (content) texts.push(content);
@@ -82,27 +81,14 @@ export default function Support() {
   }, [messages, tickets]);
 
   const { translateText } = useDynamicTranslations(dynamicTexts);
+  const locale = i18n.resolvedLanguage || i18n.language || 'en';
 
   const getStatusLabel = (status?: string) => {
-    const normalized = String(status ?? 'open').toLowerCase().trim();
-    const statusKey =
-      normalized === 'open'
-        ? 'statusOpen'
-        : normalized === 'closed'
-          ? 'statusClosed'
-          : normalized === 'pending'
-            ? 'statusPending'
-            : normalized === 'resolved'
-              ? 'statusResolved'
-              : normalized === 'in_progress'
-                ? 'statusInProgress'
-                : normalized === 'pending_debited'
-                  ? 'statusPendingDebited'
-                  : '';
+    const statusKey = getStatusTranslationKey(status);
     if (statusKey) {
       return t(statusKey);
     }
-    return translateText(normalizeStatus(status));
+    return translateText(humanizeStatus(status));
   };
 
   useEffect(() => {
@@ -207,11 +193,11 @@ export default function Support() {
   return (
     <div className="support-texture min-h-full rounded-[30px] p-3 md:p-4">
       <div className="grid gap-4 lg:grid-cols-[320px_1fr]">
-        <section className="rounded-[28px] border border-white/50 bg-white/70 p-4 shadow-[0_12px_30px_rgba(15,23,42,0.12)] backdrop-blur-sm">
+        <section className="rounded-[28px] border border-white/50 dark:border-white/10 bg-white/70 dark:bg-zinc-900/80 p-4 shadow-[0_12px_30px_rgba(15,23,42,0.12)] backdrop-blur-sm">
           <div className="mb-4 flex items-start justify-between gap-3">
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-sky-700/75">{t('support')}</p>
-              <h2 className="text-2xl font-bold text-slate-800">{t('tickets')}</h2>
+              <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">{t('tickets')}</h2>
             </div>
             <button
               onClick={() => {
@@ -228,7 +214,7 @@ export default function Support() {
 
           <div className="max-h-[68vh] space-y-2 overflow-y-auto pr-1">
             {tickets.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-slate-300 bg-white/70 px-4 py-6 text-sm text-slate-500">
+              <div className="rounded-2xl border border-dashed border-slate-300 dark:border-slate-600 bg-white/70 dark:bg-zinc-800/70 px-4 py-6 text-sm text-slate-500 dark:text-slate-400">
                 {t('noTicketsYet')}
               </div>
             ) : (
@@ -242,14 +228,14 @@ export default function Support() {
                   }}
                   className={`w-full rounded-2xl border px-4 py-3 text-left transition-all duration-200 ${
                     activeId === ticket.id && !showNewChat
-                      ? 'border-cyan-400 bg-cyan-50/90 shadow-sm'
-                      : 'border-slate-200 bg-white/80 hover:border-slate-300 hover:bg-white'
+                      ? 'border-cyan-400 bg-cyan-50/90 dark:bg-cyan-950/40 shadow-sm'
+                      : 'border-slate-200 dark:border-zinc-700 bg-white/80 dark:bg-zinc-800/80 hover:border-slate-300 hover:bg-white dark:hover:bg-zinc-700/80'
                   }`}
                 >
-                  <p className="truncate text-sm font-semibold text-slate-800">{translateText(getTicketTitle(ticket, ticketNumberTemplate, unknownConversationTitle))}</p>
-                  <div className="mt-1 flex items-center justify-between text-xs text-slate-500">
+                  <p className="truncate text-sm font-semibold text-slate-800 dark:text-slate-100">{translateText(getTicketTitle(ticket, ticketNumberTemplate, unknownConversationTitle))}</p>
+                  <div className="mt-1 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
                     <span>{t('ticketNumber', { id: ticket.id })}</span>
-                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600">
+                    <span className="rounded-full bg-slate-100 dark:bg-zinc-700 px-2 py-0.5 text-[10px] font-medium text-slate-600 dark:text-slate-300">
                       {getStatusLabel(ticket.status)}
                     </span>
                   </div>
@@ -275,20 +261,20 @@ export default function Support() {
 
           {showNewChat ? (
             <div className="grid flex-1 gap-4 lg:grid-cols-[1.2fr_0.8fr]">
-              <div className="rounded-3xl border border-white/35 bg-[#9fb4d6]/70 p-5 shadow-sm backdrop-blur-sm">
-                <h3 className="mb-4 text-lg font-bold text-slate-800">{t('createTicket')}</h3>
+              <div className="rounded-3xl border border-white/35 dark:border-white/10 bg-[#9fb4d6]/70 dark:bg-zinc-800/80 p-5 shadow-sm backdrop-blur-sm">
+                <h3 className="mb-4 text-lg font-bold text-slate-800 dark:text-slate-100">{t('createTicket')}</h3>
                 <div className="space-y-3">
                   <input
                     value={newSubject}
                     onChange={(event) => setNewSubject(event.target.value)}
                     placeholder={t('subject')}
-                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-cyan-400 focus:bg-white"
+                    className="w-full rounded-2xl border border-slate-200 dark:border-zinc-600 bg-slate-50 dark:bg-zinc-700 dark:text-slate-100 dark:placeholder:text-slate-400 px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-cyan-400 focus:bg-white dark:focus:bg-zinc-600"
                   />
                   <textarea
                     value={newMessage}
                     onChange={(event) => setNewMessage(event.target.value)}
                     placeholder={t('describeYourIssue')}
-                    className="min-h-45 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-cyan-400 focus:bg-white"
+                    className="min-h-45 w-full rounded-2xl border border-slate-200 dark:border-zinc-600 bg-slate-50 dark:bg-zinc-700 dark:text-slate-100 dark:placeholder:text-slate-400 px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-cyan-400 focus:bg-white dark:focus:bg-zinc-600"
                   />
                   <div className="flex gap-3">
                     <button
@@ -300,7 +286,7 @@ export default function Support() {
                     </button>
                     <button
                       onClick={() => setShowNewChat(false)}
-                      className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700"
+                      className="rounded-2xl border border-slate-200 dark:border-zinc-600 bg-white dark:bg-zinc-700 dark:text-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700"
                     >
                       {t('cancel')}
                     </button>
@@ -329,13 +315,13 @@ export default function Support() {
                       <div
                         className={`max-w-[80%] rounded-[20px] px-4 py-3 text-sm shadow-sm ${
                           msg.is_admin_reply
-                            ? 'border border-slate-200 bg-white text-slate-700'
+                            ? 'border border-slate-200 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-slate-700 dark:text-slate-200'
                             : 'bg-[#173f99] text-white'
                         }`}
                       >
                         <p>{translateText(msg.content)}</p>
                         <p className={`mt-1 text-[11px] ${msg.is_admin_reply ? 'text-slate-400' : 'text-blue-100'}`}>
-                          {new Date(msg.created_at).toLocaleString()}
+                          {formatLocalizedDateTime(msg.created_at, locale)}
                         </p>
                       </div>
                     </div>
@@ -355,7 +341,7 @@ export default function Support() {
                     }
                   }}
                   placeholder={t('enterYourMessage')}
-                  className="flex-1 rounded-2xl border border-white/20 bg-white/90 px-4 py-3 text-slate-800 outline-none"
+                  className="flex-1 rounded-2xl border border-white/20 dark:border-zinc-600 bg-white/90 dark:bg-zinc-800 dark:text-slate-100 dark:placeholder:text-slate-400 px-4 py-3 text-slate-800 outline-none"
                 />
                 <button
                   onClick={() => void handleSend()}
@@ -367,7 +353,7 @@ export default function Support() {
               </div>
             </>
           ) : (
-            <div className="flex flex-1 items-center justify-center rounded-3xl bg-[#a9bddf]/72 p-6 text-center text-slate-700">
+            <div className="flex flex-1 items-center justify-center rounded-3xl bg-[#a9bddf]/72 dark:bg-zinc-800/60 p-6 text-center text-slate-700 dark:text-slate-300">
               <div>
                 <p className="text-lg font-bold">{t('noTicketSelected')}</p>
                 <p className="mt-2 text-sm text-slate-600">{t('chooseTicketOrStartChat')}</p>

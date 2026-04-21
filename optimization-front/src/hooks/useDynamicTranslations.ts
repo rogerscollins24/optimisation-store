@@ -2,8 +2,13 @@ import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { normalizeLanguageCode, translateBatch } from '../lib/translationApi';
 
-const STORAGE_PREFIX = 'dynamic-translation-cache-v1:';
+const STORAGE_PREFIX = 'dynamic-translation-cache-v2:';
 const memoryCache = new Map<string, Map<string, string>>();
+
+type TranslationState = {
+  language: string;
+  entries: Map<string, string>;
+};
 
 function getMemoryMap(language: string): Map<string, string> {
   const existing = memoryCache.get(language);
@@ -47,16 +52,22 @@ export function useDynamicTranslations(sourceTexts: string[]) {
     [sourceTexts],
   );
 
-  const [translations, setTranslations] = useState<Map<string, string>>(new Map());
+  const [translationState, setTranslationState] = useState<TranslationState>({
+    language,
+    entries: new Map(),
+  });
 
   useEffect(() => {
     if (normalizedTexts.length === 0) {
-      setTranslations(new Map());
+      setTranslationState({ language, entries: new Map() });
       return;
     }
 
     if (language === 'en') {
-      setTranslations(new Map(normalizedTexts.map((text) => [text, text])));
+      setTranslationState({
+        language,
+        entries: new Map(normalizedTexts.map((text) => [text, text])),
+      });
       return;
     }
 
@@ -74,7 +85,7 @@ export function useDynamicTranslations(sourceTexts: string[]) {
         snapshot.set(text, memory.get(text) || text);
       }
     });
-    setTranslations(snapshot);
+    setTranslationState({ language, entries: snapshot });
 
     const missing = normalizedTexts.filter((text) => !memory.has(text));
     if (missing.length === 0) {
@@ -94,20 +105,28 @@ export function useDynamicTranslations(sourceTexts: string[]) {
         });
         savePersisted(language, persistedUpdate);
 
-        setTranslations((previous) => {
-          const next = new Map(previous);
+        setTranslationState((previous) => {
+          if (previous.language !== language) {
+            return previous;
+          }
+
+          const next = new Map(previous.entries);
           missing.forEach((original) => {
             next.set(original, memory.get(original) || original);
           });
-          return next;
+          return { language, entries: next };
         });
       })
       .catch(() => {
         if (cancelled) return;
-        setTranslations((previous) => {
-          const next = new Map(previous);
+        setTranslationState((previous) => {
+          if (previous.language !== language) {
+            return previous;
+          }
+
+          const next = new Map(previous.entries);
           missing.forEach((original) => next.set(original, original));
-          return next;
+          return { language, entries: next };
         });
       });
 
@@ -115,6 +134,11 @@ export function useDynamicTranslations(sourceTexts: string[]) {
       cancelled = true;
     };
   }, [language, normalizedTexts]);
+
+  const translations = useMemo(
+    () => (translationState.language === language ? translationState.entries : new Map<string, string>()),
+    [language, translationState],
+  );
 
   const translateText = (text: string): string => {
     const normalized = String(text || '').trim();

@@ -4,9 +4,13 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useUser, Task } from '../store';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
+import { useTheme } from '../context/ThemeContext';
 import ChatModal from '../components/ChatModal';
 import { useDynamicTranslations } from '../hooks/useDynamicTranslations';
+import { formatLocalizedDateTime } from '../lib/dateFormatting';
 import { fetchVipLevels, findVipLevelConfig, getDefaultVipLevels, type VipLevelConfig } from '../lib/vipApi';
+import { BrandHomeIcon } from '../components/BrandIcons';
 
 interface Product {
   id: number;
@@ -37,10 +41,13 @@ const getVisibleProducts = (items: Product[], count = 8) => {
 };
 
 const wait = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
+const DISPLAY = '"Bricolage Grotesque", ui-sans-serif';
 
 export default function Starting() {
   const { user, refreshUser, setUser } = useAuth();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const { showToast } = useToast();
+  const { theme } = useTheme();
   const supportToken = user?.access_token ?? null;
   const { addTask } = useUser();
   const [products, setProducts] = useState<Product[]>([]);
@@ -164,12 +171,12 @@ export default function Starting() {
   const handleStart = async () => {
     if (!user) return;
     if (!isAccountActive) {
-      alert('Account not active. Contact support.');
+      showToast(t('accountNotActiveAlert'), 'warning');
       setChatSignal((prev) => prev + 1);
       return;
     }
     if (user.tasks_completed_in_set >= totalTasks) {
-      alert(t('completedAllTasks'));
+      showToast(t('completedAllTasks'), 'info');
       return;
     }
 
@@ -207,7 +214,7 @@ export default function Starting() {
       setRequiredDeposit(null);
       setDepositAmount('');
     } catch (error) {
-      alert(error instanceof Error ? error.message : t('unableToStartTask'));
+      showToast(error instanceof Error ? error.message : t('unableToStartTask'), 'error');
     } finally {
       setIsOptimizing(false);
     }
@@ -217,7 +224,7 @@ export default function Starting() {
     if (!currentTask) return;
     if (!user) return;
     if (!isAccountActive) {
-      alert('Account not active. Contact support.');
+      showToast(t('accountNotActiveAlert'), 'warning');
       setChatSignal((prev) => prev + 1);
       return;
     }
@@ -264,7 +271,7 @@ export default function Starting() {
       }
       await refreshUser();
     } catch (error) {
-      alert(error instanceof Error ? error.message : t('unableToSubmitTask'));
+      showToast(error instanceof Error ? error.message : t('unableToSubmitTask'), 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -315,51 +322,76 @@ export default function Starting() {
   }, [currentTask, pendingTasks, productCells]);
 
   const { translateText } = useDynamicTranslations(dynamicTexts);
+  const locale = i18n.resolvedLanguage || i18n.language || 'en';
+  const isDark = theme === 'dark';
 
   return (
     <div className="canvas-texture relative flex min-h-full flex-col pb-6">
-      <div className="flex items-center justify-between rounded-xl bg-white p-4 shadow-sm md:p-5">
-        <h1 className="text-xl font-bold text-blue-600">{t('brandName')}</h1>
+      <div
+        className="overflow-hidden rounded-[28px] border p-4 shadow-[0_18px_36px_rgba(28,26,23,0.08)] md:p-5"
+        style={{
+          background: isDark
+            ? 'linear-gradient(145deg, rgba(37,31,24,0.96) 0%, rgba(25,22,18,0.98) 100%)'
+            : 'linear-gradient(145deg, rgba(250,248,244,0.97) 0%, rgba(242,236,226,0.98) 100%)',
+          borderColor: isDark ? 'rgba(120,103,82,0.35)' : 'rgba(196,178,154,0.35)',
+        }}
+      >
+        <div className="mb-3 inline-flex items-center gap-2 rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-[0.26em]"
+          style={{ background: isDark ? 'rgba(212,188,148,0.12)' : 'rgba(180,83,9,0.08)', color: isDark ? '#d4bc94' : '#8a4b12', fontFamily: DISPLAY }}>
+          <span className="h-1.5 w-1.5 rounded-full" style={{ background: '#b45309' }} />
+          {t('startOptimization')}
+        </div>
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl" style={{ background: isDark ? 'rgba(212,188,148,0.1)' : 'rgba(180,83,9,0.1)', border: isDark ? '1px solid rgba(212,188,148,0.14)' : '1px solid rgba(180,83,9,0.16)' }}>
+              <BrandHomeIcon size={20} style={{ color: '#b45309' }} />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-stone-900 dark:text-stone-100" style={{ fontFamily: DISPLAY, fontWeight: 700 }}>{t('brandName')}</h1>
+              <p className="text-sm font-medium" style={{ color: isDark ? '#b8afa4' : '#6b6560' }}>{t('welcomeBack', { name: user?.username ?? t('guest') })}</p>
+            </div>
+          </div>
         <div className="flex items-center gap-4">
-          <Bell className="text-gray-600" size={24} />
+          <Bell className="text-stone-500 dark:text-stone-400" size={22} />
           <Link to="/profile">
-            <UserCircle className="text-gray-600" size={28} />
+            <UserCircle className="text-stone-500 dark:text-stone-400" size={28} />
           </Link>
+        </div>
         </div>
       </div>
 
       <div className="p-4 md:p-6">
         <div className="mx-auto w-full max-w-6xl">
         <div className="mb-6 flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full" style={{ background: 'rgba(180,83,9,0.12)' }}>
             <span className="text-2xl">👋</span>
           </div>
           <div>
-            <h2 className="text-xl font-bold text-gray-800">{t('welcomeBack', { name: user?.username ?? t('guest') })}</h2>
+            <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100" style={{ fontFamily: DISPLAY }}>{t('welcomeBack', { name: user?.username ?? t('guest') })}</h2>
             <div className="flex items-center gap-2">
-              <span className="rounded-full bg-yellow-100 px-2 py-1 text-xs font-bold text-yellow-800">{t('vipBadge', { level: user?.vip_level ?? 1 })}</span>
+              <span className="rounded-full px-2.5 py-1 text-xs font-bold" style={{ background: 'rgba(180,83,9,0.12)', color: '#8a4b12' }}>{t('vipBadge', { level: user?.vip_level ?? 1 })}</span>
             </div>
           </div>
         </div>
 
         <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-          <div className="rounded-xl bg-linear-to-br from-blue-500 to-blue-600 p-4 text-white shadow-md">
-            <p className="mb-1 text-sm opacity-80">{t('totalBalance')}</p>
-            <p className="text-xl font-bold">{(user?.balance ?? 0).toFixed(2)} <span className="text-sm font-normal">USDT</span></p>
+          <div className="rounded-3xl border p-4 shadow-sm" style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
+            <p className="mb-1 text-sm font-semibold uppercase tracking-[0.18em]" style={{ color: isDark ? '#9e9385' : '#9c9288', fontFamily: DISPLAY }}>{t('totalBalance')}</p>
+            <p className="text-2xl font-bold text-stone-900 dark:text-stone-100" style={{ fontFamily: DISPLAY }}>{(user?.balance ?? 0).toFixed(2)} <span className="text-sm font-medium text-stone-500 dark:text-stone-400">USDT</span></p>
           </div>
-          <div className="rounded-xl bg-linear-to-br from-indigo-500 to-indigo-600 p-4 text-white shadow-md">
-            <p className="mb-1 text-sm opacity-80">{t('commissionToday')}</p>
-            <p className="text-xl font-bold">{(user?.commission_today ?? 0).toFixed(2)} <span className="text-sm font-normal">USDT</span></p>
+          <div className="rounded-3xl border p-4 shadow-sm" style={{ background: isDark ? 'linear-gradient(160deg, rgba(180,83,9,0.18) 0%, rgba(120,74,30,0.14) 100%)' : 'linear-gradient(160deg, rgba(180,83,9,0.12) 0%, rgba(180,83,9,0.06) 100%)', borderColor: isDark ? 'rgba(180,83,9,0.24)' : 'rgba(180,83,9,0.18)' }}>
+            <p className="mb-1 text-sm font-semibold uppercase tracking-[0.18em]" style={{ color: isDark ? '#e8c48f' : '#8a4b12', fontFamily: DISPLAY }}>{t('commissionToday')}</p>
+            <p className="text-2xl font-bold text-stone-900 dark:text-stone-100" style={{ fontFamily: DISPLAY }}>{(user?.commission_today ?? 0).toFixed(2)} <span className="text-sm font-medium text-stone-500 dark:text-stone-400">USDT</span></p>
           </div>
-          <div className="flex min-h-33 flex-col justify-center rounded-xl border border-slate-200 bg-white p-4 shadow-sm md:p-5">
-            <p className="text-sm font-semibold text-slate-700">{t('taskProgress')}</p>
-            <p className="mt-3 text-4xl font-bold leading-none text-blue-600">{user?.tasks_completed_in_set ?? 0}<span className="text-2xl text-slate-500">/{totalTasks}</span></p>
+          <div className="flex min-h-33 flex-col justify-center rounded-3xl border border-[#ddd1c3] bg-[#231d17] p-4 shadow-sm md:p-5 dark:border-[#4b4032]">
+            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-stone-300/75" style={{ fontFamily: DISPLAY }}>{t('taskProgress')}</p>
+            <p className="mt-3 text-4xl font-bold leading-none text-amber-300" style={{ fontFamily: DISPLAY }}>{user?.tasks_completed_in_set ?? 0}<span className="text-2xl text-stone-500">/{totalTasks}</span></p>
           </div>
         </div>
 
         <div className="mb-4 flex justify-between items-center">
-          <h3 className="font-bold text-gray-800">{t('startOptimization')}</h3>
-          <span className="text-sm text-gray-500 bg-gray-200 px-3 py-1 rounded-full">
+          <h3 className="font-bold text-gray-800 dark:text-gray-100">{t('startOptimization')}</h3>
+          <span className="text-sm text-gray-500 dark:text-gray-400 bg-gray-200 dark:bg-zinc-700 px-3 py-1 rounded-full">
             {user?.tasks_completed_in_set ?? 0}/{totalTasks}
           </span>
         </div>
@@ -391,15 +423,15 @@ export default function Starting() {
               }
 
               return (
-                <div key={`product-cell-${cellIndex}`} className="aspect-square w-full max-w-45 overflow-hidden rounded-2xl border border-slate-100 bg-slate-50 shadow-sm">
+                <div key={`product-cell-${cellIndex}`} className="aspect-square w-full max-w-45 overflow-hidden rounded-2xl border border-slate-100 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800 shadow-sm">
                   {product ? (
                     <img
-                      src={product.image_url || 'https://picsum.photos/seed/default/300/300'}
+                      src={product.image_url || `https://picsum.photos/seed/product-${product.id}/300/300`}
                       alt={translateText(product.name)}
                       className="h-full w-full object-cover transition-transform duration-500"
                     />
                   ) : (
-                    <div className="flex h-full w-full items-center justify-center bg-slate-100 text-xs font-medium uppercase tracking-[0.2em] text-slate-400">
+                    <div className="flex h-full w-full items-center justify-center bg-slate-100 dark:bg-zinc-700 text-xs font-medium uppercase tracking-[0.2em] text-slate-400 dark:text-zinc-500">
                       {t('waiting')}
                     </div>
                   )}
@@ -410,7 +442,7 @@ export default function Starting() {
         </div>
 
         {pendingTaskBlocked && !currentTask && (
-          <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700">
+          <div className="mt-4 rounded-xl border border-amber-200 dark:border-amber-700/50 bg-amber-50 dark:bg-amber-950/40 p-3 text-sm text-amber-700 dark:text-amber-300">
             {t('pendingTaskWarning')}
             <button onClick={() => window.location.reload()} className="ml-2 underline font-medium">
               {t('resumePendingTask')}
@@ -418,29 +450,29 @@ export default function Starting() {
           </div>
         )}
 
-        <div className="mt-6 rounded-xl border border-slate-200 bg-white p-4 shadow-sm md:p-5">
+          <div className="mt-6 rounded-xl border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-4 shadow-sm md:p-5">
           <div className="flex items-center justify-between">
-            <h3 className="text-base font-bold text-slate-800">{t('pendingSection')}</h3>
+            <h3 className="text-base font-bold text-slate-800 dark:text-slate-100">{t('pendingSection')}</h3>
             <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700">
               {pendingTasks.length} {t('activeLabel')}
             </span>
           </div>
 
           {pendingTasks.length === 0 ? (
-            <div className="mt-4 rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-sm text-slate-500">
+            <div className="mt-4 rounded-xl border border-dashed border-slate-200 dark:border-zinc-600 bg-slate-50 dark:bg-zinc-800 px-4 py-6 text-sm text-slate-500 dark:text-slate-400">
               {t('noPendingTasks')}
             </div>
           ) : (
             <div className="mt-4 space-y-4">
               {pendingTasks.map((task) => (
-                <div key={task.taskCode} className="rounded-xl border border-slate-200 p-4">
+                <div key={task.taskCode} className="rounded-xl border border-slate-200 dark:border-zinc-700 p-4">
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
                     <img src={task.image} alt={task.title} className="h-20 w-20 rounded-xl object-cover bg-slate-100" />
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                         <div>
-                          <h4 className="line-clamp-2 font-semibold text-slate-800">{translateText(task.title)}</h4>
-                          <p className="mt-1 text-xs text-slate-500">{new Date(task.createdAt).toLocaleString()}</p>
+                          <h4 className="line-clamp-2 font-semibold text-slate-800 dark:text-slate-100">{translateText(task.title)}</h4>
+                          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{formatLocalizedDateTime(task.createdAt, locale)}</p>
                         </div>
                         <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
                           task.status === 'pending_debited' ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700'
@@ -450,17 +482,17 @@ export default function Starting() {
                       </div>
 
                       <div className="mt-3 grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
-                        <div className="rounded-lg bg-slate-50 px-3 py-2">
-                          <p className="text-xs text-slate-500">{t('amountLabel')}</p>
-                          <p className="font-semibold text-slate-800">USDT {task.price.toFixed(2)}</p>
+                        <div className="rounded-lg bg-slate-50 dark:bg-zinc-800 px-3 py-2">
+                          <p className="text-xs text-slate-500 dark:text-slate-400">{t('amountLabel')}</p>
+                          <p className="font-semibold text-slate-800 dark:text-slate-100">USDT {task.price.toFixed(2)}</p>
                         </div>
-                        <div className="rounded-lg bg-slate-50 px-3 py-2">
-                          <p className="text-xs text-slate-500">{t('commissionLabel')}</p>
-                          <p className="font-semibold text-emerald-600">USDT {task.commission.toFixed(2)}</p>
+                        <div className="rounded-lg bg-slate-50 dark:bg-zinc-800 px-3 py-2">
+                          <p className="text-xs text-slate-500 dark:text-slate-400">{t('commissionLabel')}</p>
+                          <p className="font-semibold text-emerald-600 dark:text-emerald-400">USDT {task.commission.toFixed(2)}</p>
                         </div>
-                        <div className="rounded-lg bg-slate-50 px-3 py-2 col-span-2 sm:col-span-1">
-                          <p className="text-xs text-slate-500">{t('taskCode')}</p>
-                          <p className="font-mono text-xs font-semibold text-slate-800">{task.taskCode}</p>
+                        <div className="rounded-lg bg-slate-50 dark:bg-zinc-800 px-3 py-2 col-span-2 sm:col-span-1">
+                          <p className="text-xs text-slate-500 dark:text-slate-400">{t('taskCode')}</p>
+                          <p className="font-mono text-xs font-semibold text-slate-800 dark:text-slate-100">{task.taskCode}</p>
                         </div>
                       </div>
 
@@ -492,7 +524,7 @@ export default function Starting() {
 
       {currentTask && (
         <div className="fixed inset-0 bg-black/60 z-100 flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="w-full max-w-3xl overflow-hidden rounded-2xl bg-white shadow-2xl">
+          <div className="w-full max-w-3xl overflow-hidden rounded-2xl bg-white dark:bg-zinc-900 shadow-2xl">
             <div className="bg-blue-600 p-4 text-white flex justify-between items-center">
               <h3 className="font-bold text-lg">{t('taskSubmission')}</h3>
               <button onClick={handleCloseModal} className="text-white/80 hover:text-white">
@@ -517,37 +549,37 @@ export default function Starting() {
                   {currentTask.isCombo && currentTask.products && currentTask.products.length > 0 && (
                     <div className="mb-4 space-y-2">
                       {currentTask.products.map((item) => (
-                        <div key={item.product_id} className="flex items-center justify-between text-sm rounded-lg bg-blue-50 px-3 py-2 border border-blue-100">
-                          <span className="text-gray-700">{translateText(item.product_name)}</span>
+                        <div key={item.product_id} className="flex items-center justify-between text-sm rounded-lg bg-blue-50 dark:bg-blue-950/40 px-3 py-2 border border-blue-100 dark:border-blue-900/50">
+                          <span className="text-gray-700 dark:text-gray-300">{translateText(item.product_name)}</span>
                           <span className="font-semibold text-blue-700">USDT {Number(item.price).toFixed(2)}</span>
                         </div>
                       ))}
                     </div>
                   )}
 
-                  <div className="space-y-3 bg-gray-50 p-4 rounded-xl border border-gray-100">
+                  <div className="space-y-3 bg-gray-50 dark:bg-zinc-800 p-4 rounded-xl border border-gray-100 dark:border-zinc-700">
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">{t('totalAmount')}</span>
-                      <span className="font-bold text-gray-800">USDT {currentTask.price.toFixed(2)}</span>
+                      <span className="text-gray-500 dark:text-gray-400">{t('totalAmount')}</span>
+                      <span className="font-bold text-gray-800 dark:text-gray-100">USDT {currentTask.price.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">{t('commissionLabel')}</span>
-                      <span className="font-bold text-green-600">USDT {currentTask.commission.toFixed(2)}</span>
+                      <span className="text-gray-500 dark:text-gray-400">{t('commissionLabel')}</span>
+                      <span className="font-bold text-green-600 dark:text-green-400">USDT {currentTask.commission.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">{t('createdAt')}</span>
-                      <span className="text-gray-800">{new Date(currentTask.createdAt).toLocaleString()}</span>
+                      <span className="text-gray-500 dark:text-gray-400">{t('createdAt')}</span>
+                      <span className="text-gray-800 dark:text-gray-200">{formatLocalizedDateTime(currentTask.createdAt, locale)}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">{t('taskCode')}</span>
-                      <span className="text-gray-800 font-mono">{currentTask.taskCode}</span>
+                      <span className="text-gray-500 dark:text-gray-400">{t('taskCode')}</span>
+                      <span className="text-gray-800 dark:text-gray-200 font-mono">{currentTask.taskCode}</span>
                     </div>
                   </div>
                 </div>
               </div>
 
               {hasDepositWarning && (
-                <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700 space-y-2">
+                <div className="mb-4 rounded-xl border border-rose-200 dark:border-rose-800/50 bg-rose-50 dark:bg-rose-950/40 p-4 text-sm text-rose-700 dark:text-rose-300 space-y-2">
                   <p className="font-semibold">{t('insufficientBalanceDeposit')}</p>
                   <p>{t('requiredDeposit')}: USDT {computedRequiredDeposit.toFixed(2)}</p>
                   <div>
@@ -558,7 +590,7 @@ export default function Starting() {
                       type="number"
                       min="0"
                       step="0.01"
-                      className="w-full rounded-lg border border-rose-200 bg-white px-3 py-2 text-sm text-gray-800"
+                      className="w-full rounded-lg border border-rose-200 dark:border-rose-800/50 bg-white dark:bg-zinc-800 dark:text-gray-100 px-3 py-2 text-sm text-gray-800"
                     />
                   </div>
                   <div className="flex items-center justify-between">

@@ -3,12 +3,14 @@ import { ChevronLeft, Loader2, Lock } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import { createSupportTicket } from '../lib/supportApi';
 
 export default function Withdraw() {
   const navigate = useNavigate();
   const { user, refreshUser } = useAuth();
   const { t } = useTranslation();
+  const { showToast } = useToast();
   const [amount, setAmount] = useState('');
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -23,19 +25,19 @@ export default function Withdraw() {
     }
     const numAmount = parseFloat(amount);
     if (Number.isNaN(numAmount) || numAmount <= 0) {
-      alert(t('pleaseEnterValidAmount'));
+      showToast(t('pleaseEnterValidAmount'), 'warning');
       return;
     }
     if (numAmount > balance) {
-      alert(t('insufficientBalance'));
+      showToast(t('insufficientBalance'), 'warning');
       return;
     }
     if (!password) {
-      alert(t('pleaseEnterWithdrawalPassword'));
+      showToast(t('pleaseEnterWithdrawalPassword'), 'warning');
       return;
     }
     if (password !== (user?.withdraw_password ?? '')) {
-      alert(t('invalidWithdrawalPassword'));
+      showToast(t('invalidWithdrawalPassword'), 'error');
       return;
     }
 
@@ -49,7 +51,7 @@ export default function Withdraw() {
 
       if (!response.ok) {
         const error = await response.json().catch(() => ({ detail: t('withdrawalFailed') }));
-        alert(error.detail || t('withdrawalFailed'));
+        showToast(error.detail || t('withdrawalFailed'), 'error');
         return;
       }
 
@@ -76,53 +78,53 @@ export default function Withdraw() {
         navigate('/profile');
       }
     } catch (error) {
-      alert(error instanceof Error ? error.message : t('withdrawalFailed'));
+      showToast(error instanceof Error ? error.message : t('withdrawalFailed'), 'error');
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <div className="flex min-h-full flex-col bg-gray-50 pb-6">
-      <div className="sticky top-0 z-10 flex items-center rounded-xl bg-white p-4 shadow-sm md:p-5">
-        <Link to="/profile" className="mr-4 text-gray-600 hover:text-gray-900">
+    <div className="flex min-h-full flex-col bg-gray-50 dark:bg-zinc-950 pb-6">
+      <div className="sticky top-0 z-10 flex items-center rounded-xl bg-white dark:bg-zinc-900 p-4 shadow-sm md:p-5">
+        <Link to="/profile" className="mr-4 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100">
           <ChevronLeft size={24} />
         </Link>
-        <h1 className="text-lg font-bold text-gray-800">{t('withdrawal')}</h1>
+        <h1 className="text-lg font-bold text-gray-800 dark:text-gray-100">{t('withdrawal')}</h1>
       </div>
 
       <div className="grid gap-6 p-4 md:p-6 lg:grid-cols-[1fr_340px] lg:items-start">
         {!isAccountActive && (
-          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700 lg:col-span-2">
-            Account not active. Contact support.
+          <div className="rounded-2xl border border-amber-200 dark:border-amber-700/50 bg-amber-50 dark:bg-amber-950/40 p-4 text-sm text-amber-700 dark:text-amber-300 lg:col-span-2">
+            {t('accountNotActivated')}
           </div>
         )}
-        <div className="mb-0 rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+        <div className="mb-0 rounded-2xl border border-gray-100 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 shadow-sm">
           <div className="mb-6 flex items-center justify-between">
-            <p className="text-sm text-gray-500">{t('availableBalance')}</p>
-            <p className={`text-xl font-bold ${balance >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-              {balance.toFixed(2)} <span className="text-sm font-normal text-gray-500">USDT</span>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{t('availableBalance')}</p>
+            <p className={`text-xl font-bold ${balance >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+              {balance.toFixed(2)} <span className="text-sm font-normal text-gray-500 dark:text-gray-400">USDT</span>
             </p>
           </div>
 
           <div className="mb-6">
-            <label className="mb-2 block text-sm font-medium text-gray-700">{t('withdrawalAmount')}</label>
+            <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">{t('withdrawalAmount')}</label>
             <div className="relative">
               <input
                 type="number"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 placeholder={t('enterWithdrawalAmount')}
-                className="w-full rounded-xl border border-gray-200 bg-gray-50 py-4 pl-4 pr-16 text-lg font-medium outline-none transition-all focus:border-transparent focus:ring-2 focus:ring-blue-500"
+                className="w-full rounded-xl border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800 dark:text-gray-100 dark:placeholder:text-gray-500 py-4 pl-4 pr-16 text-lg font-medium outline-none transition-all focus:border-transparent focus:ring-2 focus:ring-blue-500"
               />
-              <span className="absolute right-4 top-1/2 -translate-y-1/2 font-medium text-gray-500">USDT</span>
+              <span className="absolute right-4 top-1/2 -translate-y-1/2 font-medium text-gray-500 dark:text-gray-400">USDT</span>
             </div>
           </div>
 
           <div className="mb-8">
-            <label className="mb-2 block text-sm font-medium text-gray-700">{t('withdrawalPassword')}</label>
+            <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">{t('withdrawalPassword')}</label>
             <div className="relative">
-              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500">
                 <Lock size={20} />
               </div>
               <input
@@ -130,7 +132,7 @@ export default function Withdraw() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder={t('enterPassword')}
-                className="w-full rounded-xl border border-gray-200 bg-gray-50 py-4 pl-12 pr-4 text-lg font-medium outline-none transition-all focus:border-transparent focus:ring-2 focus:ring-blue-500"
+                className="w-full rounded-xl border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800 dark:text-gray-100 dark:placeholder:text-gray-500 py-4 pl-12 pr-4 text-lg font-medium outline-none transition-all focus:border-transparent focus:ring-2 focus:ring-blue-500"
               />
             </div>
           </div>
@@ -146,9 +148,9 @@ export default function Withdraw() {
           </button>
         </div>
 
-        <div className="rounded-2xl border border-orange-100 bg-orange-50 p-6">
-          <h3 className="mb-2 font-bold text-orange-800">{t('withdrawalRules')}</h3>
-          <ul className="list-inside list-disc space-y-2 text-sm text-orange-700 opacity-80">
+        <div className="rounded-2xl border border-orange-100 dark:border-orange-900/50 bg-orange-50 dark:bg-orange-950/30 p-6">
+          <h3 className="mb-2 font-bold text-orange-800 dark:text-orange-300">{t('withdrawalRules')}</h3>
+          <ul className="list-inside list-disc space-y-2 text-sm text-orange-700 dark:text-orange-400 opacity-80">
             <li>{t('minimumWithdrawalAmount')}</li>
             <li>{t('withdrawalProcessingTime')}</li>
             <li>{t('ensureWalletBound')}</li>

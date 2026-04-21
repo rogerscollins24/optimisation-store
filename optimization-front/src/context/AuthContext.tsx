@@ -130,13 +130,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       try {
-        setUserState(JSON.parse(raw));
+        const cached: AuthUser = JSON.parse(raw);
+        setUserState(cached);
+        // Fetch fresh user data so admin-side changes (e.g. status activation)
+        // are reflected immediately without requiring a re-login.
+        if (cached.id) {
+          fetch(`/api/users/${cached.id}/overview`)
+            .then(async (res) => {
+              if (!res.ok) {
+                if (res.status === 404) persistUser(null);
+                return;
+              }
+              const data = await res.json();
+              setUserState((prev) =>
+                prev
+                  ? {
+                      ...data,
+                      credit_score: data.credit_score ?? 100,
+                      access_token: prev.access_token,
+                      token_type: prev.token_type,
+                    }
+                  : prev,
+              );
+            })
+            .catch(() => {/* network error — keep cached data */});
+        }
       } catch {
         localStorage.removeItem(STORAGE_KEY);
       }
     }
     setLoading(false);
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (user?.access_token) {

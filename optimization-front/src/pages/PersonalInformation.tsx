@@ -3,11 +3,13 @@ import { ChevronLeft, Loader2 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 
 export default function PersonalInformation() {
   const navigate = useNavigate();
   const { user, refreshUser } = useAuth();
   const { t } = useTranslation();
+  const { showToast } = useToast();
   const [email, setEmail] = useState(user?.email ?? '');
   const [phone, setPhone] = useState(user?.phone ?? '');
   const [gender, setGender] = useState(user?.gender ?? '');
@@ -34,42 +36,42 @@ export default function PersonalInformation() {
       await refreshUser();
       navigate('/profile');
     } catch (error) {
-      alert(error instanceof Error ? error.message : t('unableToSavePersonalInformation'));
+      showToast(error instanceof Error ? error.message : t('unableToSavePersonalInformation'), 'error');
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <div className="flex min-h-full flex-col bg-gray-50 pb-6">
-      <div className="sticky top-0 z-10 flex items-center rounded-xl bg-white p-4 shadow-sm md:p-5">
-        <Link to="/profile" className="mr-4 text-gray-600 hover:text-gray-900">
+    <div className="flex min-h-full flex-col bg-gray-50 dark:bg-zinc-950 pb-6">
+      <div className="sticky top-0 z-10 flex items-center rounded-xl bg-white dark:bg-zinc-900 p-4 shadow-sm md:p-5">
+        <Link to="/profile" className="mr-4 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100">
           <ChevronLeft size={24} />
         </Link>
-        <h1 className="text-lg font-bold text-gray-800">{t('personalInformation')}</h1>
+        <h1 className="text-lg font-bold text-gray-800 dark:text-gray-100">{t('personalInformation')}</h1>
       </div>
 
       <div className="p-4 md:p-6">
-        <div className="mx-auto max-w-2xl rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+        <div className="mx-auto max-w-2xl rounded-2xl border border-gray-100 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 shadow-sm">
           <div className="grid gap-4">
             <div>
-              <label className="mb-2 block text-sm font-medium text-gray-700">{t('usernameLabel')}</label>
-              <input value={user?.username ?? ''} readOnly className="w-full rounded-xl border border-gray-200 bg-gray-100 px-4 py-3 text-gray-500" />
+              <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">{t('usernameLabel')}</label>
+              <input value={user?.username ?? ''} readOnly className="w-full rounded-xl border border-gray-200 dark:border-zinc-700 bg-gray-100 dark:bg-zinc-800 px-4 py-3 text-gray-500 dark:text-gray-400" />
             </div>
 
             <div>
-              <label className="mb-2 block text-sm font-medium text-gray-700">{t('email')}</label>
-              <input value={email} onChange={(event) => setEmail(event.target.value)} placeholder={t('enterYourEmail')} className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-800 outline-none focus:border-blue-500" />
+              <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">{t('email')}</label>
+              <input value={email} onChange={(event) => setEmail(event.target.value)} placeholder={t('enterYourEmail')} className="w-full rounded-xl border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800 dark:text-gray-100 dark:placeholder:text-gray-500 px-4 py-3 text-gray-800 outline-none focus:border-blue-500" />
             </div>
 
             <div>
-              <label className="mb-2 block text-sm font-medium text-gray-700">{t('phone')}</label>
-              <input value={phone} onChange={(event) => setPhone(event.target.value)} placeholder={t('enterYourPhoneNumber')} className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-800 outline-none focus:border-blue-500" />
+              <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">{t('phone')}</label>
+              <input value={phone} onChange={(event) => setPhone(event.target.value)} placeholder={t('enterYourPhoneNumber')} className="w-full rounded-xl border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800 dark:text-gray-100 dark:placeholder:text-gray-500 px-4 py-3 text-gray-800 outline-none focus:border-blue-500" />
             </div>
 
             <div>
-              <label className="mb-2 block text-sm font-medium text-gray-700">{t('gender')}</label>
-              <select value={gender} onChange={(event) => setGender(event.target.value)} className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-800 outline-none focus:border-blue-500">
+              <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">{t('gender')}</label>
+              <select value={gender} onChange={(event) => setGender(event.target.value)} className="w-full rounded-xl border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800 dark:text-gray-100 px-4 py-3 text-gray-800 outline-none focus:border-blue-500">
                 <option value="">{t('selectGender')}</option>
                 <option value="Male">{t('male')}</option>
                 <option value="Female">{t('female')}</option>

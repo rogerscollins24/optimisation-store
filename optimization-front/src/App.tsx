@@ -8,6 +8,10 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { UserProvider } from './store';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { LanguageProvider } from './context/LanguageContext';
+import { ThemeProvider } from './context/ThemeContext';
+import { ToastProvider } from './context/ToastContext';
+import ToastContainer from './components/Toast';
+import GlobalBackground from './components/GlobalBackground';
 import Layout from './components/Layout';
 import Home from './pages/Home';
 import Starting from './pages/Starting';
@@ -38,36 +42,46 @@ function RequireAuth({ children }: { children: ReactElement }) {
 
 export default function App() {
   return (
+    <ThemeProvider>
+    <ToastProvider>
     <LanguageProvider>
       <AuthProvider>
         <UserProvider>
-          <BrowserRouter>
-            <Routes>
-              <Route path="/login" element={<Login />} />
-              <Route
-                path="/"
-                element={
-                  <RequireAuth>
-                    <Layout />
-                  </RequireAuth>
-                }
-              >
-                <Route index element={<Home />} />
-                <Route path="starting" element={<Starting />} />
-                <Route path="records" element={<Records />} />
-                <Route path="profile" element={<Profile />} />
-                <Route path="profile/personal" element={<PersonalInformation />} />
-                <Route path="profile/wallet" element={<WalletBinding />} />
-                <Route path="notifications" element={<Notifications />} />
-                <Route path="faqs" element={<Faqs />} />
-                <Route path="deposit" element={<Deposit />} />
-                <Route path="withdraw" element={<Withdraw />} />
-                <Route path="support" element={<Support />} />
-              </Route>
-            </Routes>
-          </BrowserRouter>
+          <div className="app-shell">
+            <GlobalBackground />
+            <div className="app-shell__content">
+              <BrowserRouter>
+                <Routes>
+                  <Route path="/login" element={<Login />} />
+                  <Route
+                    path="/"
+                    element={
+                      <RequireAuth>
+                        <Layout />
+                      </RequireAuth>
+                    }
+                  >
+                    <Route index element={<Home />} />
+                    <Route path="starting" element={<Starting />} />
+                    <Route path="records" element={<Records />} />
+                    <Route path="profile" element={<Profile />} />
+                    <Route path="profile/personal" element={<PersonalInformation />} />
+                    <Route path="profile/wallet" element={<WalletBinding />} />
+                    <Route path="notifications" element={<Notifications />} />
+                    <Route path="faqs" element={<Faqs />} />
+                    <Route path="deposit" element={<Deposit />} />
+                    <Route path="withdraw" element={<Withdraw />} />
+                    <Route path="support" element={<Support />} />
+                  </Route>
+                </Routes>
+              </BrowserRouter>
+            </div>
+          </div>
         </UserProvider>
       </AuthProvider>
     </LanguageProvider>
+    <ToastContainer />
+    </ToastProvider>
+    </ThemeProvider>
   );
 }
