@@ -1,4 +1,5 @@
-import { Outlet, NavLink } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { FileText } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -19,19 +20,45 @@ export default function Layout() {
   const { t } = useTranslation();
   const { user } = useAuth();
   const { theme } = useTheme();
+  const navigate = useNavigate();
   const isDark = theme === 'dark';
+  const [showInactivePopup, setShowInactivePopup] = useState(false);
   const isActivated = user?.status === 'Active';
+
+  useEffect(() => {
+    setShowInactivePopup(!isActivated);
+  }, [isActivated]);
 
   return (
     <div className="flex min-h-screen flex-col" style={{ backgroundColor: 'transparent' }}>
-      <div className="flex-1 overflow-y-auto pb-24">
-        <div className="mx-auto w-full max-w-7xl">
-          {/* /clarify: actionable activation warning with clear next step */}
-          {!isActivated && (
-            <div className="mx-4 mt-3 rounded-2xl border border-amber-300/60 bg-amber-50/90 dark:bg-amber-950/60 dark:border-amber-700/50 dark:text-amber-300 px-4 py-3 text-sm font-semibold text-amber-800 shadow-sm">
-              {t('accountNotActivated')}
+      {showInactivePopup && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/55 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl border border-amber-200 bg-[#f8efe4] p-5 shadow-2xl sm:p-6">
+            <h2 className="text-lg font-bold text-[#3a2f24]">{t('accountNotActivated')}</h2>
+
+            <div className="mt-5 flex flex-col gap-2.5">
+              <button
+                onClick={() => {
+                  setShowInactivePopup(false);
+                  navigate('/support');
+                }}
+                className="client-btn-primary w-full rounded-xl py-2.5 text-sm font-semibold"
+              >
+                {t('contactUs')}
+              </button>
+              <button
+                onClick={() => setShowInactivePopup(false)}
+                className="w-full rounded-xl border border-amber-300 bg-amber-50 py-2.5 text-sm font-semibold text-amber-800 transition hover:bg-amber-100"
+              >
+                {t('cancel')}
+              </button>
             </div>
-          )}
+          </div>
+        </div>
+      )}
+
+      <div className="flex-1 overflow-y-auto pb-20 sm:pb-24">
+        <div className="mx-auto w-full max-w-7xl px-3 py-3 sm:px-4 sm:py-4 md:px-8 md:py-6">
           <Outlet />
         </div>
       </div>
@@ -39,7 +66,6 @@ export default function Layout() {
       <LanguageSwitcher />
       <DarkModeToggle />
 
-      {/* Bottom nav — /polish: 44px+ touch targets, amber active state, Bricolage labels */}
       <nav
         className="fixed bottom-0 left-0 z-50 w-full"
         style={{

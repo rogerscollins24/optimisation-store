@@ -228,7 +228,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return data?.message || 'Signup submitted. Wait for super admin approval.';
   };
 
-  const refreshUser = async () => {
+  const refreshUser = useCallback(async () => {
     if (!user?.id) return;
     const response = await fetch(`/api/users/${user.id}/overview`);
     if (!response.ok) {
@@ -245,7 +245,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       token_type: user.token_type,
     });
     await refreshBadgeCounts(user.access_token);
-  };
+  }, [user?.id, user?.access_token, user?.token_type, persistUser, refreshBadgeCounts]);
+
+  useEffect(() => {
+    if (!user?.id || !user?.access_token) {
+      return;
+    }
+
+    const refreshImmediately = () => {
+      if (document.visibilityState === 'hidden') {
+        return;
+      }
+      void refreshUser();
+    };
+
+    const intervalId = window.setInterval(() => {
+      if (document.visibilityState === 'hidden') {
+        return;
+      }
+      void refreshUser();
+    }, 5000);
+
+    window.addEventListener('focus', refreshImmediately);
+    document.addEventListener('visibilitychange', refreshImmediately);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener('focus', refreshImmediately);
+      document.removeEventListener('visibilitychange', refreshImmediately);
+    };
+  }, [user?.id, user?.access_token, refreshUser]);
 
   const logout = () => {
     persistUser(null);

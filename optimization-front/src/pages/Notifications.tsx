@@ -56,42 +56,42 @@ export default function Notifications() {
   const locale = i18n.resolvedLanguage || i18n.language || 'en';
 
   return (
-    <div className="flex min-h-full flex-col bg-gray-50 dark:bg-zinc-950 pb-6">
-      <div className="sticky top-0 z-10 flex items-center rounded-xl bg-white dark:bg-zinc-900 p-4 shadow-sm md:p-5">
-        <Link to="/profile" className="mr-4 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100">
+    <div className="client-page flex min-h-full flex-col pb-6">
+      <div className="client-header sticky top-0 z-10 flex items-center rounded-xl p-4 shadow-sm md:p-5">
+        <Link to="/profile" className="mr-4 text-zinc-300 hover:text-white">
           <ChevronLeft size={24} />
         </Link>
         <div className="flex items-center gap-2">
-          <Bell size={20} className="text-amber-500" />
-          <h1 className="text-lg font-bold text-gray-800 dark:text-gray-100">{t('notificationsTitle')}</h1>
+          <Bell size={20} className="text-amber-300" />
+          <h1 className="text-lg font-bold text-[#f6efe4]">{t('notificationsTitle')}</h1>
         </div>
       </div>
 
       <div className="p-4 md:p-6">
         {loading ? (
-          <div className="rounded-2xl border border-gray-100 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-8 text-center text-gray-500 dark:text-gray-400 shadow-sm">
+          <div className="client-card rounded-2xl p-8 text-center text-[#6f5f4c]">
             {t('loadingNotifications')}
           </div>
         ) : !hasNotifications ? (
-          <div className="rounded-2xl border border-gray-100 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-8 text-center text-gray-500 dark:text-gray-400 shadow-sm">
+          <div className="client-card rounded-2xl p-8 text-center text-[#6f5f4c]">
             {t('noActiveNotifications')}
           </div>
         ) : (
           <div className="space-y-4">
             {notifications.map((item) => (
-              <div key={item.id} className="rounded-2xl border border-gray-100 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 shadow-sm">
+              <div key={item.id} className="client-card rounded-2xl p-5">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">{translateText(item.title)}</h2>
-                    <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                    <h2 className="text-lg font-bold text-[#3b2f22]">{translateText(item.title)}</h2>
+                    <p className="mt-1 text-sm text-[#7a6855]">
                       {item.created_at ? formatLocalizedDateTime(item.created_at, locale) : t('recentlyPosted')}
                     </p>
                   </div>
-                  <span className="rounded-full bg-amber-50 dark:bg-amber-900/40 px-3 py-1 text-xs font-semibold text-amber-700 dark:text-amber-400">
+                  <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700">
                     {item.recipients ? translateText(item.recipients) : t('all')}
                   </span>
                 </div>
-                <p className="mt-4 whitespace-pre-wrap text-sm leading-6 text-slate-700 dark:text-slate-300">{translateText(item.message)}</p>
+                <p className="mt-4 whitespace-pre-wrap text-sm leading-6 text-[#4f4233]">{translateText(item.message)}</p>
               </div>
             ))}
           </div>

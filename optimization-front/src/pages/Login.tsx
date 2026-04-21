@@ -75,6 +75,7 @@ export default function Login() {
     <div className="flex min-h-screen items-stretch" style={{ backgroundColor: 'transparent' }}>
       <LanguageSwitcher className="fixed top-4 right-4 z-50" dropdownDirection="down" />
       <DarkModeToggle className="fixed top-16 right-4 z-50" />
+
       {/* Left panel — brand identity */}
       <div
         className="relative hidden flex-col justify-between overflow-hidden p-12 lg:flex lg:w-[46%]"
@@ -85,7 +86,6 @@ export default function Login() {
           backdropFilter: 'blur(18px)',
         }}
       >
-        {/* Geometric accent — large amber circle */}
         <div
           className="pointer-events-none absolute -right-24 -top-24 h-80 w-80 rounded-full opacity-20"
           style={{ background: 'radial-gradient(circle, #d97706 0%, transparent 70%)' }}
@@ -94,7 +94,6 @@ export default function Login() {
           className="pointer-events-none absolute -bottom-16 -left-16 h-56 w-56 rounded-full opacity-10"
           style={{ background: 'radial-gradient(circle, #b45309 0%, transparent 70%)' }}
         />
-        {/* Grid pattern overlay */}
         <div
           className="pointer-events-none absolute inset-0 opacity-[0.04]"
           style={{
@@ -106,7 +105,7 @@ export default function Login() {
           <div className="mb-8 flex h-14 w-14 items-center justify-center rounded-2xl" style={{ background: 'rgba(180,83,9,0.18)', border: '1px solid rgba(180,83,9,0.3)' }}>
             <BrandHomeIcon size={28} className="text-amber-400" />
           </div>
-          <h1 className="font-display text-5xl font-800 leading-[1.1] tracking-tight text-white"
+          <h1 className="font-display text-5xl leading-[1.1] tracking-tight text-white"
               style={{ fontFamily: '"Bricolage Grotesque", ui-sans-serif', fontWeight: 800 }}>
             {t('brandName')}
           </h1>
@@ -135,7 +134,6 @@ export default function Login() {
       {/* Right panel — form */}
       <div className="flex flex-1 flex-col items-center justify-center px-6 py-12" style={{ background: isDark ? 'rgba(24,21,17,0.68)' : 'rgba(250,248,244,0.72)', backdropFilter: 'blur(18px)' }}>
         <div className="w-full max-w-md">
-          {/* Mobile brand header */}
           <div className="mb-8 lg:hidden">
             <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-600 shadow-lg">
               <BrandHomeIcon size={28} className="text-white" />
@@ -163,8 +161,8 @@ export default function Login() {
                     type="email"
                     value={email}
                     onChange={(event) => setEmail(event.target.value)}
-                    className="w-full rounded-xl border bg-white px-4 py-3 text-stone-900 outline-none transition placeholder:text-stone-400 focus:ring-2"
-                    style={{ borderColor: '#ddd8d0', focusRingColor: '#b45309' }}
+                    className="w-full rounded-xl border bg-white px-4 py-3 text-stone-900 outline-none transition placeholder:text-stone-400"
+                    style={{ borderColor: '#ddd8d0' }}
                     onFocus={(e) => { e.currentTarget.style.borderColor = '#b45309'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(180,83,9,0.12)'; }}
                     onBlur={(e) => { e.currentTarget.style.borderColor = '#ddd8d0'; e.currentTarget.style.boxShadow = 'none'; }}
                     placeholder={t('enterYourEmail')}

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Bell, ArrowDownToLine, ArrowUpFromLine, User, Link as LinkIcon, HeadphonesIcon, LogOut, ChevronRight, type LucideIcon } from 'lucide-react';
+import { Bell, ArrowDownToLine, ArrowUpFromLine, User, Link as LinkIcon, HeadphonesIcon, LogOut, ChevronRight, ChevronLeft, type LucideIcon } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
@@ -93,8 +93,6 @@ export default function Profile() {
 
   return (
     <div className="flex min-h-full flex-col pb-6" style={{ backgroundColor: 'transparent' }}>
-
-      {/* Top bar — /polish: translucent canvas blur */}
       <div
         className="sticky top-0 z-10 flex items-center justify-between px-4 py-3.5 md:px-6"
         style={{
@@ -109,7 +107,7 @@ export default function Profile() {
           style={{ color: isDark ? '#d8cfc2' : '#6b6560', fontFamily: DISPLAY }}
           aria-label="Back to Home"
         >
-          ←
+          <ChevronLeft size={20} />
         </Link>
         <h1 className="text-sm font-bold text-stone-800 dark:text-stone-100 tracking-wide" style={{ fontFamily: DISPLAY }}>
           {t('profile')}
@@ -131,9 +129,7 @@ export default function Profile() {
 
       <div className="grid gap-5 p-4 md:p-6 lg:grid-cols-[1fr_1.2fr]">
 
-        {/* Hero card — /bolder + /quieter:
-            Warm amber-terracotta gradient — distinctive, not AI slop blue/purple.
-            Removed decorative blur blobs (purposeless decoration). */}
+        {/* Hero card — warm amber-terracotta gradient */}
         <div
           className="fade-up relative overflow-hidden rounded-2xl p-6 text-white"
           style={{
@@ -141,7 +137,6 @@ export default function Profile() {
             boxShadow: '0 8px 28px rgba(120,45,18,0.35)',
           }}
         >
-          {/* Subtle grid overlay for texture — intentional, not decorative blob */}
           <div
             className="pointer-events-none absolute inset-0 opacity-[0.04]"
             style={{
@@ -149,7 +144,6 @@ export default function Profile() {
             }}
           />
 
-          {/* Avatar + identity */}
           <div className="relative z-10 mb-5 flex items-center gap-4">
             <div
               className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full"
@@ -179,14 +173,12 @@ export default function Profile() {
             </div>
           </div>
 
-          {/* Contact info — /polish: consistent leading */}
           <div className="relative z-10 mb-5 space-y-1 text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>
             <p>{user?.email || t('noEmailAddedYet')}</p>
             <p>{user?.phone || t('noPhoneAddedYet')}</p>
             <p>{t('wallet')}: <span className="text-white/80">{user?.wallet_address || t('notBoundYet')}</span></p>
           </div>
 
-          {/* Credit score — /clarify: show value clearly */}
           <div className="relative z-10 mb-5">
             <div className="mb-2 flex justify-between text-xs font-semibold">
               <span style={{ color: 'rgba(255,255,255,0.6)' }}>{t('creditScore')}</span>
@@ -200,27 +192,11 @@ export default function Profile() {
             </div>
           </div>
 
-          {/* Stats — /layout: 3-col, tabular numbers for alignment */}
           <div className="relative z-10 grid grid-cols-3 gap-2">
             {[
-              {
-                label: t('totalBalance'),
-                value: `${balance.toFixed(2)}`,
-                unit: 'USDT',
-                highlight: balance < 0,
-              },
-              {
-                label: t('commissionToday'),
-                value: `${commissionToday.toFixed(2)}`,
-                unit: 'USDT',
-                highlight: false,
-              },
-              {
-                label: t('remainingTasks'),
-                value: `${remainingTasks}`,
-                unit: `/ ${totalTasks}`,
-                highlight: false,
-              },
+              { label: t('totalBalance'),     value: balance.toFixed(2),           unit: 'USDT', highlight: balance < 0 },
+              { label: t('commissionToday'),  value: commissionToday.toFixed(2),   unit: 'USDT', highlight: false },
+              { label: t('remainingTasks'),   value: `${remainingTasks}`,          unit: `/ ${totalTasks}`, highlight: false },
             ].map((stat) => (
               <div
                 key={stat.label}
@@ -239,7 +215,7 @@ export default function Profile() {
           </div>
         </div>
 
-        {/* Menu sections — /polish: consistent spacing, clear affordances */}
+        {/* Menu sections */}
         <div className="space-y-5">
           {menuSections.map((section, idx) => (
             <div key={idx} className="fade-up" style={{ animationDelay: `${idx * 0.05 + 0.1}s` }}>

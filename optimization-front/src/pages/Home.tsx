@@ -16,21 +16,19 @@ export default function Home() {
   const [vipLevelConfig, setVipLevelConfig] = useState<VipLevelConfig[]>(() => getDefaultVipLevels());
   const isDark = theme === 'dark';
 
-  // /colorize + /quieter: single warm-tone icon system, no rainbow, no glow
   const menuItems = useMemo(
     () => [
-      { icon: HeadphonesIcon, labelKey: 'service',    to: '/support'  },
-      { icon: Gift,           labelKey: 'event'                        },
-      { icon: ArrowUpFromLine,labelKey: 'withdrawal', to: '/withdraw'  },
-      { icon: ArrowDownToLine,labelKey: 'deposit',    to: '/deposit'   },
-      { icon: FileText,       labelKey: 'terms'                        },
-      { icon: Award,          labelKey: 'certificate'                  },
-      { icon: HelpCircle,     labelKey: 'faqs',       to: '/faqs'      },
+      { icon: HeadphonesIcon, labelKey: 'service',    iconColor: 'text-cyan-300',    iconShell: 'border-cyan-400/45 bg-cyan-500/12 shadow-[0_0_22px_rgba(34,211,238,0.35)]',    to: '/support'  },
+      { icon: Gift,           labelKey: 'event',      iconColor: 'text-fuchsia-300', iconShell: 'border-fuchsia-400/45 bg-fuchsia-500/12 shadow-[0_0_22px_rgba(232,121,249,0.35)]' },
+      { icon: ArrowUpFromLine,labelKey: 'withdrawal', iconColor: 'text-amber-300',   iconShell: 'border-amber-400/45 bg-amber-500/12 shadow-[0_0_22px_rgba(251,191,36,0.35)]',   to: '/withdraw' },
+      { icon: ArrowDownToLine,labelKey: 'deposit',    iconColor: 'text-emerald-300', iconShell: 'border-emerald-400/45 bg-emerald-500/12 shadow-[0_0_22px_rgba(52,211,153,0.35)]', to: '/deposit' },
+      { icon: FileText,       labelKey: 'terms',      iconColor: 'text-indigo-300',  iconShell: 'border-indigo-400/45 bg-indigo-500/12 shadow-[0_0_22px_rgba(129,140,248,0.35)]' },
+      { icon: Award,          labelKey: 'certificate',iconColor: 'text-yellow-300',  iconShell: 'border-yellow-400/45 bg-yellow-500/12 shadow-[0_0_22px_rgba(250,204,21,0.35)]' },
+      { icon: HelpCircle,     labelKey: 'faqs',       iconColor: 'text-violet-300',  iconShell: 'border-violet-400/45 bg-violet-500/12 shadow-[0_0_22px_rgba(167,139,250,0.35)]', to: '/faqs' },
     ],
     [],
   );
 
-  // /bolder + /quieter: parchment cards with strong type hierarchy — no dark-gradient-blob AI slop
   const vipLevels = useMemo(
     () =>
       vipLevelConfig.map((item) => ({
@@ -65,7 +63,7 @@ export default function Home() {
     <div className="canvas-texture flex min-h-full flex-col overflow-x-hidden pb-8">
       <div className="px-4 pt-5 md:px-8 md:pt-6">
 
-        {/* Header card — /polish: consistent spacing, amber accent */}
+        {/* Header card */}
         <div
           className="fade-up relative z-20 mb-5 overflow-hidden rounded-[28px] px-4 py-4 md:px-5"
           style={{
@@ -130,7 +128,7 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Banner video — /animate: rounded, shadow for depth */}
+        {/* Banner video */}
         <div className="fade-up fade-up-1 overflow-hidden rounded-3xl shadow-md">
           <video autoPlay muted loop playsInline preload="auto"
             poster="https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=800&q=80"
@@ -139,12 +137,11 @@ export default function Home() {
           </video>
         </div>
 
-        {/* Menu grid — /colorize + /quieter: single warm tone, no rainbow, no CSS glow */}
+        {/* Menu grid */}
         <div
           className="fade-up fade-up-2 mt-4 rounded-[30px] px-3 py-4 md:px-4 md:py-5"
           style={{ background: 'linear-gradient(160deg, #2c261f 0%, #1a1712 100%)', boxShadow: '0 16px 30px rgba(0,0,0,0.22)' }}
         >
-          {/* /clarify: removed redundant "Menu List" double-label */}
           <p className="mb-3 text-[10px] font-bold uppercase tracking-widest" style={{ color: '#6b5f50', fontFamily: DISPLAY }}>
             {t('quickActions')}
           </p>
@@ -152,12 +149,8 @@ export default function Home() {
             {menuItems.map((item, index) => {
               const content = (
                 <>
-                  {/* Single warm wheat tone — cohesion over rainbow */}
-                  <div
-                    className="mx-auto mb-2 flex h-11 w-11 items-center justify-center rounded-full transition-all duration-200 group-hover:scale-105"
-                    style={{ background: 'rgba(212,188,148,0.12)', border: '1px solid rgba(212,188,148,0.14)' }}
-                  >
-                    <item.icon size={19} strokeWidth={1.6} style={{ color: '#d4bc94' }} />
+                  <div className={`mx-auto mb-2 flex h-11 w-11 items-center justify-center rounded-full border backdrop-blur-sm transition-all duration-200 group-hover:scale-105 ${item.iconShell}`}>
+                    <item.icon className={item.iconColor} size={19} strokeWidth={1.6} />
                   </div>
                   <span
                     className="block text-center text-[9px] font-semibold uppercase tracking-wider leading-tight"
@@ -184,7 +177,7 @@ export default function Home() {
         </div>
       </div>
 
-      {/* VIP cards — /bolder + /quieter + /layout: parchment cards, typographic hierarchy */}
+      {/* VIP cards */}
       <div className="px-4 pt-7 md:px-8">
         <div className="fade-up fade-up-3 mb-4 flex items-center justify-between">
           <h2 className="text-lg font-bold text-stone-800 dark:text-stone-100 md:text-xl" style={{ fontFamily: DISPLAY, fontWeight: 700 }}>
@@ -204,11 +197,9 @@ export default function Home() {
               className="flex flex-col overflow-hidden rounded-2xl transition-shadow duration-200 hover:shadow-md"
               style={{ background: 'var(--surface)', border: '1px solid var(--border)', boxShadow: isDark ? '0 10px 24px rgba(0,0,0,0.28)' : '0 2px 10px rgba(28,26,23,0.06)' }}
             >
-              {/* Tier accent top stripe — /shape */}
               <div className="h-0.75 w-full" style={{ background: vip.style.accent }} />
 
               <div className="flex flex-col flex-1 px-5 pt-4 pb-5">
-                {/* Tier label + dramatic level number — /bolder: 3× scale contrast */}
                 <div className="mb-4 flex items-start justify-between">
                   <div>
                     <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: vip.style.accent, fontFamily: DISPLAY }}>
@@ -229,7 +220,6 @@ export default function Home() {
                   </span>
                 </div>
 
-                {/* Stats — /clarify: numbers first, labels underneath */}
                 <div className="mb-4 grid grid-cols-3 gap-3">
                   {[
                     { value: String(vip.tasks), label: t('vipTasksPerSet') },
@@ -247,10 +237,8 @@ export default function Home() {
                   ))}
                 </div>
 
-                {/* Divider */}
                 <div className="mb-3" style={{ borderTop: isDark ? '1px solid rgba(120,103,82,0.28)' : '1px solid #ede8e0' }} />
 
-                {/* Activation — /clarify: specific, prominent */}
                 <div className="mt-auto flex items-center justify-between">
                   <span className="text-xs font-medium" style={{ color: isDark ? '#9e9385' : '#9c9288' }}>{t('activateWith')}</span>
                   <span className="text-sm font-bold tabular-nums" style={{ color: vip.style.accent, fontFamily: DISPLAY }}>

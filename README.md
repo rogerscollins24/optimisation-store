@@ -72,8 +72,10 @@ If the default frontend ports are busy, Vite automatically selects the next free
 - Moved Task Progress into the same top stats row as balance and commission for a tighter mobile layout.
 - Added a paint/canvas textured background treatment for the refreshed client views.
 - Refreshed the Home page with an autoplay banner, darker quick-action menu, and richer VIP tier cards.
+- Mobile Home quick-action menu now keeps a visible horizontal scrollbar for easier discovery of off-screen actions.
 - Redesigned the Support page so `New Chat` opens in the main panel with a cleaner ticket/chat layout.
 - Support access is now routed through the account/profile area while the floating chat shortcut remains available.
+- Repositioned the floating chat shortcut to stay above the bottom toolbar on mobile.
 - Added a visible Pending section beneath the Starting grid so blocked tasks are surfaced outside the modal flow.
 - Pending views now treat both `pending` and `pending_debited` as active blocked tasks in the client UI.
 - Added deposit prompt and clickable support/chat link when balance is insufficient.

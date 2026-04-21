@@ -124,7 +124,7 @@ export default function Records() {
             onClick={() => setActiveTab(tab)}
             className={`flex-1 rounded-[18px] py-3 text-sm font-semibold text-center transition-colors ${
               activeTab === tab
-                ? 'bg-[#231d17] text-amber-300 shadow-sm dark:bg-[#231d17] dark:text-amber-300'
+                ? 'bg-[#231d17] text-amber-300 shadow-sm'
                 : 'text-stone-500 dark:text-stone-400 hover:bg-white/70 dark:hover:bg-zinc-800 hover:text-stone-700 dark:hover:text-stone-200'
             }`}
             style={{ fontFamily: DISPLAY }}
