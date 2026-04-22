@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Bell, UserCircle, Star, X } from 'lucide-react';
+import { Bell, UserCircle, Star, X, Clock } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useUser, Task } from '../store';
@@ -407,22 +407,88 @@ export default function Starting() {
               {productCells.map((product, cellIndex) => {
                 if (cellIndex === 4) {
                   return (
-                    <div key="start-cell" className="aspect-square w-full max-w-45">
+                    <div key="start-cell" style={{ position: 'relative', aspectRatio: '1', width: '100%', maxWidth: '180px' }}>
+                      <style>{`
+                        @keyframes pendingGlow {
+                          0%   { box-shadow: 0 0 0 0 rgba(217,119,6,0.8), 0 0 24px 6px rgba(217,119,6,0.3); }
+                          70%  { box-shadow: 0 0 0 20px rgba(217,119,6,0), 0 0 24px 6px rgba(217,119,6,0.1); }
+                          100% { box-shadow: 0 0 0 0 rgba(217,119,6,0), 0 0 24px 6px rgba(217,119,6,0.3); }
+                        }
+                        @keyframes pendingPulse {
+                          0%, 100% { transform: scale(1); opacity: 1; }
+                          50% { transform: scale(1.22); opacity: 0.7; }
+                        }
+                        @keyframes pendingShimmer {
+                          0%   { background-position: -200% center; }
+                          100% { background-position: 200% center; }
+                        }
+                        @keyframes orbitSpin {
+                          from { transform: rotate(0deg); }
+                          to   { transform: rotate(360deg); }
+                        }
+                      `}</style>
+
+                      {pendingTaskBlocked && !isOptimizing && (
+                        <div style={{
+                          position: 'absolute', inset: 0,
+                          borderRadius: '9999px',
+                          pointerEvents: 'none',
+                          animation: 'orbitSpin 3.5s linear infinite',
+                        }}>
+                          <div style={{
+                            position: 'absolute', top: '-3px', left: '50%',
+                            transform: 'translateX(-50%)',
+                            width: '10px', height: '10px',
+                            borderRadius: '9999px',
+                            background: 'rgba(251,191,36,0.95)',
+                            boxShadow: '0 0 8px 3px rgba(251,191,36,0.6)',
+                          }} />
+                        </div>
+                      )}
+
                       <button
                         onClick={handleStart}
                         disabled={isOptimizing || pendingTaskBlocked || (user?.tasks_completed_in_set ?? 0) >= totalTasks || !isAccountActive}
+                        style={pendingTaskBlocked ? {
+                          display: 'flex', flexDirection: 'column', alignItems: 'center',
+                          justifyContent: 'center', width: '100%', height: '100%',
+                          borderRadius: '9999px', border: '2px solid rgba(217,119,6,0.7)',
+                          background: '#1a1510', color: 'white', fontWeight: 'bold',
+                          cursor: 'not-allowed', fontSize: '0.875rem',
+                          animation: 'pendingGlow 2s ease-in-out infinite',
+                        } : undefined}
                         className={`mx-auto flex h-full w-full flex-col items-center justify-center rounded-full text-center text-white font-bold text-sm shadow-2xl transition-transform active:scale-95 sm:text-lg ${
-                          (isOptimizing || pendingTaskBlocked || (user?.tasks_completed_in_set ?? 0) >= totalTasks || !isAccountActive)
-                            ? 'bg-gray-400 cursor-not-allowed'
-                            : 'bg-[linear-gradient(100deg,#9f6a2a_0%,#be8a43_52%,#986225_100%)] hover:brightness-105'
+                          pendingTaskBlocked
+                            ? ''
+                            : (isOptimizing || (user?.tasks_completed_in_set ?? 0) >= totalTasks || !isAccountActive)
+                              ? 'bg-gray-400 cursor-not-allowed'
+                              : 'bg-[linear-gradient(100deg,#9f6a2a_0%,#be8a43_52%,#986225_100%)] hover:brightness-105'
                         }`}
                       >
                         {isOptimizing ? (
-                          <div className="mb-2 h-8 w-8 animate-spin rounded-full border-b-2 border-white"></div>
-                        ) : (
-                          <span className="mb-1 text-3xl sm:mb-2 sm:text-4xl">🚀</span>
-                        )}
-                        <span>{isOptimizing ? t('optimizing') : pendingTaskBlocked ? t('pending') : t('start')}</span>
+                          <div className="mb-2 h-8 w-8 animate-spin rounded-full border-b-2 border-white" />
+                        ) : pendingTaskBlocked ? (
+                          <Clock
+                            size={38}
+                            style={{
+                              marginBottom: '6px',
+                              color: 'rgb(251,191,36)',
+                              animation: 'pendingPulse 2.5s ease-in-out infinite',
+                            }}
+                          />
+                        ) : null}
+                        <span style={pendingTaskBlocked ? {
+                          background: 'linear-gradient(90deg,#fde68a,#f59e0b,#fde68a)',
+                          backgroundSize: '200% auto',
+                          WebkitBackgroundClip: 'text',
+                          WebkitTextFillColor: 'transparent',
+                          backgroundClip: 'text',
+                          animation: 'pendingShimmer 2.5s linear infinite',
+                          fontWeight: '700',
+                          fontSize: '0.95rem',
+                        } : undefined}>
+                          {isOptimizing ? t('optimizing') : pendingTaskBlocked ? t('pending') : t('start')}
+                        </span>
                       </button>
                     </div>
                   );
